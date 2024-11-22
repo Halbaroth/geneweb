@@ -6,6 +6,10 @@ on:
   push:
     branches:
       - master
+
+env:
+  OPAMYES: true
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -29,14 +33,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Setup Ocaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v2
+        uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
       - name: Setup GeneWeb dependencies + ocamlformat
         run: |
-          opam pin add . -y --no-action
-          opam depext -y geneweb
-          opam install -y ./*.opam --deps-only --with-test
+          opam install . --deps-only --with-test
           opam pin ocamlformat 0.24.1
       - name: Make ocamlformat > build/distrib
         run: |
@@ -67,13 +69,14 @@ jobs:
 
       - name: Setup GeneWeb dependencies
         run: |
-          opam install -y ancient calendars.1.0.0 camlp-streams camlp5 camlzip cppo dune jingoo markup ocamlformat.0.24.1 oUnit ppx_blob ppx_deriving ppx_import stdlib-shims syslog unidecode.0.2.0 uri uucp uutf uunf
+          opam install . --deps-only
+          opam install ancient
 
       - name: build/distrib
         run: |
           opam exec -- ocaml ./configure.ml --release
           opam exec -- make fmt distrib
-          
+
       - name: Run gwd with cache-in-memory parameter and check output
         run: |
           output=$(distribution/gw/gwd -cache-in-memory testing 2>&1)
