@@ -1,4 +1,7 @@
-let handler _sockaddr msg = Lwt.return msg
+let handler _sockaddr msg =
+  let content = Bigstringaf.to_string msg.Server.content in
+  let%lwt () = Logs_lwt.debug (fun k -> k "receive message:@ %s" content) in
+  Lwt.return msg
 
 let start (cfg : Cmd.cfg) =
   let handle_exn exn =

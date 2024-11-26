@@ -1366,5 +1366,31 @@ $(document).ready(function() {
   });
 });
 </script>
+<script type="module">
+  import { WebSocketHandler } from "./js/websocket_manager.js";
+
+  function websocket_address(port) {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    if (protocol === "http:") {
+      const p = port === undefined ? "8080" : port;
+      return `ws://${hostname}:${p}`;
+    } else {
+      const p = port === undefined ? "8443" : port;
+      return `wss://${hostname}:${p}`;
+    }
+  }
+
+  const open_handler = (wshandler, event) => {
+    wshandler.send({ "toto": "tata" });
+  }
+
+  const message_handler = (obj) => {
+    console.log(obj);
+  }
+
+  const wshandler = new
+    WebSocketHandler(websocket_address(), open_handler, message_handler);
+</script>
 </body>
 </html>
