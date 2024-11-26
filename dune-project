@@ -27,7 +27,7 @@
     camlp-streams
     camlzip
     cppo
-    (fmt :with-test)
+    fmt
     jingoo
     markup
     num
@@ -45,6 +45,15 @@
     uunf
     uutf
     zarith
+    lwt
+    tls-lwt
+    cmdliner
+    yojson
+    digestif
+    httpun
+    httpun-lwt-unix
+    httpun-ws
+    logs
   )
   (depopts
     ocaml-option-nnp

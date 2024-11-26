@@ -1,0 +1,19 @@
+(executable
+  (package geneweb)
+  (name main)
+  (public_name geneweb.wsserver)
+  (libraries
+    lwt
+    lwt.unix
+    cmdliner
+    yojson
+    digestif
+    httpun
+    httpun-lwt-unix
+    httpun-ws
+    logs
+    logs.fmt
+    logs.lwt
+    tls
+    fmt)
+  (preprocess (pps lwt_ppx)))

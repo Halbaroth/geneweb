@@ -19,7 +19,7 @@ depends: [
   "camlp-streams"
   "camlzip"
   "cppo"
-  "fmt" {with-test}
+  "fmt"
   "jingoo"
   "markup"
   "num"
@@ -37,6 +37,15 @@ depends: [
   "uunf"
   "uutf"
   "zarith"
+  "lwt"
+  "tls-lwt"
+  "cmdliner"
+  "yojson"
+  "digestif"
+  "httpun"
+  "httpun-lwt-unix"
+  "httpun-ws"
+  "logs"
   "odoc" {with-doc}
 ]
 depopts: ["ocaml-option-nnp" "ancient"]
