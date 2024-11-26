@@ -4,7 +4,6 @@
   (public_name search-server)
   (libraries
     geneweb
-    camlzip
     lwt
     lwt.unix
     cmdliner

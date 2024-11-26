@@ -21,6 +21,7 @@
 <body%body_prop; id="person">
 %include;hed
 <div class="container pl-lg-0 pr-lg-3 px-xl-3">
+<datalist id="datalist_places"></datalist>
 %message_to_wizard;
 %( do not use %include;perso_header %)
 %include_perso_header;
@@ -356,7 +357,7 @@
         <input type="text" name="excnt_ins_witnwcnt_n" size="1" maxlength="1" value="1" onkeydown= "if(event.keyCode == 13) document.getElementById('excnt_ins_witnwcnt').value = 'on';">
         </label>[nouveau(x)::witness/witnesses]0 %if;("evt_name" = "#bapt")/ [godfather/godmother/godparents]2%end;
         <input type="hidden" name="excnt_ins_witnwcnt" id="excnt_ins_witnwcnt" readonly>
-        <input type="submit" 
+        <input type="submit"
           onclick="%if;("evt_name" = "buri_or_crem")set_buri(xcnt);%end;
                    %if;("evt_name" = "#deat")set_insert_death(xcnt);%end; document.forms['form_pers'].action += '#witn';document.getElementById('excnt_ins_witnwcnt').value = 'on'" value="ok" readonly>
       </td>
@@ -391,8 +392,8 @@
     <div class="row">
       <label for="excnt_witnwcnt_fn" class="col-2 col-form-label">[*first name/first names]0</label>
       <div class="col-6">
-        <input type="text" class="form-control" name="excnt_witnwcnt_fn" id="excnt_witnwcnt_fn" 
-          value="%witness.first_name;"placeholder="[*first name/first names]0"%datalist_fnames;>
+        <input type="text" class="form-control" name="excnt_witnwcnt_fn" id="excnt_witnwcnt_fn"
+          value="%witness.first_name;"placeholder="[*first name/first names]0" %datalist_fnames;>
       </div>
       <label for="excnt_witnwcnt_occ" class="col-2 col-form-label">[*number]0</label>
       <div class="col-2">
@@ -404,7 +405,7 @@
       <label for="excnt_witnwcnt_sn" class="col-2 col-form-label">[*surname/surnames]0</label>
       <div class="col-6">
         <input type="text" class="form-control" name="excnt_witnwcnt_sn" id="excnt_witnwcnt_sn"
-          value="%witness.surname;" placeholder="[*surname/surnames]0"%datalist_snames;>
+          value="%witness.surname;" placeholder="[*surname/surnames]0" %datalist_snames;>
       </div>
       <div id="excnt_witnwcnt_p_selct_mod" class="col-form-label ml-2">%nn;
         %if;(witness.index!="-1" and (witness.first_name!="" or witness.surname!=""))
@@ -444,7 +445,7 @@
       <label for="excnt_witnwcnt_occu" class="col-sm-2 col-form-label">[*occupation/occupations]0</label>
       <div class="col-6">
         <input class="form-control" type="text" name="excnt_witnwcnt_occu" id="excnt_witnwcnt_occu"
-           value="%witness.create.occupation;" placeholder="[*occupation/occupations]0"%datalist_occupations;>
+           value="%witness.create.occupation;" placeholder="[*occupation/occupations]0" %datalist_occupations;>
       </div>
       <div class="form-inline col-sm-auto">
         <div class="custom-control  custom-checkbox mr-3">
@@ -476,7 +477,7 @@
     <div class="row">
       <label for="e_placexcnt" class="col-2 col-form-label">[*place/places]0</label>
       <div class="col-10">
-        <input type="text" class="form-control" name="e_placexcnt" maxlength="200" value="%event.e_place;" id="e_placexcnt"%if;("evt_name" = "#deat") onfocus='set_death_focus(xcnt)'%elseif;("evt_name" = "buri_or_crem") onfocus='set_burial_focus(xcnt)'%end; placeholder="[*place/places]0"%datalist_places;>
+        <input type="text" class="form-control" name="e_placexcnt" maxlength="200" value="%event.e_place;" id="e_placexcnt"%if;("evt_name" = "#deat") onfocus='set_death_focus(xcnt)'%elseif;("evt_name" = "buri_or_crem") onfocus='set_burial_focus(xcnt)'%end; placeholder="[*place/places]0" %datalist_places;>
         <a class="astuce" onmouseover="show_explain('updind','place',event)" onmouseout="hide_explain('updind',event)"></a>
       </div>
     </div>
@@ -493,7 +494,7 @@
         %if;(event.e_src!="")
           <textarea class="form-control" name="e_srcxcnt" id="e_srcxcnt" rows="1" placeholder="[*source/sources]0" %l_on1s;>%event.e_src;</textarea>
         %else;
-          <input class="form-control" name="e_srcxcnt" id="e_srcxcnt" placeholder="[*source/sources]0" value="%event.e_src;"datalist_sources;>
+          <input class="form-control" name="e_srcxcnt" id="e_srcxcnt" placeholder="[*source/sources]0" value="%event.e_src;" %datalist_sources;>
         %end;
       </div>
     </div>
@@ -573,7 +574,7 @@
     <div class="row">
       <label for="e_placexcnt" class="col-sm-2 col-form-label">[*place/places]0</label>
       <div class="col-sm-10">
-        <input type="text" class="form-control" name="e_placexcnt" maxlength="200" value="%event.e_place;"%sp; id="e_placexcnt" %if;("evt_name" = "#deat") onfocus='set_death_focus(xcnt)'%end; placeholder="[*place/places]0"%datalist_places;>
+        <input type="text" class="form-control" name="e_placexcnt" maxlength="200" value="%event.e_place;"%sp; id="e_placexcnt" %if;("evt_name" = "#deat") onfocus='set_death_focus(xcnt)'%end; placeholder="[*place/places]0" %datalist_places;>
       </div>
     </div>
     %apply;date%with;[*date/dates]0%and;e_datexcnt%and;event_date%and;%if;("evt_name" = "#deat")onfocus='set_death_focus(xcnt)'%end;%end;
@@ -589,7 +590,7 @@
         %if;(event.e_src!="")
           <textarea class="form-control" name="e_srcxcnt" id="e_srcxcnt" rows="1" placeholder="[*source/sources]0" %l_on1s;>%event.e_src;</textarea>
         %else;
-          <input class="form-control" name="e_srcxcnt" id="e_srcxcnt" placeholder="[*source/sources]0" value="%event.e_src;"%datalist_sources;>
+          <input class="form-control" name="e_srcxcnt" id="e_srcxcnt" placeholder="[*source/sources]0" value="%event.e_src;" %datalist_sources;>
         %end;
       </div>
     </div>
@@ -670,8 +671,7 @@
   <div class="row">
     <label for="e_placexcnt" class="col-sm-2 col-form-label">[*place/places]0</label>
     <div class="col-sm-10">
-      <input type="text" class="form-control" name="e_placexcnt" id="e_placexcnt" value="" placeholder="[*place/places]0"%datalist_places;
-        maxlength="200"%if;("evt_name" = "#deat") onfocus='set_death_focus(xcnt)'%elseif;("evt_name" = "buri_or_crem") onfocus='set_buri(xcnt)'%end;>
+      <input type="text" class="form-control" name="e_placexcnt" id="e_placexcnt" value="" placeholder="[*place/places]0" %datalist_places; maxlength="200" %if;("evt_name" = "#deat") onfocus='set_death_focus(xcnt)'%elseif;("evt_name" = "buri_or_crem") onfocus='set_buri(xcnt)'%end;>
     </div>
   </div>
   %if;("evt_name"="#deat")
@@ -739,8 +739,13 @@
       <input type="hidden" name="m" value="ADD_IND_OK">
     %end;
   </div>
-  
+
   <div class="card">
+<div class="dropdown">
+  <input class="form-control dropdown-input" id="search-places" placeholder="searching..." autocomplete="off">
+  <div class="dropdown-content" id="list-places">
+  </div>
+</div>
     <h2 class="card-header%if;(mrg=1) mt-5%end;">%nn;
       %if;(mrg=1)[*merge::person/persons]1%nn;
       %elseif;(mod=1)[*modify::person/persons]0%nn;
@@ -757,7 +762,7 @@
         <div class="row">
           <label for="first_name" class="col-sm-2 col-form-label">[*first name/first names]0</label>
           <div class="col-sm-6">
-            <input type="text" class="form-control" name="first_name" maxlength="200" value="%first_name;" id="first_name" placeholder="[*first name/first names]0"%datalist_fnames;>
+            <input type="text" class="form-control" name="first_name" maxlength="200" value="%first_name;" id="first_name" placeholder="[*first name/first names]0" %datalist_fnames;>
           </div>
           <label for="occ" class="col col-form-label">[*number]0</label>
           <div class="col">
@@ -767,7 +772,7 @@
         <div class="row">
           <label for="surname" class="col-sm-2 col-form-label">[*surname/surnames]0</label>
           <div class="col-sm-6">
-            <input type="text" class="form-control" name="surname" maxlength="200" value="%surname;" id="surname" placeholder="[*surname/surnames]0"%datalist_snames;>
+            <input type="text" class="form-control" name="surname" maxlength="200" value="%surname;" id="surname" placeholder="[*surname/surnames]0" %datalist_snames;>
           </div>
           <span class="col col-form-label">[*sex]</span>
           <div class="col mt-2">
@@ -790,7 +795,7 @@
             <div class="row">
             <label for="public_name" class="col-sm-3 col-form-label">[*public name]</label>
             <div class="col-sm-9">
-              <input type="text" class="form-control" name="public_name" value="%public_name;" id="public_name" placeholder="[*public name]"%datalist_pub_names;>
+              <input type="text" class="form-control" name="public_name" value="%public_name;" id="public_name" placeholder="[*public name]" %datalist_pub_names;>
             </div>
             <label for="image" class="col-sm-3 col-form-label mt-3">[*image/images]0</label>
             <div class="col-sm-9 mt-3">
@@ -827,7 +832,7 @@
             <div class="row">
               <label for="qualifier%cnt;" class="col-sm-2 col-form-label">[*qualifier]0</label>
               <div class="col-sm-6">
-                <input type="text" class="form-control" name="qualifier%cnt;" value="%qualifier;" id="qualifier%cnt;" placeholder="[*qualifier]0"%datalist_qualifiers;>
+                <input type="text" class="form-control" name="qualifier%cnt;" value="%qualifier;" id="qualifier%cnt;" placeholder="[*qualifier]0" %datalist_qualifiers;>
               </div>
               <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
                 <input class="custom-control-input"  type="checkbox" name="add_qualifier%cnt;" value="on" id="add_qualifier%cnt;">
@@ -839,7 +844,7 @@
           <div class="row">
             <label for="qualifier0" class="col-sm-2 col-form-label">[*qualifier]0</label>
             <div class="col-sm-6">
-              <input type="text" class="form-control" name="qualifier0" value="" id="qualifier0" placeholder="[*qualifier]0"%datalist_qualifiers;>
+              <input type="text" class="form-control" name="qualifier0" value="" id="qualifier0" placeholder="[*qualifier]0" %datalist_qualifiers;>
             </div>
             <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
               <input class="custom-control-input" type="checkbox" name="add_qualifier0" value="on" id="add_qualifier0">
@@ -852,7 +857,7 @@
             <div class="row">
               <label for="alias%cnt;" class="col-sm-2 col-form-label">[*alias]0</label>
               <div class="col-sm-6">
-                <input type="text" class="form-control" name="alias%cnt;" value="%alias;" id="alias%cnt;" placeholder="[*alias]0"%datalist_aliases;>
+                <input type="text" class="form-control" name="alias%cnt;" value="%alias;" id="alias%cnt;" placeholder="[*alias]0" %datalist_aliases;>
               </div>
               <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
                 <input class="custom-control-input" type="checkbox" name="add_alias%cnt;" value="on" id="add_alias%cnt;">
@@ -864,7 +869,7 @@
           <div class="row">
             <label for="alias0" class="col-sm-2 col-form-label">[*alias]0</label>
             <div class="col-sm-6">
-              <input type="text" class="form-control" name="alias0" value="" id="alias0" placeholder="[*alias]0"%datalist_aliases;>
+              <input type="text" class="form-control" name="alias0" value="" id="alias0" placeholder="[*alias]0" %datalist_aliases;>
             </div>
             <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
               <input class="custom-control-input" type="checkbox" name="add_alias0" value="on" id="add_alias0">
@@ -877,7 +882,7 @@
             <div class="row">
               <label for="first_name_alias%cnt;" class="col-sm-2 col-form-label">[*first name alias]0</label>
               <div class="col-sm-6">
-                <input type="text" class="form-control" name="first_name_alias%cnt;" value="%first_name_alias;" id="first_name_alias%cnt;" placeholder="[*first name alias]0"%datalist_fnames;>
+                <input type="text" class="form-control" name="first_name_alias%cnt;" value="%first_name_alias;" id="first_name_alias%cnt;" placeholder="[*first name alias]0" %datalist_fnames;>
               </div>
               <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
                 <input class="custom-control-input" type="checkbox" name="add_first_name_alias%cnt;" value="on" id="add_first_name_alias%cnt;">
@@ -889,7 +894,7 @@
           <div class="row">
             <label for="first_name_alias0" class="col-sm-2 col-form-label">[*first name alias]0</label>
             <div class="col-sm-6">
-              <input type="text" class="form-control" name="first_name_alias0" value="" id="first_name_alias0" placeholder="[*first name alias]0"%datalist_fnames;>
+              <input type="text" class="form-control" name="first_name_alias0" value="" id="first_name_alias0" placeholder="[*first name alias]0" %datalist_fnames;>
             </div>
             <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
               <input class="custom-control-input" type="checkbox" name="add_first_name_alias0" value="on" id="add_first_name_alias0">
@@ -902,7 +907,7 @@
             <div class="row">
               <label for="surname_alias%cnt;" class="col-sm-2 col-form-label">[*surname alias]0</label>
               <div class="col-sm-6">
-                <input type="text" class="form-control" name="surname_alias%cnt;" value="%surname_alias;" id="surname_alias%cnt;" placeholder="[*surname alias]0"%datalist_snames;>
+                <input type="text" class="form-control" name="surname_alias%cnt;" value="%surname_alias;" id="surname_alias%cnt;" placeholder="[*surname alias]0" %datalist_snames;>
               </div>
               <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
                 <input class="custom-control-input"  type="checkbox" name="add_surname_alias%cnt;" value="on" id="add_surname_alias%cnt;">
@@ -914,7 +919,7 @@
           <div class="row">
             <label for="surname_alias0" class="col-sm-2 col-form-label">[*surname alias]0</label>
             <div class="col-sm-6">
-              <input type="text" class="form-control" name="surname_alias0" value="" id="surname_alias0" placeholder="[*surname alias]0"%datalist_snames;>
+              <input type="text" class="form-control" name="surname_alias0" value="" id="surname_alias0" placeholder="[*surname alias]0" %datalist_snames;>
             </div>
             <div class="custom-control custom-checkbox col-sm-auto mt-2 ml-3">
               <input class="custom-control-input" type="checkbox" name="add_surname_alias0" value="on" id="add_surname_alias0">
@@ -929,7 +934,7 @@
           %if;(occupation!="")
             <textarea class="form-control" name="occu" rows="1" id="occu" placeholder="[*occupation/occupations]1" %l_on1s;>%occupation;</textarea>
           %else;
-            <input class="form-control" name="occu" id="occu" placeholder="[*occupation/occupations]1" value="%occupation;"%datalist_occupations;>
+            <input class="form-control" name="occu" id="occu" placeholder="[*occupation/occupations]1" value="%occupation;" %datalist_occupations;>
           %end;
         </div>
       </div>
@@ -939,7 +944,7 @@
           %if;(sources!="")
             <textarea class="form-control" name="src" rows="1" id="src" placeholder="[*source/sources]0" %l_on1s;>%sources;</textarea>
           %else;
-            <input class="form-control" name="src" id="src" placeholder="[*source/sources]0" value="%sources;"%datalist_sources;>
+            <input class="form-control" name="src" id="src" placeholder="[*source/sources]0" value="%sources;" %datalist_sources;>
           %end;
         </div>
         <button type="submit" class="btn btn-primary btn-sm col-2" title="[*validate/delete]0">
@@ -949,7 +954,7 @@
       </div>
     </div>
   </div>
-  
+
   <div class="card">
     %apply;card_header("birth","birth")
     <div class="card-body">
@@ -1141,7 +1146,7 @@
     <div class="row">
       <label for="rxcnt_xvar_fn" class="col-sm-2 col-form-label">[*first name/first names]0</label>
       <div class="col-sm-5">
-        <input type="text" class="form-control" name="rxcnt_xvar_fn" maxlength="200" value="%relation.xrel.first_name;" id="rxcnt_xvar_fn" placeholder="[*first name/first names]0"%datalist_fnames;>
+        <input type="text" class="form-control" name="rxcnt_xvar_fn" maxlength="200" value="%relation.xrel.first_name;" id="rxcnt_xvar_fn" placeholder="[*first name/first names]0" %datalist_fnames;>
       </div>
       <label for="rxcnt_xvar_occ" class="col-sm col-form-label">[*number]0</label>
       <div class="col-sm">
@@ -1158,7 +1163,7 @@
       <label for="rxcnt_xvar_sn" class="col-sm-2 col-form-label">[*surname/surnames]0</label>
       <div class="col-sm-5">
         <input type="text" class="form-control" name="rxcnt_xvar_sn" value="%relation.xrel.surname;"
-           id="rxcnt_xvar_sn" placeholder="[*surname/surnames]0"%datalist_snames;>
+           id="rxcnt_xvar_sn" placeholder="[*surname/surnames]0" %datalist_snames;>
       </div>
       <div class="col-1 col-form-label">
         (%if;("xvar"="fath")[*him/her]0%else;[*him/her]1%end;)
@@ -1240,11 +1245,11 @@
     <div class="row">
       <label for="t_identxcnt" class="col-form-label col-sm-2">[*title/titles]0</label>
       <div class="col-sm-4">
-        <input type="text" class="form-control" name="t_identxcnt" value="%title.t_ident;" id="t_identxcnt" placeholder="[*title/titles]0"%datalist_titles;>
+        <input type="text" class="form-control" name="t_identxcnt" value="%title.t_ident;" id="t_identxcnt" placeholder="[*title/titles]0" %datalist_titles;>
       </div>
       <label for="t_placexcnt" class="col-form-label col-sm-2">[*estate]0</label>
       <div class="col-sm-4">
-        <input type="text" class="form-control" name="t_placexcnt" value="%title.t_estate;" id="t_placexcnt" placeholder="[*estate]0"%datalist_estates;>
+        <input type="text" class="form-control" name="t_placexcnt" value="%title.t_estate;" id="t_placexcnt" placeholder="[*estate]0" %datalist_estates;>
       </div>
     </div>
     <div class="row">
@@ -1374,6 +1379,38 @@ $(document).ready(function() {
       $(this).show();}
   });
 });
+</script>
+<script type="module">
+  import { RemoteProcedures } from "./js/remoteprocedures.js";
+  import { dropDownWithCompletion } from "./js/dropdown.js";
+
+  function websocket_address(port) {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    if (protocol === "http:") {
+      const p = port === undefined ? "8080" : port;
+      return `ws://${hostname}:${p}`;
+    } else {
+      const p = port === undefined ? "8443" : port;
+      return `wss://${hostname}:${p}`;
+    }
+  }
+
+  const rp = new RemoteProcedures(websocket_address());
+
+  // const elements = document.querySelectorAll('[data-book="place"]');
+  // const datalist = document.getElementById("datalist_places");
+
+  // elements.forEach(el => {
+  //   if (el instanceof HTMLInputElement) {
+  //     addCompletion(rp, el, datalist);
+  //   }
+  // });
+
+  const input = document.getElementById("search-places");
+  const list = document.getElementById("list-places");
+
+  const dp = new dropDownWithCompletion(input, list, rp);
 </script>
 </body>
 </html>

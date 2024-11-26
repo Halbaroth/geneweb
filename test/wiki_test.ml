@@ -66,11 +66,12 @@ let test expected s () =
   (check (list testable_wiki)) "" expected (f s);
   ()
 
-let v =
-  [
-    ( "misc-notes-link",
-      (* todo List.map here or in test? *)
-      List.map
-        (fun (expected, s) -> test_case "Wiki links" `Quick (test expected s))
-        l );
-  ]
+let () =
+  Alcotest.run __FILE__
+    [
+      ( "misc-notes-link",
+        (* todo List.map here or in test? *)
+        List.map
+          (fun (expected, s) -> test_case "Wiki links" `Quick (test expected s))
+          l );
+    ]

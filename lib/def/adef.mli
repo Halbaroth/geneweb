@@ -19,20 +19,9 @@ external fix_repr : fix -> int = "%identity"
 val no_consang : fix
 (** No consanguinity *)
 
-(** Date data type that can be either concrete date associated to a calendar or a textual form of the date. *)
-type date = Dgreg of dmy * calendar | Dtext of string
-
-(** Supported calendars *)
-and calendar = Dgregorian | Djulian | Dfrench | Dhebrew
-
-and dmy = { day : int; month : int; year : int; prec : precision; delta : int }
-(** Concrete date with precision. *)
-
-and dmy2 = { day2 : int; month2 : int; year2 : int; delta2 : int }
-(** Concrete date without precision. *)
 
 (** Precision attached to the concrete date. *)
-and precision =
+type precision =
   | Sure
   | About
   | Maybe
@@ -40,6 +29,18 @@ and precision =
   | After
   | OrYear of dmy2
   | YearInt of dmy2
+
+and dmy = { day : int; month : int; year : int; prec : precision; delta : int }
+(** Concrete date with precision. *)
+
+and dmy2 = { day2 : int; month2 : int; year2 : int; delta2 : int }
+(** Concrete date without precision. *)
+
+(** Supported calendars *)
+type calendar = Dgregorian | Djulian | Dfrench | Dhebrew
+
+(** Date data type that can be either concrete date associated to a calendar or a textual form of the date. *)
+type date = Dgreg of dmy * calendar | Dtext of string
 
 (** Compressed date *)
 type cdate =
@@ -90,3 +91,6 @@ val escaped : string -> escaped_string
 val encoded : string -> encoded_string
 val as_string : 'a astring -> string
 val safe_fn : (string -> string) -> 'a astring -> 'a astring
+
+val pp_dmy : Format.formatter -> dmy -> unit
+(** Debugging printer for dates. *)

@@ -1,0 +1,5 @@
+(library
+  (public_name geneweb.search)
+  (name geneweb_search)
+  (libraries
+    fmt))

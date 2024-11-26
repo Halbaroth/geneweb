@@ -56,13 +56,14 @@ let compare_places () =
        "[foo-bar] - baz, boobar, barboo, bam");
   ()
 
-let v =
-  [
-    ("place-normalize", [ test_case "Place normalize" `Quick normalize ]);
-    ( "place-split-suburb",
-      [ test_case "Place split suburb" `Quick split_suburb ] );
-    ("place-only-suburb", [ test_case "Place only suburb" `Quick only_suburb ]);
-    ( "place-without-suburb",
-      [ test_case "Place without suburb" `Quick only_suburb ] );
-    ("place-compare", [ test_case "Place compare" `Quick compare_places ]);
-  ]
+let () =
+  Alcotest.run __FILE__
+    [
+      ("place-normalize", [ test_case "Place normalize" `Quick normalize ]);
+      ( "place-split-suburb",
+        [ test_case "Place split suburb" `Quick split_suburb ] );
+      ("place-only-suburb", [ test_case "Place only suburb" `Quick only_suburb ]);
+      ( "place-without-suburb",
+        [ test_case "Place without suburb" `Quick only_suburb ] );
+      ("place-compare", [ test_case "Place compare" `Quick compare_places ]);
+    ]

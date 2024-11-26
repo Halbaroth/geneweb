@@ -88,7 +88,7 @@ unpatch_files:
 	  mv bin/ged2gwb/ged2gwb.ml.bak bin/ged2gwb/ged2gwb.ml; \
 	fi
 
-BUILD = dune build -p geneweb
+BUILD = dune build
 UNPATCH = $(MAKE) --no-print-directory unpatch_files
 
 unpatch_after = (($(1) && $(UNPATCH)) || ($(UNPATCH) && false))
@@ -127,6 +127,7 @@ GENERATED_FILES_DEP = \
 	bin/gwu/dune \
 	bin/setup/dune \
 	bin/update_nldb/dune \
+	bin/search-server/dune \
 	test/dune \
 
 generated: $(GENERATED_FILES_DEP)
@@ -281,14 +282,6 @@ clean:
 	@dune clean
 	@echo " Done."
 .PHONY: clean
-
-ci: ## Run tests, skip known failures
-ci:
-ifdef SKIP_BUILD
-	@GENEWEB_CI=on dune runtest
-else
-	@ocaml ./configure.ml && $(MAKE) -s build && GENEWEB_CI=on dune runtest
-endif
 
 ocp-indent: ## Run ocp-indent (inplace edition)
 ocp-indent:

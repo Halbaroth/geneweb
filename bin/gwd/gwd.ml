@@ -1460,6 +1460,9 @@ let conf_and_connection =
         | (Def.HttpExn (code, _)) as e ->
           !GWPARAM.output_error conf code ;
           printexc e
+        | (Sys.Break | Assert_failure _ | Match_failure _) as exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace exn bt
         | e -> printexc e
 
 let chop_extension name =
@@ -2127,4 +2130,7 @@ let () =
     GwdLog.syslog `LOG_CRIT (p ^ ": " ^ Dynlink.error_message e)
   | Register_plugin_failure (p, `string s) ->
     GwdLog.syslog `LOG_CRIT (p ^ ": " ^ s)
+  | (Sys.Break | Assert_failure _ | Match_failure _) as exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printexc.raise_with_backtrace exn bt
   | e -> GwdLog.syslog `LOG_CRIT (Printexc.to_string e)

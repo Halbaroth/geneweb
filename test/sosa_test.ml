@@ -59,12 +59,13 @@ let sosa_branches () =
   let l = [ 0; 0; 1; 1; 0 ] in
   (check (list int)) "branch 38" l (Sosa.branches @@ Sosa.of_int 38)
 
-let v =
-  [
-    ("sosa-eq", [ test_case "Sosa equality" `Quick sosa_eq ]);
-    ("sosa-int", [ test_case "Sosa <-> int" `Quick sosa_int ]);
-    ("sosa-string", [ test_case "Sosa <-> string" `Quick sosa_string ]);
-    ("sosa-pp", [ test_case "Sosa pretty print" `Quick sosa_pp ]);
-    ("sosa-gen", [ test_case "Sosa generation" `Quick sosa_gen ]);
-    ("sosa-branches", [ test_case "Sosa branches" `Quick sosa_branches ]);
-  ]
+let () =
+  Alcotest.run __FILE__
+    [
+      ("sosa-eq", [ test_case "Sosa equality" `Quick sosa_eq ]);
+      ("sosa-int", [ test_case "Sosa <-> int" `Quick sosa_int ]);
+      ("sosa-string", [ test_case "Sosa <-> string" `Quick sosa_string ]);
+      ("sosa-pp", [ test_case "Sosa pretty print" `Quick sosa_pp ]);
+      ("sosa-gen", [ test_case "Sosa generation" `Quick sosa_gen ]);
+      ("sosa-branches", [ test_case "Sosa branches" `Quick sosa_branches ]);
+    ]

@@ -53,7 +53,10 @@ type base
 (** The database representation. *)
 
 val open_base : ?keep_in_memory:bool -> string -> base
-(** Open database associated with (likely situated in) the specified directory. *)
+(** Open database associated with (likely situated in) the specified directory.
+
+    If [keep_in_memory] is [true], the database is kept in swap memory.
+    This feature requires the ancient library installed. *)
 
 val close_base : base -> unit
 (** Close database. May perform some clean up tasks. *)
@@ -552,7 +555,7 @@ val base_wiznotes_dir : base -> string
 val date_of_last_change : base -> float
 (** Returns last modification time of the database on disk *)
 
-(** Collections of elemetns *)
+(** Collections of elements *)
 module Collection : sig
   type 'a t
   (** Collections are sets of elements you want to traverse. *)

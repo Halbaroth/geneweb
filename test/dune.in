@@ -1,4 +1,77 @@
 (test
- (name test)
- (modules test sosa_test place_test calendar_test wiki_test merge_test util_test)
- (libraries alcotest geneweb %%%GWDB_PKG%%% %%%SOSA_PKG%%% fmt))
+  (name sosa_test)
+  (modules
+    sosa_test)
+  (libraries
+    alcotest
+    fmt
+    %%%SOSA_PKG%%%))
+
+(test
+  (name place_test)
+  (modules
+    place_test)
+  (libraries
+    alcotest
+    fmt
+    %%%SOSA_PKG%%%
+    %%%GWDB_PKG%%%
+    geneweb))
+
+(test
+  (name calendar_test)
+  (modules
+    calendar_test)
+  (libraries
+    alcotest
+    fmt
+    %%%SOSA_PKG%%%
+    %%%GWDB_PKG%%%
+    geneweb))
+
+(test
+  (name wiki_test)
+  (modules
+    wiki_test)
+  (libraries
+    alcotest
+    fmt
+    %%%SOSA_PKG%%%
+    %%%GWDB_PKG%%%
+    geneweb))
+
+(test
+  (name merge_test)
+  (modules
+    merge_test)
+  (libraries
+    alcotest
+    fmt
+    %%%SOSA_PKG%%%
+    %%%GWDB_PKG%%%
+    geneweb))
+
+(test
+  (name util_test)
+  (modules
+    util_test)
+  (libraries
+    alcotest
+    fmt
+    %%%SOSA_PKG%%%
+    %%%GWDB_PKG%%%
+    geneweb))
+
+(test
+  (deps (:dict ./communes.txt))
+  (name search_test)
+  (modules
+    search_test)
+  (libraries
+    alcotest
+    fmt
+    qcheck
+    qcheck-alcotest
+    geneweb_util
+    geneweb_search)
+  (action (run %{test} %{dict})))

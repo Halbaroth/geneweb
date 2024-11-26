@@ -94,6 +94,9 @@ jobs:
           opam exec -- ocaml ./configure.ml
           opam exec -- make build distrib
 
+      - name: Make tests
+        run: opam exec -- make test
+
       - name: Collect Build Metrics
         id: collect-metrics
         uses: ./.github/actions/ci-utils

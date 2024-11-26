@@ -282,8 +282,7 @@ let accept_connection tmout max_clients callback s =
             close_connection ();
             exit 0
           with
-          | Unix.Unix_error (Unix.ECONNRESET, "read", _) -> exit 0
-          | e -> raise e)
+          | Unix.Unix_error (Unix.ECONNRESET, "read", _) -> exit 0)
       | Some id ->
           Unix.close t;
           if max_clients = None then
@@ -388,5 +387,4 @@ let f syslog addr_opt port tmout max_clients g =
             syslog `LOG_INFO (Printexc.to_string e)
         | Sys_error msg as e when msg = "Broken pipe" ->
             syslog `LOG_INFO (Printexc.to_string e)
-        | e -> raise e
       done

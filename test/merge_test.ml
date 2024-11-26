@@ -47,8 +47,9 @@ let test_is_ancestor () =
     (MergeInd.is_ancestor base mother child);
   ()
 
-let v =
-  [
-    ( "mergeind-ancestor",
-      [ test_case "MergeInd.is_ancestor" `Quick test_is_ancestor ] );
-  ]
+let () =
+  Alcotest.run __FILE__
+    [
+      ( "mergeind-ancestor",
+        [ test_case "MergeInd.is_ancestor" `Quick test_is_ancestor ] );
+    ]
