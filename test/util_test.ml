@@ -206,33 +206,36 @@ let start_with_vowel _ =
   (check bool) "Start with vowel def" false (Util.start_with_vowel conf "def");
   ()
 
-let v =
-  [
-    ( "mutil",
-      [
-        test_case "Mutil.contains" `Quick mutil_contains;
-        test_case "Mutil.start_with" `Quick mutil_start_with;
-        test_case "Mutil arabian-roman" `Quick mutil_arabian_romian;
-        test_case "Mutil particule" `Quick mutil_compare_after_particle;
-        test_case "Mutil.string_of_int_sep" `Quick mutil_compare_after_particle;
-      ] );
-    ("name", [ test_case "Name.title" `Quick name_title ]);
-    ( "utf8",
-      [
-        test_case "Utf8.sub" `Quick utf8_sub;
-        test_case "Utf8.name_with_roman_number" `Quick
-          util_name_with_roman_number;
-      ] );
-    ( "util",
-      [
-        test_case "Util.safe_html" `Quick util_safe_html;
-        test_case "Util.transl_a_of_b" `Quick util_transl_a_of_b;
-        test_case "Util.string_with_macros" `Quick util_string_with_macros;
-        test_case "Util.escape_html" `Quick util_escape_html;
-        test_case "Util.start_with_vowel" `Quick start_with_vowel;
-      ] );
-    ( "date-display",
-      [
-        test_case "DateDisplay.string_of_date" `Quick datedisplay_string_of_date;
-      ] );
-  ]
+let () =
+  Alcotest.run __FILE__
+    [
+      ( "mutil",
+        [
+          test_case "Mutil.contains" `Quick mutil_contains;
+          test_case "Mutil.start_with" `Quick mutil_start_with;
+          test_case "Mutil arabian-roman" `Quick mutil_arabian_romian;
+          test_case "Mutil particule" `Quick mutil_compare_after_particle;
+          test_case "Mutil.string_of_int_sep" `Quick
+            mutil_compare_after_particle;
+        ] );
+      ("name", [ test_case "Name.title" `Quick name_title ]);
+      ( "utf8",
+        [
+          test_case "Utf8.sub" `Quick utf8_sub;
+          test_case "Utf8.name_with_roman_number" `Quick
+            util_name_with_roman_number;
+        ] );
+      ( "util",
+        [
+          test_case "Util.safe_html" `Quick util_safe_html;
+          test_case "Util.transl_a_of_b" `Quick util_transl_a_of_b;
+          test_case "Util.string_with_macros" `Quick util_string_with_macros;
+          test_case "Util.escape_html" `Quick util_escape_html;
+          test_case "Util.start_with_vowel" `Quick start_with_vowel;
+        ] );
+      ( "date-display",
+        [
+          test_case "DateDisplay.string_of_date" `Quick
+            datedisplay_string_of_date;
+        ] );
+    ]

@@ -2984,16 +2984,43 @@ let has_children base u =
       Array.length (get_children des) > 0)
     (get_family u)
 
+let is_gwb_dir fl = Filename.check_suffix fl ".gwb"
+
+let walk_folder ?(recursive = false) f path acc =
+  let rec walk_siblings dirs path handle acc =
+    match Unix.readdir handle with
+    | exception End_of_file -> (dirs, acc)
+    | "." | ".." -> walk_siblings dirs path handle acc
+    | s -> (
+        let fl = Filename.concat path s in
+        let stat = Unix.stat fl in
+        match stat.st_kind with
+        | Unix.S_REG -> walk_siblings dirs path handle (f (`File fl) acc)
+        | Unix.S_DIR ->
+            let dirs = if recursive then fl :: dirs else dirs in
+            walk_siblings dirs path handle (f (`Dir fl) acc)
+        | _ -> walk_siblings dirs path handle acc)
+  in
+  let rec traverse stack acc =
+    match stack with
+    | [] -> acc
+    | path :: stack ->
+        let stack, acc =
+          let handle = Unix.opendir path in
+          Fun.protect ~finally:(fun () -> Unix.closedir handle) @@ fun () ->
+          walk_siblings stack path handle acc
+        in
+        traverse stack acc
+  in
+  traverse [ path ] acc
+
 let get_bases_list ?(format_fun = fun x -> x) () =
-  let list = ref [] in
-  let dh = Unix.opendir (Secure.base_dir ()) in
-  (try
-     while true do
-       let e = Unix.readdir dh in
-       if Filename.check_suffix e ".gwb" then
-         list := format_fun (Filename.chop_suffix e ".gwb") :: !list
-     done
-   with End_of_file -> ());
-  Unix.closedir dh;
-  list := List.sort compare !list;
-  !list
+  File.walk_folder
+    (fun fl acc ->
+      match fl with
+      | `Dir fl when is_gwb_dir fl ->
+          let basename = Filename.chop_suffix (Filename.basename fl) ".gwb" in
+          format_fun basename :: acc
+      | `File _ | `Dir _ -> acc)
+    (Secure.base_dir ()) []
+  |> List.sort String.compare

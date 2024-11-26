@@ -11,12 +11,7 @@ external fix_repr : fix -> int = "%identity"
 
 let no_consang = fix (-1)
 
-type date = Dgreg of dmy * calendar | Dtext of string
-and calendar = Dgregorian | Djulian | Dfrench | Dhebrew
-and dmy = { day : int; month : int; year : int; prec : precision; delta : int }
-and dmy2 = { day2 : int; month2 : int; year2 : int; delta2 : int }
-
-and precision =
+type precision =
   | Sure
   | About
   | Maybe
@@ -24,6 +19,31 @@ and precision =
   | After
   | OrYear of dmy2
   | YearInt of dmy2
+
+and dmy = { day : int; month : int; year : int; prec : precision; delta : int }
+and dmy2 = { day2 : int; month2 : int; year2 : int; delta2 : int }
+
+let rec pp_precision ppf dmy =
+  match dmy with
+  | Sure -> Format.fprintf ppf "Sure"
+  | About -> Format.fprintf ppf "About"
+  | Maybe -> Format.fprintf ppf "Maybe"
+  | Before -> Format.fprintf ppf "Before"
+  | After -> Format.fprintf ppf "After"
+  | OrYear dmy2 -> Format.fprintf ppf "OrYear(%a)" pp_dmy2 dmy2
+  | YearInt dmy2 -> Format.fprintf ppf "YearInt(%a)" pp_dmy2 dmy2
+
+and pp_dmy ppf { day; month; year; prec; delta } =
+  Format.fprintf ppf
+    "@[{ day = %i; month = %i; year = %i; prec = %a; delta = %i}@]" day month
+    year pp_precision prec delta
+
+and pp_dmy2 ppf { day2; month2; year2; delta2 } =
+  Format.fprintf ppf "@[{ day2 = %i; month2 = %i; year2 = %i; delta2 = %i}@]"
+    day2 month2 year2 delta2
+
+type calendar = Dgregorian | Djulian | Dfrench | Dhebrew
+type date = Dgreg of dmy * calendar | Dtext of string
 
 type cdate =
   | Cgregorian of int

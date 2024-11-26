@@ -284,11 +284,6 @@ clean:
 	@echo " Done."
 .PHONY: clean
 
-ci: ## Run tests, skip known failures
-ci:
-	@ocaml ./configure.ml && $(MAKE) -s clean build && GENEWEB_CI=on dune runtest
-.PHONY: ci
-
 ocp-indent: ## Run ocp-indent (inplace edition)
 ocp-indent:
 	for f in `find lib bin -type f -regex .*[.]ml[i]?` ; do \

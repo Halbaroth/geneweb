@@ -21,13 +21,15 @@
   (tags (genealogy))
   (depends
     (alcotest :with-test)
+    (qcheck :with-test)
+    (qcheck-alcotest :with-test)
     benchmark
     (calendars (= "1.0.0"))
     (camlp5 (>= "8.00.01"))
     camlp-streams
     camlzip
     cppo
-    (fmt :with-test)
+    fmt
     jingoo
     markup
     num
@@ -46,6 +48,17 @@
     uutf
     yojson
     zarith
+    lwt
+    lwt_ppx
+    tls-lwt
+    cmdliner
+    yojson
+    digestif
+    httpun
+    httpun-lwt-unix
+    httpun-ws
+    logs
+    xdg
   )
   (depopts
     ocaml-option-nnp

@@ -17,6 +17,7 @@
             geneweb_sosa_mli
             geneweb_util
             yojson
+            geneweb_search
             markup
             uri
             wserver)

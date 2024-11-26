@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "checkJs": true,
+    "noEmit": true,
+    "target": "ES2017",
+    "strict": true
+  },
+  "include": [
+    "hd/etc/js/*"
+  ]
+}

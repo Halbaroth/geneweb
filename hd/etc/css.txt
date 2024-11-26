@@ -36,6 +36,7 @@
   %end;
 %end;
 <link rel="stylesheet" href="%etc_prefix;css/css.css">
+<link rel="stylesheet" href="%etc_prefix;css/dropdown.css">
 %if;(bvar.css_prop != "")
 <link rel="stylesheet" href="%etc_prefix;css/%bvar.css_prop;">
 %end;

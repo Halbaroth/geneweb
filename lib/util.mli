@@ -621,7 +621,11 @@ val designation : base -> person -> Adef.escaped_string
 (** [designation base p] is [Gutil.designation base p |> escape_html] *)
 
 val has_children : base -> person -> bool
-val get_bases_list : ?format_fun:(string -> string) -> unit -> string list
 
 val test_cnt_d : config -> string
 (** tests if cnt_d exists and creaets it if needed *)
+
+val is_gwb_dir : string -> bool
+(** Check if the directory is a gwb base. *)
+
+val get_bases_list : ?format_fun:(string -> string) -> unit -> string list
