@@ -5,10 +5,14 @@ module Response = Httpun.Response
 module Status = Httpun.Status
 
 type kind = [ `Binary | `Continuation | `Text ]
-type message = { kind : kind; content : Bigstringaf.t }
-type websocket_handler = Unix.sockaddr -> message -> message Lwt.t
+type message = { kind : kind; content : Yojson.Safe.t }
+type handler = Unix.sockaddr -> message -> (message, string) Lwt_result.t
 
-let error_handler _client_address ?request:_ error handle =
+let of_json json =
+  (* TODO: do validation here *)
+  { kind = `Text; content = json }
+
+let error_handler _sockaddr ?request:_ error handle =
   let message =
     match error with
     | `Exn exn -> Printexc.to_string exn
@@ -31,22 +35,50 @@ let connection_handler ~request_handler ?tls socket fd =
   | (Sys.Break | Assert_failure _ | Match_failure _) as exn ->
       let%lwt () =
         Logs_lwt.err (fun k ->
-            k "fatal error in connection handler of %a:@ %a" Util.pp_sockaddr
+            k "Fatal error in connection handler of %a:@ %a" Util.pp_sockaddr
               socket Util.pp_exn exn)
       in
       Lwt.reraise exn
   | exn ->
       Logs_lwt.info (fun k ->
-          k "exception raised in connection handler of %a:@ %a" Util.pp_sockaddr
+          k "Exception raised in connection handler of %a:@ %a" Util.pp_sockaddr
             socket Util.pp_exn exn)
+
+let catch_exn exn =
+  match exn with
+  | (Sys.Break | Assert_failure _ | Match_failure _) as exn ->
+    Logs.err (fun k -> k "oooh");
+    raise exn
+  | exn ->
+    Logs.debug (fun k -> k "got %a" Util.pp_exn exn)
 
 let listen handler ~host ~port ?tls () =
   let websocket_handler sockaddr wsd =
     let on_read content ~kind ~off:_ ~len:_ =
-      Lwt.async @@ fun () ->
-      let%lwt { kind; content } = handler sockaddr { kind; content } in
-      let len = Bigstringaf.length content in
-      Lwt.return @@ Httpun_ws.Wsd.schedule wsd content ~kind ~off:0 ~len
+      Lwt.dont_wait (fun () ->
+      let json = Bigstringaf.to_string content |> Yojson.Safe.from_string in
+      let%lwt () =
+        Logs_lwt.debug (fun k ->
+            k "Receive message from %a:@ %a" Util.pp_sockaddr sockaddr
+              (Yojson.Safe.pretty_print ~std:false)
+              json)
+      in
+      let request = { kind; content = json } in
+      match%lwt handler sockaddr request with
+      | Ok msg -> (
+          try
+            let response = Yojson.Safe.to_string msg.content in
+            let len = String.length response in
+            let response = Bigstringaf.of_string ~off:0 ~len response in
+            let%lwt () =
+              Logs_lwt.debug (fun k ->
+                  k "Send message to %a:@ %a" Util.pp_sockaddr sockaddr
+                    (Yojson.Safe.pretty_print ~std:false) msg.content)
+            in
+            Lwt.return @@ Httpun_ws.Wsd.schedule wsd response ~kind ~off:0 ~len
+          with Yojson.Json_error s ->
+            Logs_lwt.debug (fun k -> k "cannot parse the json:@ %s" s))
+      | Error s -> Logs_lwt.debug (fun k -> k "error:@ %s" s)) catch_exn
     in
     let frame ~opcode ~is_fin:_ ~len:_ payload =
       match (opcode : Httpun_ws.Websocket.Opcode.t) with

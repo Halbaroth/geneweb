@@ -1,9 +1,11 @@
 type kind = [ `Binary | `Continuation | `Text ]
-type message = { kind : kind; content : Bigstringaf.t }
-type websocket_handler = Unix.sockaddr -> message -> message Lwt.t
+type message = private { kind : kind; content : Yojson.Safe.t }
+type handler = Unix.sockaddr -> message -> (message, string) Lwt_result.t
+
+val of_json : Yojson.Safe.t -> message
 
 val listen :
-  websocket_handler ->
+  handler ->
   host:string ->
   port:int ->
   ?tls:string * string ->

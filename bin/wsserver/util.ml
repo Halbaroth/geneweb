@@ -8,8 +8,7 @@ let pp_exn ppf exn =
   let s = Printexc.to_string exn in
   if Printexc.backtrace_status () then
     Fmt.pf ppf "%s@ backtrace:@ %s" s (Printexc.get_backtrace ())
-  else
-    Fmt.string ppf s
+  else Fmt.string ppf s
 
 let lwt_reporter () =
   let buf_fmt ~like =

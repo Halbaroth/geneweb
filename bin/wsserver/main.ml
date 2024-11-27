@@ -1,20 +1,15 @@
-let handler _sockaddr msg =
-  let content = Bigstringaf.to_string msg.Server.content in
-  let%lwt () = Logs_lwt.debug (fun k -> k "receive message:@ %s" content) in
-  Lwt.return msg
+let handle_exn exn =
+  Logs.err (fun k -> k "fatal error:@ %a" Util.pp_exn exn);
+  raise exn
 
 let start (cfg : Cmd.cfg) =
-  let handle_exn exn =
-    Logs.err (fun k -> k "fatal error:@ %a" Util.pp_exn exn)
+  let f () =
+    let%lwt _server =
+      Server.listen Rpc.dispatch ~host:cfg.host ~port:cfg.port ?tls:cfg.tls ()
+    in
+    Logs_lwt.info (fun k -> k "server listening on %s:%d..." cfg.host cfg.port)
   in
-  Lwt.dont_wait
-    (fun () ->
-      let%lwt _server =
-        Server.listen handler ~host:cfg.host ~port:cfg.port ?tls:cfg.tls ()
-      in
-      Logs_lwt.info (fun k ->
-          k "server listening on %s:%d..." cfg.host cfg.port))
-    handle_exn;
+  Lwt.dont_wait f handle_exn;
   let forever, _ = Lwt.wait () in
   Lwt_main.run forever
 
