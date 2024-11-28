@@ -42,8 +42,8 @@ jobs:
         run: |
           opam exec -- ocaml ./configure.ml --release
           opam exec -- make fmt distrib
-      - name: Make CI tests
-        run: opam exec -- make ci
+      - name: Make tests
+        run: opam exec -- make test
 
   build_nnp:
     runs-on: ${{ matrix.os }}
@@ -73,7 +73,7 @@ jobs:
         run: |
           opam exec -- ocaml ./configure.ml --release
           opam exec -- make fmt distrib
-          
+
       - name: Run gwd with cache-in-memory parameter and check output
         run: |
           output=$(distribution/gw/gwd -cache-in-memory testing 2>&1)
