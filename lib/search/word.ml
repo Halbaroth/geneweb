@@ -6,7 +6,8 @@ module type S = sig
   val of_list : char_ list -> t
   val length : t -> int
   val get : t -> int -> char_
-  val cat : t -> t -> t
+  val (@) : t -> t -> t
+  val suffix : int -> t -> t
   val compare_char : char_ -> char_ -> int
   val pp : t Fmt.t
 end
@@ -19,7 +20,8 @@ module Default : S with type char_ = char and type t = string = struct
   let of_list l = String.of_seq @@ List.to_seq l
   let length = String.length
   let get = String.get
-  let cat = String.cat
+  let (@) = String.cat
+  let suffix offset s = String.sub s offset (String.length s)
   let compare_char = Char.compare
   let pp = Fmt.string
 end
