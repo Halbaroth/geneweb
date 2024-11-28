@@ -69,12 +69,12 @@ let generate_indexes dir =
 let main (cfg : Cmd.cfg) =
   set_levels cfg.debug_flags;
   let indexes = generate_indexes cfg.base_dir in
-
   let index = List.hd indexes |> snd in
-  Fmt.pr "%a@." (Index.pp (Fmt.any "()")) index;
-
-  if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!");
-  start cfg
+  Fmt.pr "%a@." Index.pp_statistics index
+  (* Fmt.pr "%a@." (Index.pp (Fmt.any "()")) index; *)
+  (**)
+  (* if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!"); *)
+  (* start cfg *)
 
 let () =
   Logs.set_reporter @@ Util.lwt_reporter ();
