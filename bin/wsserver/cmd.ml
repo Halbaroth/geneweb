@@ -5,6 +5,7 @@ type debug_flag = Internal | Tls
 type cfg = {
   host : string;
   port : int;
+  base_dir : string;
   tls : (string * string) option;
   debug_flags : debug_flag list;
 }
@@ -12,6 +13,7 @@ type cfg = {
 let default_address = "localhost"
 let default_port = 8080
 let default_tls_port = 8443
+let default_base_dir = "bases"
 
 module Debug_flag = struct
   let all = [ Internal; Tls ]
@@ -72,12 +74,22 @@ module Connection = struct
   let t = Term.(const parse_connection_opt $ host $ port $ crt $ key)
 end
 
-let mk_cfg (host, port, tls) debug_flags = { host; port; tls; debug_flags }
+let base_dir_t =
+  let doc = "Base directory" in
+  Arg.(
+    value
+    & opt string default_base_dir
+    & info [ "b"; "base-dir" ] ~docv:"DIR" ~doc)
+
+let mk_cfg (host, port, tls) base_dir debug_flags =
+  { host; port; tls; base_dir; debug_flags }
 
 let parse () =
   let doc = "Server" in
   let info = Cmd.info "prototype-server" ~version:"dev" ~doc in
-  let cmd = Cmd.v info Term.(const mk_cfg $ Connection.t $ Debug_flag.t) in
+  let cmd =
+    Cmd.v info Term.(const mk_cfg $ Connection.t $ base_dir_t $ Debug_flag.t)
+  in
   match Cmd.eval_value cmd with
   | Ok (`Ok cfg) -> cfg
   | Ok (`Version | `Help) -> exit 0

@@ -7,7 +7,7 @@
 /** Valide a json message against the above schema.
  *  @param {ResponseSchema} json
  *  @returns {boolean} */
-function validate_json_response(json) {
+function validateJSONResponse(json) {
   if (typeof json !== 'object' || json === null) {
     return false;
   }
@@ -31,10 +31,10 @@ function validate_json_response(json) {
  *  @param {string} str
  *  @returns {ResponseSchema | null}
  */
-function parse_response(str) {
+function parseResponse(str) {
   try {
     const parsed = JSON.parse(str);
-    if (!validate_json_response(parsed)) {
+    if (!validateJSONResponse(parsed)) {
       console.error(`invalidate JSON message, got: ${str}`);
       return null;
     } else {
@@ -51,18 +51,18 @@ function parse_response(str) {
 /** Create a promise on a WebSocket. The promise is resolved as soon
  *  as the connection is established.
  *  @param {string} url
- *  @param {MessageCallback} on_message
+ *  @param {MessageCallback} onMessage
  *  @returns {Promise<WebSocket>}
  */
-const websocket_promise = (url, on_message) => {
+const websocketPromise = (url, onMessage) => {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(url);
     /** @param {Event} _ev */
-    const on_open = (_ev) => {
+    const onOpen = (_ev) => {
       resolve(socket);
     };
-    socket.addEventListener("message", on_message);
-    socket.addEventListener("open", on_open, { once: true });
+    socket.addEventListener("message", onMessage);
+    socket.addEventListener("open", onOpen, { once: true });
     socket.addEventListener("error", reject, { once: true });
   });
 };
@@ -91,7 +91,7 @@ export class RpcClient {
    */
   constructor(url) {
     this.waiting = new Map();
-    this.socket = websocket_promise(url, this.#on_message.bind(this));
+    this.socket = websocketPromise(url, this.#onMessage.bind(this));
   }
 
   /** Call a remote procedure.
@@ -127,9 +127,9 @@ export class RpcClient {
   /** Execute the callback corresponding to the identifier in the message.
    *  @param {MessageEvent<string>} event
    */
-  #on_message(event) {
+  #onMessage(event) {
     console.log(event.data);
-    let response = parse_response(event.data);
+    let response = parseResponse(event.data);
     if (response !== null) {
       let callback = this.waiting.get(response.id);
       if (callback === undefined) {

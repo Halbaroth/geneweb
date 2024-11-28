@@ -1382,7 +1382,7 @@ $(document).ready(function() {
   }
 
   const rp = new RemoteProcedures(websocket_address());
-  rp.ping();
+  rp.searchIndex("places", "Vésinet");
 </script>
 </body>
 </html>

@@ -3,6 +3,9 @@
   (name main)
   (public_name geneweb.wsserver)
   (libraries
+    geneweb
+    geneweb.gwdb-legacy
+    geneweb_sosa_zarith
     lwt
     lwt.unix
     cmdliner

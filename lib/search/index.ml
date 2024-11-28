@@ -44,6 +44,23 @@ module Make (W : Word.S) = struct
         acc @ u)
       t.children acc
 
+  let iter f t =
+    let rec loop stack =
+      match stack with
+      | [] -> ()
+      | (rev_pfx, t) :: stack ->
+          let () =
+            match t.data with
+            | Some v -> f (List.rev rev_pfx |> W.of_list) v
+            | None -> ()
+          in
+          M.fold
+            (fun c tc stack -> (c :: rev_pfx, tc) :: stack)
+            t.children stack
+          |> loop
+    in
+    loop [ ([], t) ]
+
   let lookup pattern t =
     let len = W.length pattern in
     let rec loop prefix t i =
@@ -93,8 +110,6 @@ module Make (W : Word.S) = struct
         { t with children; cardinal = t.cardinal - 1 }
     in
     loop t 0
-
-  let iter f t = List.iter (fun (s, c) -> f s c) @@ to_list t
 
   let pp pp_val =
     Fmt.box

@@ -41,3 +41,5 @@ let lwt_reporter () =
     reporter.Logs.report src level ~over:(fun () -> ()) k msgf
   in
   { Logs.report }
+
+let is_gwdb_file path = String.equal (Filename.extension path) ".gwdb"

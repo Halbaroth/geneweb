@@ -6,7 +6,7 @@ module Status = Httpun.Status
 
 type kind = [ `Binary | `Continuation | `Text ]
 type message = { kind : kind; content : Yojson.Safe.t }
-type handler = Unix.sockaddr -> message -> (message, string) Lwt_result.t
+type handler = Unix.sockaddr -> message -> message Lwt.t
 
 let of_json json =
   (* TODO: do validation here *)
@@ -47,7 +47,6 @@ let connection_handler ~request_handler ?tls socket fd =
 let catch_exn exn =
   match exn with
   | (Sys.Break | Assert_failure _ | Match_failure _) as exn ->
-    Logs.err (fun k -> k "oooh");
     raise exn
   | exn ->
     Logs.debug (fun k -> k "got %a" Util.pp_exn exn)
@@ -64,21 +63,20 @@ let listen handler ~host ~port ?tls () =
               json)
       in
       let request = { kind; content = json } in
-      match%lwt handler sockaddr request with
-      | Ok msg -> (
-          try
-            let response = Yojson.Safe.to_string msg.content in
-            let len = String.length response in
-            let response = Bigstringaf.of_string ~off:0 ~len response in
-            let%lwt () =
-              Logs_lwt.debug (fun k ->
-                  k "Send message to %a:@ %a" Util.pp_sockaddr sockaddr
-                    (Yojson.Safe.pretty_print ~std:false) msg.content)
-            in
-            Lwt.return @@ Httpun_ws.Wsd.schedule wsd response ~kind ~off:0 ~len
-          with Yojson.Json_error s ->
-            Logs_lwt.debug (fun k -> k "cannot parse the json:@ %s" s))
-      | Error s -> Logs_lwt.debug (fun k -> k "error:@ %s" s)) catch_exn
+      let%lwt msg = handler sockaddr request in
+      try
+        let response = Yojson.Safe.to_string msg.content in
+        let len = String.length response in
+        let response = Bigstringaf.of_string ~off:0 ~len response in
+        let%lwt () =
+          Logs_lwt.debug (fun k ->
+              k "Send message to %a:@ %a" Util.pp_sockaddr sockaddr
+                (Yojson.Safe.pretty_print ~std:false) msg.content)
+        in
+        Lwt.return @@ Httpun_ws.Wsd.schedule wsd response ~kind ~off:0 ~len
+      with Yojson.Json_error s ->
+        Logs_lwt.debug (fun k -> k "cannot parse the json:@ %s" s))
+      catch_exn
     in
     let frame ~opcode ~is_fin:_ ~len:_ payload =
       match (opcode : Httpun_ws.Websocket.Opcode.t) with
