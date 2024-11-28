@@ -69,4 +69,6 @@
   (libraries
     alcotest
     fmt
+    qcheck
+    qcheck-alcotest
     geneweb_search))
