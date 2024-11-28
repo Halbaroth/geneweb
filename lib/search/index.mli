@@ -4,15 +4,36 @@ module type S = sig
   type word
 
   val empty : 'a t
+  (** An empty index. *)
+
   val cardinal : 'a t -> int
-  val lookup : word -> 'a t -> (word * 'a) Seq.t
+  (** Return the cardinal of the index, that is its number of elements. *)
+
+  val mem : word -> 'a t -> bool
+  (** [mem w t] checks if the word [w] is present in [t]. *)
+
   val insert : word -> 'a -> 'a t -> 'a t
+  (** [insert w t v] inserts the word [w] with the value [v] in [t].
+      If [w] was already present in [t], its value is replaced by [v]. *)
+
   val remove : word -> 'a t -> 'a t
+  (** [remove w t] removes the word [w] if it is present in [t]. *)
+
+  val lookup : word -> 'a t -> (word * 'a) Seq.t
+  (** [lookup w t] returns the sequence in lexicographic order of all the
+      words in [t] with [w] as prefix. *)
+
   val fold : (word -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+
   val iter : (word -> 'a -> unit) -> 'a t -> unit
+
   val to_seq : 'a t -> (word * 'a) Seq.t
+
   val pp : 'a Fmt.t -> 'a t Fmt.t
+  (** Prints all the binding in the index in lexicographic order. *)
+
   val pp_statistics : 'a t Fmt.t
+  (** Prints statistics information for debugging. *)
 end
 
 module Make (W : Word.S) : S with type char_ = W.char_ and type word = W.t
