@@ -2986,3 +2986,31 @@ let get_bases_list ?(format_fun = fun x -> x) () =
   Unix.closedir dh;
   list := List.sort compare !list;
   !list
+
+let walk_folder ?(recursive = false) f path acc =
+  let rec walk_siblings dirs path handle acc =
+    match Unix.readdir handle with
+    | exception End_of_file -> (dirs, acc)
+    | "." | ".." -> walk_siblings dirs path handle acc
+    | s -> (
+        let fl = Filename.concat path s in
+        let stat = Unix.stat fl in
+        match stat.st_kind with
+        | Unix.S_REG -> walk_siblings dirs path handle (f (`File fl) acc)
+        | Unix.S_DIR ->
+            let dirs = if recursive then fl :: dirs else dirs in
+            walk_siblings dirs path handle (f (`Dir fl) acc)
+        | _ -> walk_siblings dirs path handle acc)
+  in
+  let rec traverse stack acc =
+    match stack with
+    | [] -> acc
+    | path :: stack ->
+        let stack, acc =
+          let handle = Unix.opendir path in
+          Fun.protect ~finally:(fun () -> Unix.closedir handle) @@ fun () ->
+          walk_siblings stack path handle acc
+        in
+        traverse stack acc
+  in
+  traverse [ path ] acc
