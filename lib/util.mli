@@ -617,7 +617,6 @@ val designation : base -> person -> Adef.escaped_string
 (** [designation base p] is [Gutil.designation base p |> escape_html] *)
 
 val has_children : base -> person -> bool
-val get_bases_list : ?format_fun:(string -> string) -> unit -> string list
 
 val test_cnt_d : config -> string
 (** tests if cnt_d exists and creaets it if needed *)
@@ -635,5 +634,8 @@ val walk_folder :
     If [recursive] is [true], the iterator also explores subdirectories. [false]
     is the default.
 
-    @raise Unix.Unix_error if it cannot open a file or the directory [dir]
-                           (or a subdirectory in the recursive case). *)
+    @raise Unix.Unix_error if the function cannot open a file or the
+                           directory [dir] (or a subdirectory in the
+                           recursive case). *)
+
+val get_bases_list : ?format_fun:(string -> string) -> unit -> string list
