@@ -2,7 +2,7 @@
  *  @typedef {Object} ResponseSchema
  *  @property {number} id
  *  @property {string} error
- *  @property {any} payload */
+ *  @property {Object} payload */
 
 /** Valide a json message against the above schema.
  *  @param {ResponseSchema} json

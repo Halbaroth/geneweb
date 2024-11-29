@@ -42,4 +42,4 @@ let lwt_reporter () =
   in
   { Logs.report }
 
-let is_gwdb_file path = String.equal (Filename.extension path) ".gwdb"
+let is_gwdb_file path = String.equal (Filename.extension path) ".gwb"

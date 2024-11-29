@@ -85,7 +85,7 @@ module Make (W : Word.S) = struct
       in
       match data with
       | Some v ->
-          let w = W.(pfx @ of_rev_list rev_pfx) in
+          let w = W.(pfx ^ of_rev_list rev_pfx) in
           Seq.cons (w, v) seq
       | None -> seq
     in

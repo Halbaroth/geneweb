@@ -2,11 +2,12 @@ let handle_exn exn =
   Logs.err (fun k -> k "fatal error:@ %a" Util.pp_exn exn);
   raise exn
 
-let start (cfg : Cmd.cfg) =
+let start indexes (cfg : Cmd.cfg) =
   Lwt.dont_wait
     (fun () ->
       let%lwt (_ : Lwt_io.server) =
-        Server.listen Rpc.dispatch ~host:cfg.host ~port:cfg.port ?tls:cfg.tls ()
+        Server.listen (Rpc.dispatch indexes) ~host:cfg.host ~port:cfg.port
+          ?tls:cfg.tls ()
       in
       Logs_lwt.info (fun k ->
           k "Server listening on %s:%d..." cfg.host cfg.port))
@@ -23,7 +24,18 @@ let set_levels debug_flags =
     (fun flag -> Logs.Src.set_level (flag_to_src flag) (Some Debug))
     debug_flags
 
-module Index = Geneweb_search.Index.Default
+module I = Geneweb_search.Index.Default
+
+let ( // ) = Filename.concat
+
+let generate_index_from_file path =
+  File.with_in_channel path @@ fun ic ->
+  let rec loop t =
+    match In_channel.input_line ic with
+    | None -> t
+    | Some line -> loop (I.insert line () t)
+  in
+  loop I.empty
 
 (* Fold iterator on all the places of the database [base]. *)
 let fold_places f base acc =
@@ -47,45 +59,49 @@ let fold_places f base acc =
       g (Gwdb.get_marriage_place f) acc)
     acc ifams
 
-let generate_indexes dir =
-  let generate_index fl =
-    let base = Gwdb.open_base fl in
-    Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
-    fold_places (fun s -> Index.insert s ()) base Index.empty
-  in
-  Logs.info (fun k -> k "Generate indexes...");
-  let indexes, cnt =
-    File.walk_folder
-      (fun fl (acc, cnt) ->
-        match fl with
-        | `Dir fl when Geneweb.Util.is_gwb_dir fl ->
-            ((fl, generate_index fl) :: acc, cnt + 1)
-        | `File _ | `Dir _ -> (acc, cnt))
-      dir ([], 0)
-  in
-  Logs.info (fun k -> k "%d indexes generated." cnt);
-  indexes
+let generate_index_from_base cache_dir basename =
+  let base = Gwdb.open_base basename in
+  Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
+  fold_places (fun s -> I.insert s ()) base I.empty
 
-let init_files () =
-  let ( // ) = Filename.concat in
+let generate_indexes cache_dir base_dir dict_dir =
+  let name path = Filename.(basename path |> chop_extension) in
+  let acc =
+    File.walk_folder
+      (fun kind acc ->
+        match kind with
+        (* TODO: reactivate this feature after adding the cache system. *)
+        | `Dir path when Util.is_gwdb_file path && false ->
+            (name path, generate_index_from_base cache_dir path) :: acc
+        | `File _ | `Dir _ -> acc)
+      base_dir []
+  in
+  File.walk_folder
+    (fun kind acc ->
+      match kind with
+      | `File path ->
+        (name path, generate_index_from_file path) :: acc
+      | `Dir _ -> acc)
+    dict_dir acc
+
+let init_directories () =
   let base = Xdg.create ~env:Sys.getenv_opt () in
   let cache_dir = Xdg.cache_dir base // "geneweb" in
   let data_dir = Xdg.data_dir base // "geneweb" in
-  let dict_dir = cache_dir // "dict" in
+  let dict_dir = data_dir // "dict" in
   File.create_dir cache_dir;
   File.create_dir data_dir;
-  File.create_dir dict_dir
+  File.create_dir dict_dir;
+  (cache_dir, data_dir, dict_dir)
 
 let main (cfg : Cmd.cfg) =
   set_levels cfg.debug_flags;
-  init_files ()
-(* let indexes = generate_indexes cfg.base_dir in *)
-(* let index = List.hd indexes |> snd in *)
-(* Fmt.pr "%a@." Index.pp_statistics index *)
-(* Fmt.pr "%a@." (Index.pp (Fmt.any "()")) index; *)
-(***)
-(* if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!"); *)
-(* start cfg *)
+  let cache_dir, data_dir, dict_dir = init_directories () in
+  Logs.info (fun k -> k "Generate indexes...");
+  let indexes = generate_indexes cache_dir cfg.base_dir dict_dir in
+  Logs.info (fun k -> k "%d indexes generated." (List.length indexes));
+  if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!");
+  start indexes cfg
 
 let () =
   Logs.set_reporter @@ Util.lwt_reporter ();

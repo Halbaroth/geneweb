@@ -10,11 +10,6 @@ val with_out_channel : string -> (out_channel -> 'a) -> 'a
     channel of this file. The channel is properly closed after leaving the
     function [f]. *)
 
-val with_dir : string -> (Unix.dir_handle -> 'a) -> 'a
-(** [with_open path f] opens the directory [path] and calls [f] on its
-    directory descriptor. The directory descriptor is properly closed after
-    leaving the function [f]. *)
-
 val create_file : ?required_perm:int -> string -> unit
 (** [create_file ?required_perm ~kind path] creates a file at [path] if the
     target does not exist.

@@ -10,10 +10,6 @@ let with_out_channel path f =
   let oc = Out_channel.open_text path in
   Fun.protect ~finally:(fun () -> close_out oc) @@ fun () -> f oc
 
-let with_dir path f =
-  let handle = Unix.opendir path in
-  Fun.protect ~finally:(fun () -> Unix.closedir handle) @@ fun () -> f handle
-
 let check_perm path perm =
   let Unix.{ st_perm; _ } = Unix.stat path in
   st_perm land perm = perm
@@ -31,12 +27,12 @@ let create_file ?(required_perm = 0o644) path =
       raise_error "%s exists but it is not a regular file" path)
   else Unix.openfile path [ Unix.O_CREAT ] required_perm |> Unix.close
 
-let create_dir ?(required_perm = 0o644) path =
+let create_dir ?(required_perm = 0o700) path =
   if Sys.file_exists path then (
     if not @@ check_perm path required_perm then
       raise_error "%s exists but it has not the required permission %o" path
         required_perm;
-    if not @@ check_kind ~kind:`File path then
+    if not @@ check_kind ~kind:`Dir path then
       raise_error "%s exists but it is not a directory" path)
   else Unix.mkdir path required_perm
 
