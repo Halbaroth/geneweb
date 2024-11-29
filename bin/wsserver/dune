@@ -18,5 +18,6 @@
     logs.fmt
     logs.lwt
     tls
-    fmt)
+    fmt
+    xdg)
   (preprocess (pps lwt_ppx)))

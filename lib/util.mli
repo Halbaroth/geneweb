@@ -621,21 +621,7 @@ val has_children : base -> person -> bool
 val test_cnt_d : config -> string
 (** tests if cnt_d exists and creaets it if needed *)
 
-val walk_folder :
-  ?recursive:bool ->
-  ([ `File of string | `Dir of string ] -> 'a -> 'a) ->
-  string ->
-  'a ->
-  'a
-(** [walk_folder ~recursive f dir] accumulates [f] on all the regular files or
-    directories of [dir]. The argument of [f] is the relative path of the file
-    in [dir].
-
-    If [recursive] is [true], the iterator also explores subdirectories. [false]
-    is the default.
-
-    @raise Unix.Unix_error if the function cannot open a file or the
-                           directory [dir] (or a subdirectory in the
-                           recursive case). *)
+val is_gwb_dir : string -> bool
+(** Check if the directory is a gwb base. *)
 
 val get_bases_list : ?format_fun:(string -> string) -> unit -> string list

@@ -2973,19 +2973,7 @@ let has_children base u =
       Array.length (get_children des) > 0)
     (get_family u)
 
-let get_bases_list ?(format_fun = fun x -> x) () =
-  let list = ref [] in
-  let dh = Unix.opendir (Secure.base_dir ()) in
-  (try
-     while true do
-       let e = Unix.readdir dh in
-       if Filename.check_suffix e ".gwb" then
-         list := format_fun (Filename.chop_suffix e ".gwb") :: !list
-     done
-   with End_of_file -> ());
-  Unix.closedir dh;
-  list := List.sort compare !list;
-  !list
+let is_gwb_dir fl = Filename.check_suffix fl ".gwb"
 
 let walk_folder ?(recursive = false) f path acc =
   let rec walk_siblings dirs path handle acc =
@@ -3014,3 +3002,14 @@ let walk_folder ?(recursive = false) f path acc =
         traverse stack acc
   in
   traverse [ path ] acc
+
+let get_bases_list ?(format_fun = fun x -> x) () =
+  File.walk_folder
+    (fun fl acc ->
+      match fl with
+      | `Dir fl when is_gwb_dir fl ->
+          let basename = Filename.chop_suffix (Filename.basename fl) ".gwb" in
+          format_fun basename :: acc
+      | `File _ | `Dir _ -> acc)
+    (Secure.base_dir ()) []
+  |> List.sort String.compare

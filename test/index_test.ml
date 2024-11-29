@@ -37,12 +37,8 @@ let test_random_remove idx a =
   let idx = I.remove a.(i) idx in
   not @@ I.mem a.(i) idx
 
-let with_open file f =
-  let ic = In_channel.open_text file in
-  Fun.protect ~finally:(fun () -> close_in ic) (f ic)
-
 let create_index file =
-  with_open file @@ fun ic () ->
+  File.with_in_channel file @@ fun ic ->
   let rec loop t l i =
     match In_channel.input_line ic with
     | None -> (t, Array.of_list l)

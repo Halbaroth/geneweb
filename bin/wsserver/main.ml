@@ -55,26 +55,37 @@ let generate_indexes dir =
   in
   Logs.info (fun k -> k "Generate indexes...");
   let indexes, cnt =
-    Geneweb.Util.walk_folder
-    (fun fl (acc, cnt) ->
-      match fl with
-      | `Dir fl when Geneweb.Util.is_gwb_dir fl ->
-        ((fl, generate_index fl) :: acc, cnt + 1)
-      | `File _ | `Dir _ -> (acc, cnt))
-    dir ([], 0)
+    File.walk_folder
+      (fun fl (acc, cnt) ->
+        match fl with
+        | `Dir fl when Geneweb.Util.is_gwb_dir fl ->
+            ((fl, generate_index fl) :: acc, cnt + 1)
+        | `File _ | `Dir _ -> (acc, cnt))
+      dir ([], 0)
   in
   Logs.info (fun k -> k "%d indexes generated." cnt);
   indexes
 
+let init_files () =
+  let ( // ) = Filename.concat in
+  let base = Xdg.create ~env:Sys.getenv_opt () in
+  let cache_dir = Xdg.cache_dir base // "geneweb" in
+  let data_dir = Xdg.data_dir base // "geneweb" in
+  let dict_dir = cache_dir // "dict" in
+  File.create_dir cache_dir;
+  File.create_dir data_dir;
+  File.create_dir dict_dir
+
 let main (cfg : Cmd.cfg) =
   set_levels cfg.debug_flags;
-  let indexes = generate_indexes cfg.base_dir in
-  let index = List.hd indexes |> snd in
-  Fmt.pr "%a@." Index.pp_statistics index
-  (* Fmt.pr "%a@." (Index.pp (Fmt.any "()")) index; *)
-  (**)
-  (* if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!"); *)
-  (* start cfg *)
+  init_files ()
+(* let indexes = generate_indexes cfg.base_dir in *)
+(* let index = List.hd indexes |> snd in *)
+(* Fmt.pr "%a@." Index.pp_statistics index *)
+(* Fmt.pr "%a@." (Index.pp (Fmt.any "()")) index; *)
+(***)
+(* if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!"); *)
+(* start cfg *)
 
 let () =
   Logs.set_reporter @@ Util.lwt_reporter ();

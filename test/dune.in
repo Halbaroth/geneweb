@@ -72,5 +72,6 @@
     fmt
     qcheck
     qcheck-alcotest
+    geneweb_util
     geneweb_search)
   (action (run %{test} %{dict})))
