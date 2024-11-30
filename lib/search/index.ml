@@ -4,11 +4,13 @@ module type S = sig
   type word
 
   val empty : 'a t
+  val of_list : (word * 'a) list -> 'a t
   val cardinal : 'a t -> int
   val mem : word -> 'a t -> bool
   val insert : word -> 'a -> 'a t -> 'a t
   val remove : word -> 'a t -> 'a t
-  val lookup : word -> 'a t -> (word * 'a) Seq.t
+  val search : word -> 'a t -> (word * 'a) Seq.t
+  val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
   val fold : (word -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   val iter : (word -> 'a -> unit) -> 'a t -> unit
   val to_seq : 'a t -> (word * 'a) Seq.t
@@ -26,6 +28,8 @@ module Make (W : Word.S) = struct
 
     let compare = W.compare_char
   end)
+
+  module Automaton = Automaton.Make (W)
 
   type char_ = W.char_
   type word = W.t
@@ -91,7 +95,7 @@ module Make (W : Word.S) = struct
     in
     loop [] t
 
-  let lookup pfx t =
+  let search pfx t =
     let len = W.length pfx in
     let rec loop rev_pfx i t =
       if i = len then to_seq (of_rev_list rev_pfx) t
@@ -103,6 +107,24 @@ module Make (W : Word.S) = struct
         | t -> loop (c :: rev_pfx) (i + 1) t
     in
     loop [] 0 t
+
+  let fuzzy_search ~max_dist pfx t =
+    let module A = Automaton (struct
+      type nonrec word = word
+
+      let pattern = pfx
+      let max_dist = max_dist
+    end) in
+    let rec loop rev_pfx t st =
+      let (Node (children, data, _)) = t in
+      if A.accept st then to_seq (of_rev_list rev_pfx) t
+      else if A.can_match st then
+        M.to_seq children
+        |> Seq.map (fun (c, child) -> loop (c :: rev_pfx) child (A.next c st))
+        |> Seq.concat
+      else Seq.empty
+    in
+    loop [] t A.init
 
   let insert w v t =
     let len = W.length w in
@@ -121,6 +143,12 @@ module Make (W : Word.S) = struct
         Node (children, data, cardinal + 1)
     in
     loop t 0
+
+  let of_list l =
+    let rec loop l acc =
+      match l with [] -> acc | (w, v) :: l -> loop l (insert w v acc)
+    in
+    loop l empty
 
   let remove w t =
     let len = W.length w in

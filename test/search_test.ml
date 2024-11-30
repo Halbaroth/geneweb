@@ -2,9 +2,7 @@ module A = Alcotest
 module I = Geneweb_search.Index.Default
 
 let test_cardinal idx _a () =
-  let idx =
-    I.insert "foo" () I.empty |> I.insert "bar" () |> I.insert "saucisse" ()
-  in
+  let idx = I.of_list [ ("foo", ()); ("bar", ()); ("saucisse", ()) ] in
   A.(check int) "cardinal after insertion" 3 (I.cardinal idx)
 
 let test_mem idx _a () =
@@ -12,23 +10,32 @@ let test_mem idx _a () =
   A.(check bool) "mem Vieu" false (I.mem "Vieu" idx);
   A.(check bool) "mem Pariso" false (I.mem "Pariso" idx)
 
-let test_lookup idx _a () =
-  A.(check int) "lookup Vieux-Fort" 1 (Seq.length @@ I.lookup "Vieux-Fort" idx)
+let test_search idx _a () =
+  A.(check int) "search Vieux-Fort" 1 (Seq.length @@ I.search "Vieux-Fort" idx)
 
 let test_remove idx _a () =
   A.(check bool) "remove Paris (before)" true (I.mem "Paris" idx);
   let idx = I.remove "Paris" idx in
   A.(check bool) "remove Paris (after)" false (I.mem "Paris" idx)
 
+let test_lexicographic_order _idx _a () =
+  let idx =
+    I.of_list [ ("abe", ()); ("ab", ()); ("a", ()); ("bcd", ()); ("abcd", ()) ]
+  in
+  let expected = [ ("a", ()); ("ab", ()); ("abcd", ()); ("abe", ()) ] in
+  A.(check (list (pair string unit)))
+    "order" expected
+    (List.of_seq @@ I.search "a" idx)
+
 let test_random_mem idx a =
   let sz = Array.length a in
   QCheck.Test.make ~count:1000 ~name:"random mem" QCheck.(int_bound (sz - 1))
   @@ fun i -> I.mem a.(i) idx
 
-let test_random_lookup idx a =
+let test_random_search idx a =
   let sz = Array.length a in
-  QCheck.Test.make ~count:1000 ~name:"random lookup" QCheck.(int_bound (sz - 1))
-  @@ fun i -> not @@ Seq.is_empty @@ I.lookup a.(i) idx
+  QCheck.Test.make ~count:1000 ~name:"random search" QCheck.(int_bound (sz - 1))
+  @@ fun i -> not @@ Seq.is_empty @@ I.search a.(i) idx
 
 let test_random_remove idx a =
   let sz = Array.length a in
@@ -58,14 +65,15 @@ let () =
           ( "index operations",
             [
               quick_test "cardinal" test_cardinal;
-              quick_test "mem" test_lookup;
-              quick_test "lookup" test_lookup;
+              quick_test "mem" test_search;
+              quick_test "search" test_search;
               quick_test "remove" test_remove;
+              quick_test "lexicography_order" test_lexicographic_order;
             ] );
           ( "random index operations",
             [
               qcheck_test test_random_mem;
-              qcheck_test test_random_lookup;
+              qcheck_test test_random_search;
               qcheck_test test_random_remove;
             ] );
         ]

@@ -17,7 +17,12 @@ let search_index indexes id idx pattern =
   match MS.find idx indexes with
   | exception Not_found -> of_error id "unknown index"
   | idx ->
-      I.lookup pattern idx |> Seq.take 10 |> List.of_seq
+      let seq =
+        Seq.concat
+        @@ List.to_seq
+             [ I.search pattern idx; I.fuzzy_search ~max_dist:1 pattern idx ]
+      in
+      Seq.take 10 seq |> List.of_seq
       |> List.map (fun (s, _) -> `String s)
       |> of_list id
 

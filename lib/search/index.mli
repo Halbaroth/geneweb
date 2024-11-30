@@ -6,6 +6,9 @@ module type S = sig
   val empty : 'a t
   (** An empty index. *)
 
+  val of_list : (word * 'a) list -> 'a t
+  (** Create an index from an associative list. *)
+
   val cardinal : 'a t -> int
   (** Return the cardinal of the index, that is its number of elements. *)
 
@@ -19,9 +22,11 @@ module type S = sig
   val remove : word -> 'a t -> 'a t
   (** [remove w t] removes the word [w] if it is present in [t]. *)
 
-  val lookup : word -> 'a t -> (word * 'a) Seq.t
-  (** [lookup w t] returns the sequence in lexicographic order of all the
+  val search : word -> 'a t -> (word * 'a) Seq.t
+  (** [search w t] returns the sequence in lexicographic order of all the
       words in [t] with [w] as prefix. *)
+
+  val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
 
   val fold : (word -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
 

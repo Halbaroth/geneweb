@@ -64,9 +64,9 @@
 
 (test
   (deps (:dict ./dict.txt))
-  (name index_test)
+  (name search_test)
   (modules
-    index_test)
+    search_test)
   (libraries
     alcotest
     fmt
