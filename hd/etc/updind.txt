@@ -742,7 +742,7 @@
 
   <div class="card">
 <div class="dropdown">
-  <input id="search" class="dropdown-input" placeholder="searching...">
+  <input id="search" class="dropdown-input" placeholder="searching..." autocomplete="off">
   <div class="dropdown-content" id="dropdownContent">
   </div>
 </div>
@@ -1374,7 +1374,7 @@ $(document).ready(function() {
 </script>
 <script type="module">
   import { RemoteProcedures } from "./js/remoteprocedures.js";
-  import { addCompletion } from "./js/completion.js";
+  import { dropDownListWithCompletion } from "./js/dropdownlist.js";
 
   function websocket_address(port) {
     const protocol = window.location.protocol;
@@ -1402,7 +1402,7 @@ $(document).ready(function() {
   const input = document.getElementById("search");
   const list = document.getElementById("dropdownContent");
 
-  addCompletion(rp, input, list);
+  const dp = new dropDownListWithCompletion(input, list, rp);
 </script>
 </body>
 </html>

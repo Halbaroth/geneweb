@@ -4,8 +4,8 @@
   width: 200px;
 }
 
-.dropdown-input {
-  width: 100%;
+.dropdown > input {
+  width: 100px;
   padding: 10px;
   font-size: 16px;
   border: 1px solid #ccc;
@@ -13,12 +13,12 @@
   cursor: pointer;
 }
 
-.dropdown-content {
+.dropdown > div {
   position: absolute;
   display: none;
   top: 100%;
   left: 0;
-  width: 100%;
+  width: 100px;
   border: 1px solid #ccc;
   background-color: white;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
@@ -28,6 +28,10 @@
 .dropdown-content > div {
   padding: 10px;
   cursor: pointer;
+}
+
+.dropdown-content-hovered {
+  background-color: #f1f1f1;
 }
 
 .dropdown-content > div:hover {

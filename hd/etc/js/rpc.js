@@ -128,7 +128,6 @@ export class RpcClient {
    *  @param {MessageEvent<string>} event
    */
   #onMessage(event) {
-    console.log(event.data);
     let response = parseResponse(event.data);
     if (response !== null) {
       let callback = this.waiting.get(response.id);
