@@ -741,6 +741,11 @@
   </div>
 
   <div class="card">
+<div class="dropdown">
+  <input id="search" class="dropdown-input" placeholder="searching...">
+  <div class="dropdown-content" id="dropdownContent">
+  </div>
+</div>
     <h2 class="card-header%if;(mrg=1) mt-5%end;">%nn;
       %if;(mrg=1)[*merge::person/persons]1%nn;
       %elseif;(mod=1)[*modify::person/persons]0%nn;
@@ -1384,16 +1389,20 @@ $(document).ready(function() {
   }
 
   const rp = new RemoteProcedures(websocket_address());
-  // rp.searchIndex("communes", "Saint");
 
-  const elements = document.querySelectorAll('[data-book="place"]');
-  const datalist = document.getElementById("datalist_places");
+  // const elements = document.querySelectorAll('[data-book="place"]');
+  // const datalist = document.getElementById("datalist_places");
 
-  elements.forEach(el => {
-    if (el instanceof HTMLInputElement) {
-      addCompletion(rp, el, datalist);
-    }
-  });
+  // elements.forEach(el => {
+  //   if (el instanceof HTMLInputElement) {
+  //     addCompletion(rp, el, datalist);
+  //   }
+  // });
+
+  const input = document.getElementById("search");
+  const list = document.getElementById("dropdownContent");
+
+  addCompletion(rp, input, list);
 </script>
 </body>
 </html>
