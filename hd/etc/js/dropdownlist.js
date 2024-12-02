@@ -149,6 +149,16 @@ export class DropDownList {
 export function dropDownListWithCompletion(input, list, rp) {
   const lst = new DropDownList(input, list);
 
+  const matchWidth = () => {
+    list.style.left = input.offsetLeft + 'px';
+    list.style.width = input.offsetWidth + 'px';
+  };
+
+  matchWidth();
+  window.addEventListener('resize', (_ev) => {
+    matchWidth();
+  });
+
   lst.input.addEventListener('input', async (_event) => {
     if (stringLength(lst.input.value) >= 3) {
       lst.show();

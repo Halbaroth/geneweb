@@ -742,7 +742,7 @@
 
   <div class="card">
 <div class="dropdown">
-  <input id="search" class="dropdown-input" placeholder="searching..." autocomplete="off">
+  <input id="search" class="form-control" placeholder="searching..." autocomplete="off">
   <div class="dropdown-content" id="dropdownContent">
   </div>
 </div>
