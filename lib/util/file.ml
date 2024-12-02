@@ -51,7 +51,7 @@ let walk_folder ?(recursive = false) f path acc =
             walk_siblings dirs path handle (f (`Dir fl) acc)
         | _ -> walk_siblings dirs path handle acc)
   in
-  let rec dfs stack acc =
+  let rec traverse stack acc =
     match stack with
     | [] -> acc
     | path :: stack ->
@@ -60,6 +60,6 @@ let walk_folder ?(recursive = false) f path acc =
           Fun.protect ~finally:(fun () -> Unix.closedir handle) @@ fun () ->
           walk_siblings stack path handle acc
         in
-        dfs stack acc
+        traverse stack acc
   in
-  dfs [ path ] acc
+  traverse [ path ] acc

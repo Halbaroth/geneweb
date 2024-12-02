@@ -8,7 +8,8 @@ module type S = sig
   val cardinal : 'a t -> int
   val mem : word -> 'a t -> bool
   val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
-  val insert : word -> 'a -> 'a t -> 'a t
+  val add : word -> 'a -> 'a t -> 'a t
+  val update : word -> ('a option -> 'a option) -> 'a t -> 'a t
   val remove : word -> 'a t -> 'a t
   val search : word -> 'a t -> (word * 'a) Seq.t
   val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
@@ -144,11 +145,11 @@ module Make (W : Word.S) = struct
     in
     loop [] t A.init
 
-  let insert w v t =
+  let update w f t =
     let len = W.length w in
     let rec loop t i =
       let (Node (children, data, cardinal)) = t in
-      if i = len then Node (children, Some v, cardinal)
+      if i = len then Node (children, f data, cardinal)
       else
         let children =
           M.update (W.get w i)
@@ -162,9 +163,11 @@ module Make (W : Word.S) = struct
     in
     loop t 0
 
+  let add w v t = update w (fun _ -> Some v) t
+
   let of_list l =
     let rec loop l acc =
-      match l with [] -> acc | (w, v) :: l -> loop l (insert w v acc)
+      match l with [] -> acc | (w, v) :: l -> loop l (add w v acc)
     in
     loop l empty
 

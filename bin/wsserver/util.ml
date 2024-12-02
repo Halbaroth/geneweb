@@ -1,3 +1,6 @@
+module SS = Set.Make (String)
+module MS = Map.Make (String)
+
 let sha1 s = s |> Digestif.SHA1.digest_string |> Digestif.SHA1.to_raw_string
 
 let pp_sockaddr ppf = function

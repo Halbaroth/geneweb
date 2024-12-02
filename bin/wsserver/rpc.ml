@@ -1,5 +1,4 @@
 module I = Geneweb_search.Index.Default
-module MS = Map.Make (String)
 
 let of_payload id payload =
   `Assoc [ ("id", `Int id); ("error", `Null); ("payload", payload) ]
@@ -14,21 +13,22 @@ let of_list id l = of_payload id (`List l)
 let pong id = of_string id "pong"
 
 let search_index indexes id idx pattern =
-  match MS.find idx indexes with
+  match Util.MS.find idx indexes with
   | exception Not_found -> of_error id "unknown index"
   | idx ->
       let seq =
         Seq.concat
         @@ List.to_seq
-             [ I.search pattern idx; I.fuzzy_search ~max_dist:1 pattern idx ]
+             [ I.search pattern idx(* ; I.fuzzy_search ~max_dist:1 pattern idx  *)]
       in
+      let seq = Seq.concat @@ Seq.map (fun (_, v) -> Util.SS.to_seq v) seq in
       Seq.take 10 seq |> List.of_seq
-      |> List.map (fun (s, _) -> `String s)
+      |> List.map (fun s -> `String s)
       |> of_list id
 
 let dispatch indexes sockaddr Server.{ content; _ } =
   let open Yojson.Safe.Util in
-  let indexes = List.to_seq indexes |> MS.of_seq in
+  let indexes = List.to_seq indexes |> Util.MS.of_seq in
   let search_index = search_index indexes in
   (* TODO: do validation to simply this. *)
   let id = content |> member "id" |> to_int in

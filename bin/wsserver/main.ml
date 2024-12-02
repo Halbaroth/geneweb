@@ -1,3 +1,5 @@
+module I = Geneweb_search.Index.Default
+
 let handle_exn exn =
   Logs.err (fun k -> k "fatal error:@ %a" Util.pp_exn exn);
   raise exn
@@ -24,8 +26,6 @@ let set_levels debug_flags =
     (fun flag -> Logs.Src.set_level (flag_to_src flag) (Some Debug))
     debug_flags
 
-module I = Geneweb_search.Index.Default
-
 let ( // ) = Filename.concat
 
 let generate_index_from_file path =
@@ -33,7 +33,7 @@ let generate_index_from_file path =
   let rec loop t =
     match In_channel.input_line ic with
     | None -> t
-    | Some line -> loop (I.insert line () t)
+    | Some word -> loop (I.add word (Util.SS.singleton word) t)
   in
   loop I.empty
 
@@ -41,28 +41,61 @@ let generate_index_from_file path =
 let fold_places f base acc =
   let g istr = f (Gwdb.sou base istr) in
   let ipers = Gwdb.ipers base in
-  let ifams = Gwdb.ifams base in
+  (* let ifams = Gwdb.ifams base in *)
   let acc =
     Gwdb.Collection.fold
       (fun acc iper ->
         let p = Gwdb.poi base iper in
-        acc
-        |> g (Gwdb.get_birth_place p)
-        |> g (Gwdb.get_baptism_place p)
-        |> g (Gwdb.get_death_place p)
-        |> g (Gwdb.get_burial_place p))
+        acc |> g (Gwdb.get_birth_place p)
+        (* |> g (Gwdb.get_baptism_place p)
+           |> g (Gwdb.get_death_place p)
+           |> g (Gwdb.get_burial_place p) *))
       acc ipers
   in
-  Gwdb.Collection.fold
-    (fun acc ifam ->
-      let f = Gwdb.foi base ifam in
-      g (Gwdb.get_marriage_place f) acc)
-    acc ifams
+  acc
+(* Gwdb.Collection.fold
+   (fun acc ifam ->
+     let f = Gwdb.foi base ifam in
+     g (Gwdb.get_marriage_place f) acc)
+   acc ifams *)
+
+let is_ignored_char c = c = ' ' || c = ',' || c = '-'
 
 let generate_index_from_base cache_dir basename =
   let base = Gwdb.open_base basename in
+  let tokenize s =
+    let len = String.length s in
+    let rec loop acc tk i =
+      if i = len then acc
+      else
+        let c = String.get s i in
+        if is_ignored_char c then
+          match tk with
+          | [] -> loop acc tk (i + 1)
+          | _ -> loop (List.rev tk :: acc) [] (i + 1)
+        else loop acc (c :: tk) (i + 1)
+    in
+    loop [] [] 0
+  in
+  let normalize tk = List.map Char.lowercase_ascii tk in
+  let preprocess s =
+    tokenize s
+    |> List.map (fun tk -> normalize tk |> List.to_seq |> String.of_seq)
+  in
   Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
-  fold_places (fun s -> I.insert s ()) base I.empty
+  fold_places
+    (fun s idx ->
+      let words = preprocess s in
+      List.fold_left
+        (fun idx w ->
+          I.update w
+            (fun set_opt ->
+              match set_opt with
+              | Some set -> Some (Util.SS.add s set)
+              | None -> Some (Util.SS.singleton s))
+            idx)
+        idx words)
+    base I.empty
 
 let generate_indexes cache_dir base_dir dict_dir =
   let name path = Filename.(basename path |> chop_extension) in
@@ -70,8 +103,7 @@ let generate_indexes cache_dir base_dir dict_dir =
     File.walk_folder
       (fun kind acc ->
         match kind with
-        (* TODO: reactivate this feature after adding the cache system. *)
-        | `Dir path when Util.is_gwdb_file path && false ->
+        | `Dir path when Util.is_gwdb_file path ->
             (name path, generate_index_from_base cache_dir path) :: acc
         | `File _ | `Dir _ -> acc)
       base_dir []
@@ -79,8 +111,7 @@ let generate_indexes cache_dir base_dir dict_dir =
   File.walk_folder
     (fun kind acc ->
       match kind with
-      | `File path ->
-        (name path, generate_index_from_file path) :: acc
+      | `File path -> (name path, generate_index_from_file path) :: acc
       | `Dir _ -> acc)
     dict_dir acc
 

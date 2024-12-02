@@ -19,9 +19,12 @@ module type S = sig
   (** [fuzzy_mem ~max_dist w t] checks if there is a word in [t] at distance at
       most [max_dist] of [w]. *)
 
-  val insert : word -> 'a -> 'a t -> 'a t
-  (** [insert w t v] inserts the word [w] with the value [v] in [t].
-      If [w] was already present in [t], its value is replaced by [v]. *)
+  val add : word -> 'a -> 'a t -> 'a t
+  (** [add w t v] adds the word [w] with the value [v] in [t].
+      If [w] was already present in [t], its previous value is replaced by
+      [v]. *)
+
+  val update : word -> ('a option -> 'a option) -> 'a t -> 'a t
 
   val remove : word -> 'a t -> 'a t
   (** [remove w t] removes the word [w] if it is present in [t]. *)

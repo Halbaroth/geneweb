@@ -154,7 +154,7 @@ export function dropDownWithCompletion(input, list, rp) {
       lst.show();
 
       try {
-        const values = await rp.searchIndex("communes", lst.input.value);
+        const values = await rp.searchIndex("roglo-v7", lst.input.value);
         lst.replace(values);
       } catch (error) {
         console.error(error);

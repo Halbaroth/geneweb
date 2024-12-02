@@ -80,7 +80,7 @@ let create_index path =
   let rec loop t l i =
     match In_channel.input_line ic with
     | None -> (t, Array.of_list l)
-    | Some line -> loop (I.insert line i t) (line :: l) (i + 1)
+    | Some line -> loop (I.add line i t) (line :: l) (i + 1)
   in
   loop I.empty [] 1
 
