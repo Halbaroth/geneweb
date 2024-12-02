@@ -1,6 +1,26 @@
 module A = Alcotest
 module I = Geneweb_search.Index.Default
 
+(* Compute the Levenshtein distance of [s1] and [s2]. *)
+let distance s1 s2 =
+  let l1 = String.length s1 in
+  let l2 = String.length s2 in
+  let l1, l2, s1, s2 = if l2 < l1 then (l2, l1, s2, s1) else (l1, l2, s1, s2) in
+  let prev = Array.init (l2 + 1) (fun j -> j) in
+  let dp = Array.init (l2 + 1) (fun _ -> 0 (* dummy *)) in
+  for i = 1 to l1 do
+    dp.(0) <- i;
+    for j = 1 to l2 do
+      if String.get s1 (i - 1) = String.get s2 (j - 1) then
+        dp.(j) <- prev.(j - 1)
+      else
+        let u = min prev.(j) dp.(j - 1) in
+        dp.(j) <- 1 + min u prev.(j - 1)
+    done;
+    Array.blit dp 0 prev 0 (l2 + 1)
+  done;
+  prev.(l2)
+
 let test_cardinal idx _a () =
   let idx = I.of_list [ ("foo", ()); ("bar", ()); ("saucisse", ()) ] in
   A.(check int) "cardinal after insertion" 3 (I.cardinal idx)
@@ -44,6 +64,17 @@ let test_random_remove idx a =
   let idx = I.remove a.(i) idx in
   not @@ I.mem a.(i) idx
 
+  (* TODO: mark this test as slow test. *)
+let test_random_fuzzy_mem idx a =
+  let sz = Array.length a in
+  QCheck.Test.make ~count:3 ~name:"random fuzzy mem with dist <= 1"
+    QCheck.(int_bound (sz - 1))
+  @@ fun i ->
+    let w1 = a.(i) in
+    let expected = Array.exists (fun w2 -> distance w1 w2 <= 1) a in
+    let result = I.fuzzy_mem ~max_dist:1 w1 idx in
+    expected = result
+
 let create_index path =
   File.with_in_channel path @@ fun ic ->
   let rec loop t l i =
@@ -75,6 +106,7 @@ let () =
               qcheck_test test_random_mem;
               qcheck_test test_random_search;
               qcheck_test test_random_remove;
+              qcheck_test test_random_fuzzy_mem;
             ] );
         ]
   | _ -> failwith "expected a dictionary file in txt format as first argument"

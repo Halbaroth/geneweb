@@ -15,6 +15,10 @@ module type S = sig
   val mem : word -> 'a t -> bool
   (** [mem w t] checks if the word [w] is present in [t]. *)
 
+  val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
+  (** [fuzzy_mem ~max_dist w t] checks if there is a word in [t] at distance at
+      most [max_dist] of [w]. *)
+
   val insert : word -> 'a -> 'a t -> 'a t
   (** [insert w t v] inserts the word [w] with the value [v] in [t].
       If [w] was already present in [t], its value is replaced by [v]. *)

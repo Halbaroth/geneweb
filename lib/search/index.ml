@@ -7,6 +7,7 @@ module type S = sig
   val of_list : (word * 'a) list -> 'a t
   val cardinal : 'a t -> int
   val mem : word -> 'a t -> bool
+  val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
   val insert : word -> 'a -> 'a t -> 'a t
   val remove : word -> 'a t -> 'a t
   val search : word -> 'a t -> (word * 'a) Seq.t
@@ -79,6 +80,23 @@ module Make (W : Word.S) = struct
         | t -> loop (i + 1) t
     in
     loop 0 t
+
+  let fuzzy_mem ~max_dist word t =
+    let module A = Automaton (struct
+      type nonrec word = word
+
+      let pattern = word
+      let max_dist = max_dist
+    end) in
+    let len = W.length word in
+    let rec loop i t st =
+      let (Node (children, data, _)) = t in
+      if i = len && A.accept st then true
+      else if A.can_match st then
+        M.exists (fun c child -> loop (i + 1) child (A.next c st)) children
+      else false
+    in
+    loop 0 t A.init
 
   let to_seq pfx t =
     let rec loop rev_pfx t =

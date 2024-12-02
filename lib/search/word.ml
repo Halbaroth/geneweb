@@ -23,8 +23,7 @@ module Default : S with type char_ = char and type t = string = struct
   let ( ^ ) = ( ^ )
   let suffix offset s = String.sub s offset (String.length s)
 
-  let compare_char c1 c2 =
-    Char.compare (Char.lowercase_ascii c1) (Char.lowercase_ascii c2)
+  let compare_char = Char.compare
 
   let pp = Fmt.string
 end

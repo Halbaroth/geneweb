@@ -63,7 +63,7 @@
     geneweb))
 
 (test
-  (deps (:dict ./dict.txt))
+  (deps (:dict ./communes.txt))
   (name search_test)
   (modules
     search_test)
