@@ -141,7 +141,6 @@ endif
 # [BEGIN] Installation / Distribution section
 
 build: ## Build the geneweb package (libraries and binaries)
-	env | grep 'DUNE'
 	@printf "\n\033[1;1mBuilding executables\033[0m\n"
 	@$(call unpatch_after, $(BUILD))
 	@printf "Done."
