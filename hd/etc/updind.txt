@@ -742,8 +742,8 @@
 
   <div class="card">
 <div class="dropdown">
-  <input id="search" class="form-control" placeholder="searching..." autocomplete="off">
-  <div class="dropdown-content" id="dropdownContent">
+  <input class="form-control dropdown-input" id="search-places" placeholder="searching..." autocomplete="off">
+  <div class="dropdown-content" id="list-places">
   </div>
 </div>
     <h2 class="card-header%if;(mrg=1) mt-5%end;">%nn;
@@ -1374,7 +1374,7 @@ $(document).ready(function() {
 </script>
 <script type="module">
   import { RemoteProcedures } from "./js/remoteprocedures.js";
-  import { dropDownListWithCompletion } from "./js/dropdownlist.js";
+  import { dropDownWithCompletion } from "./js/dropdown.js";
 
   function websocket_address(port) {
     const protocol = window.location.protocol;
@@ -1399,10 +1399,10 @@ $(document).ready(function() {
   //   }
   // });
 
-  const input = document.getElementById("search");
-  const list = document.getElementById("dropdownContent");
+  const input = document.getElementById("search-places");
+  const list = document.getElementById("list-places");
 
-  const dp = new dropDownListWithCompletion(input, list, rp);
+  const dp = new dropDownWithCompletion(input, list, rp);
 </script>
 </body>
 </html>

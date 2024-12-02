@@ -8,7 +8,7 @@ function stringLength(str) {
   return [...str].length;
 }
 
-export class DropDownList {
+export class DropDown {
   /** @type HTMLInputElement */
   input;
 
@@ -146,18 +146,8 @@ export class DropDownList {
  * @param {HTMLDivElement} list
  * @param {RemoteProcedures} rp
  */
-export function dropDownListWithCompletion(input, list, rp) {
-  const lst = new DropDownList(input, list);
-
-  const matchWidth = () => {
-    list.style.left = input.offsetLeft + 'px';
-    list.style.width = input.offsetWidth + 'px';
-  };
-
-  matchWidth();
-  window.addEventListener('resize', (_ev) => {
-    matchWidth();
-  });
+export function dropDownWithCompletion(input, list, rp) {
+  const lst = new DropDown(input, list);
 
   lst.input.addEventListener('input', async (_event) => {
     if (stringLength(lst.input.value) >= 3) {
