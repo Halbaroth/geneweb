@@ -46,3 +46,5 @@ let lwt_reporter () =
   { Logs.report }
 
 let is_gwdb_file path = String.equal (Filename.extension path) ".gwb"
+
+let normalize = String.lowercase_ascii

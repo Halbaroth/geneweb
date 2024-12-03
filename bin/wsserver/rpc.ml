@@ -16,6 +16,7 @@ let search_index indexes id idx pattern =
   match Util.MS.find idx indexes with
   | exception Not_found -> of_error id "unknown index"
   | idx ->
+      let pattern = Util.normalize pattern in
       let seq =
         Seq.concat
         @@ List.to_seq

@@ -79,10 +79,10 @@ let tokenize s =
 
 let generate_index_from_base cache_dir basename =
   let base = Gwdb.open_base basename in
-  let normalize tk = List.map Char.lowercase_ascii tk in
   let preprocess s =
     tokenize s
-    |> List.map (fun (tk, _, _) -> normalize tk |> List.to_seq |> String.of_seq)
+    |> List.map (fun (tk, _, _) ->
+           List.to_seq tk |> String.of_seq |> Util.normalize)
   in
   Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
   fold_places
@@ -102,20 +102,20 @@ let generate_index_from_base cache_dir basename =
 let generate_indexes cache_dir base_dir dict_dir =
   let name path = Filename.(basename path |> chop_extension) in
   (* let acc = *)
-    File.walk_folder
-      (fun kind acc ->
-        match kind with
-        | `Dir path when Util.is_gwdb_file path ->
-            (name path, generate_index_from_base cache_dir path) :: acc
-        | `File _ | `Dir _ -> acc)
-      base_dir []
-  (* in
   File.walk_folder
     (fun kind acc ->
       match kind with
-      | `File path -> (name path, generate_index_from_file path) :: acc
-      | `Dir _ -> acc)
-    dict_dir acc *)
+      | `Dir path when Util.is_gwdb_file path ->
+          (name path, generate_index_from_base cache_dir path) :: acc
+      | `File _ | `Dir _ -> acc)
+    base_dir []
+(* in
+   File.walk_folder
+     (fun kind acc ->
+       match kind with
+       | `File path -> (name path, generate_index_from_file path) :: acc
+       | `Dir _ -> acc)
+     dict_dir acc *)
 
 let init_directories () =
   let base = Xdg.create ~env:Sys.getenv_opt () in
