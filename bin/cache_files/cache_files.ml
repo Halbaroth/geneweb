@@ -19,11 +19,11 @@ let all = ref false
 let prog = ref false
 let width = ref 50
 
+let ( // ) = Filename.concat
+
 (* Attention: cache files are reorg independant *)
 let set_cache_dir bname =
-  let cache_dir =
-    String.concat Filename.dir_sep [ Secure.base_dir (); "etc"; bname; "cache" ]
-  in
+  let cache_dir = Secure.base_dir () // "etc" // bname // "cache" in
   try
     if not (Sys.file_exists cache_dir) then Unix.mkdir bname 0o755;
     cache_dir
@@ -35,7 +35,7 @@ let cache_dir = ref ""
 
 let write_cache_file bname fname list =
   let filename = bname ^ "_" ^ fname ^ ".cache" in
-  let file = Filename.concat !cache_dir filename in
+  let file = !cache_dir // filename in
   let gz_file = file ^ ".gz" in
   try
     let temp_file = Filename.temp_file "temp_" ".cache" in
@@ -127,9 +127,7 @@ let places_all base bname fname =
   in
   write_cache_file bname fname places_list;
   let stop = Unix.gettimeofday () in
-  let full_name =
-    Filename.concat !cache_dir (bname ^ "_" ^ fname ^ ".cache.gz")
-  in
+  let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
   Format.printf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
     (List.length places_list) "places" (stop -. start);
   Format.eprintf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
@@ -218,8 +216,7 @@ let names_all base bname fname alias =
   let name_list = List.sort (fun v1 v2 -> compare v1 v2) name_list in
   write_cache_file bname fname name_list;
   let stop = Unix.gettimeofday () in
-  let full_name =
-    Filename.concat !cache_dir (bname ^ "_" ^ fname ^ ".cache.gz")
+  let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz")
   in
   Format.printf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
     (List.length name_list) fname (stop -. start);
@@ -265,9 +262,7 @@ let main () =
   if not (Sys.file_exists !cache_dir) then Mutil.mkdir_p !cache_dir;
   Printf.printf "Generating cache(s) compressed with gzip\n";
 
-  let full_name =
-    Filename.concat !cache_dir (!bname ^ "_occupations.cache.gz")
-  in
+  let full_name = !cache_dir // (!bname ^ "_occupations.cache.gz") in
   width := String.length full_name + 2;
   Format.printf "@[<v>";
   let fn_alias = if !fname_alias then "fna" else "" in
