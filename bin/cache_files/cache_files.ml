@@ -73,6 +73,8 @@ let iter_places f base =
       f i (Gwdb.get_marriage_place fam))
     ifams
 
+let iter_names f base = Gwdb.Collection.iteri f (Gwdb.ipers base)
+
 (* FIXME: find the good heuristic *)
 let places_all base bname fname =
   let len = Gwdb.nb_of_persons base + Gwdb.nb_of_families base in
