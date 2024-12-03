@@ -59,28 +59,30 @@ let fold_places f base acc =
      g (Gwdb.get_marriage_place f) acc)
    acc ifams *)
 
-let is_ignored_char c = c = ' ' || c = ',' || c = '-'
+let is_separator c = c = ' ' || c = ',' || c = '-'
+
+let flush_buf acc buf start curr =
+  match buf with [] -> acc | _ -> (List.rev buf, start, curr) :: acc
+
+let tokenize s =
+  let len = String.length s in
+  let rec loop acc buf start curr =
+    if curr = len then flush_buf acc buf start curr
+    else
+      let c = String.get s curr in
+      if is_separator c then
+        let acc = flush_buf acc buf start curr in
+        loop acc [] (curr + 1) (curr + 1)
+      else loop acc (c :: buf) start (curr + 1)
+  in
+  loop [] [] 0 0
 
 let generate_index_from_base cache_dir basename =
   let base = Gwdb.open_base basename in
-  let tokenize s =
-    let len = String.length s in
-    let rec loop acc tk i =
-      if i = len then acc
-      else
-        let c = String.get s i in
-        if is_ignored_char c then
-          match tk with
-          | [] -> loop acc tk (i + 1)
-          | _ -> loop (List.rev tk :: acc) [] (i + 1)
-        else loop acc (c :: tk) (i + 1)
-    in
-    loop [] [] 0
-  in
   let normalize tk = List.map Char.lowercase_ascii tk in
   let preprocess s =
     tokenize s
-    |> List.map (fun tk -> normalize tk |> List.to_seq |> String.of_seq)
+    |> List.map (fun (tk, _, _) -> normalize tk |> List.to_seq |> String.of_seq)
   in
   Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
   fold_places
@@ -99,7 +101,7 @@ let generate_index_from_base cache_dir basename =
 
 let generate_indexes cache_dir base_dir dict_dir =
   let name path = Filename.(basename path |> chop_extension) in
-  let acc =
+  (* let acc = *)
     File.walk_folder
       (fun kind acc ->
         match kind with
@@ -107,13 +109,13 @@ let generate_indexes cache_dir base_dir dict_dir =
             (name path, generate_index_from_base cache_dir path) :: acc
         | `File _ | `Dir _ -> acc)
       base_dir []
-  in
+  (* in
   File.walk_folder
     (fun kind acc ->
       match kind with
       | `File path -> (name path, generate_index_from_file path) :: acc
       | `Dir _ -> acc)
-    dict_dir acc
+    dict_dir acc *)
 
 let init_directories () =
   let base = Xdg.create ~env:Sys.getenv_opt () in
