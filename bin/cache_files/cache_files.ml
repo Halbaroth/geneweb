@@ -105,7 +105,7 @@ let places_all base bname fname =
   with_timer @@ fun () -> places_all base bname fname
 
 let names_all base bname fname alias =
-  let ht = Hashtbl.create 1 in
+  let ht : (string, string) Hashtbl.t = Hashtbl.create 17 in
   let nb_ind = Gwdb.nb_of_persons base in
   flush stderr;
   if !prog then (
@@ -162,10 +162,10 @@ let names_all base bname fname alias =
       List.iter
         (fun nam ->
           let key = Gwdb.sou base nam in
-          if not (Hashtbl.mem ht key) then Hashtbl.add ht key (key, 1)
+          if not (Hashtbl.mem ht key) then Hashtbl.add ht key key
           else
-            let vv, i = Hashtbl.find ht key in
-            Hashtbl.replace ht key (vv, i + 1))
+            let vv = Hashtbl.find ht key in
+            Hashtbl.replace ht key vv)
         nam;
 
       let nam2 =
@@ -177,17 +177,17 @@ let names_all base bname fname alias =
       List.iter
         (fun nam ->
           let key = Gwdb.sou base nam in
-          if not (Hashtbl.mem ht key) then Hashtbl.add ht key (key, 1)
+          if not (Hashtbl.mem ht key) then Hashtbl.add ht key key
           else
-            let vv, i = Hashtbl.find ht key in
-            Hashtbl.replace ht key (vv, i + 1))
+            let vv = Hashtbl.find ht key in
+            Hashtbl.replace ht key vv)
         nam2)
     (Gwdb.ipers base);
 
   if !prog then ProgrBar.finish ();
   let name_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
   let name_list = List.sort (fun v1 v2 -> compare v1 v2) name_list in
-  write_cache_file bname fname (List.map fst name_list);
+  write_cache_file bname fname name_list;
   let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
   Format.printf "@[<h>%-*s@ %8d@ %-14s@]@." !width full_name
     (List.length name_list) fname
