@@ -18,62 +18,32 @@ let sources = ref false
 let all = ref false
 let prog = ref false
 let width = ref 50
-
+let cache_dir = ref ""
 let ( // ) = Filename.concat
 
 (* Attention: cache files are reorg independant *)
 let set_cache_dir bname =
   let cache_dir = Secure.base_dir () // "etc" // bname // "cache" in
-  try
-    if not (Sys.file_exists cache_dir) then Unix.mkdir bname 0o755;
-    cache_dir
-  with _ ->
-    Printf.eprintf "Error while creating cache dir %s\n" cache_dir;
-    cache_dir
+  File.create_dir ~required_perm:0o755 cache_dir;
+  cache_dir
 
-let cache_dir = ref ""
-
-let write_cache_file bname fname list =
+let write_cache_file bname fname l =
   let filename = bname ^ "_" ^ fname ^ ".cache" in
   let file = !cache_dir // filename in
   let gz_file = file ^ ".gz" in
-  try
-    let temp_file = Filename.temp_file "temp_" ".cache" in
-    let oc = Stdlib.open_out temp_file in
-    List.iter (fun (v, _) -> Stdlib.output_string oc (v ^ "\n")) list;
-    Stdlib.close_out oc;
-    (* Using camlzip to compress the file *)
-    let in_channel = Stdlib.open_in_bin temp_file in
-    let out_channel = Gzip.open_out gz_file in
-    try
-      let buffer = Bytes.create 8192 in
-      let rec copy_contents () =
-        let bytes_read =
-          Stdlib.input in_channel buffer 0 (Bytes.length buffer)
-        in
-        if bytes_read > 0 then (
-          Gzip.output out_channel buffer 0 bytes_read;
-          copy_contents ())
-      in
-      copy_contents ();
-      Stdlib.close_in in_channel;
-      Gzip.close_out out_channel;
-      Sys.remove temp_file
-    with exn ->
-      Stdlib.close_in_noerr in_channel;
-      Gzip.close_out out_channel;
-      Sys.remove temp_file;
-      raise exn
-  with exn ->
-    Printf.eprintf "Debug: Exception occurred: %s\n" (Printexc.to_string exn);
-    Printf.eprintf "Debug: Stack trace:\n%s\n" (Printexc.get_backtrace ());
-    raise exn
+  let oc = Gzip.open_out gz_file in
+  Fun.protect ~finally:(fun () -> Gzip.close_out oc) @@ fun () ->
+  List.iter
+    (fun s ->
+      let s = s ^ "\n" in
+      Gzip.output_substring oc s 0 (String.length s))
+    l
 
 let places_all base bname fname =
   let start = Unix.gettimeofday () in
   let ht_size = 2048 in
   (* FIXME: find the good heuristic *)
-  let ht : ('a, 'b) Hashtbl.t = Hashtbl.create ht_size in
+  let ht : (string, string) Hashtbl.t = Hashtbl.create ht_size in
   let ht_add istr _p =
     let key : 'a = sou base istr in
     match Hashtbl.find_opt ht key with
@@ -121,10 +91,8 @@ let places_all base bname fname =
     (Gwdb.ifams base);
 
   if !prog then ProgrBar.finish ();
-  let places_list = Hashtbl.fold (fun _k v acc -> (v, 1) :: acc) ht [] in
-  let places_list =
-    List.sort (fun (v1, _) (v2, _) -> Gutil.alphabetic_utf_8 v1 v2) places_list
-  in
+  let places_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
+  let places_list = List.sort Gutil.alphabetic_utf_8 places_list in
   write_cache_file bname fname places_list;
   let stop = Unix.gettimeofday () in
   let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
@@ -214,10 +182,9 @@ let names_all base bname fname alias =
   if !prog then ProgrBar.finish ();
   let name_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
   let name_list = List.sort (fun v1 v2 -> compare v1 v2) name_list in
-  write_cache_file bname fname name_list;
+  write_cache_file bname fname (List.map fst name_list);
   let stop = Unix.gettimeofday () in
-  let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz")
-  in
+  let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
   Format.printf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
     (List.length name_list) fname (stop -. start);
   Format.eprintf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
@@ -249,7 +216,7 @@ let anonfun i = bname := i
 let usage =
   "Usage: cache_files [options] base\n cd bases; before running cache_files."
 
-let main () =
+let () =
   Secure.set_base_dir ".";
   Arg.parse speclist anonfun usage;
   bname := Filename.remove_extension (Filename.basename !bname);
@@ -294,5 +261,3 @@ let main () =
   Format.printf "@]";
   (* Ferme la boite verticale *)
   flush stderr
-
-let _ = main ()

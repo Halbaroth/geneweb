@@ -33,8 +33,8 @@ val walk_folder :
 (** [walk_folder ~recursive f dir] accumulates [f] on all the regular files or
     directories of [dir].
 
-    The argument of [f] is the relative path of the file or or subdirectory
-    in [dir].
+    The argument of [f] is the relative path of the file or subdirectory in
+    [dir].
 
     If [recursive] is [true], the iterator also explores subdirectories. [false]
     is the default.
