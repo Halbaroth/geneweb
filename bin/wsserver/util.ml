@@ -1,18 +1,5 @@
+module SS = Set.Make (String)
 module MS = Map.Make (String)
-
-type ctx = { str : string; pos : int * int }
-
-module SS = Set.Make (struct
-  type t = ctx
-
-  let compare_pair p1 p2 =
-    let c = Int.compare (fst p1) (fst p2) in
-    if c <> 0 then c else Int.compare (snd p1) (snd p2)
-
-  let compare ctx1 ctx2 =
-    let c = String.compare ctx1.str ctx2.str in
-    if c <> 0 then c else compare_pair ctx1.pos ctx2.pos
-end)
 
 let sha1 s = s |> Digestif.SHA1.digest_string |> Digestif.SHA1.to_raw_string
 
