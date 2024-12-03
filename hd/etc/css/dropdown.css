@@ -25,7 +25,7 @@
 }
 
 .dropdown-content > div {
-  padding: 10px;
+  padding: 2px 10px 2px 10px;
   cursor: pointer;
 }
 
