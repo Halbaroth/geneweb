@@ -40,6 +40,7 @@ depends: [
   "uutf"
   "zarith"
   "lwt"
+  "lwt_ppx"
   "tls-lwt"
   "cmdliner"
   "yojson"
@@ -48,6 +49,7 @@ depends: [
   "httpun-lwt-unix"
   "httpun-ws"
   "logs"
+  "xdg"
   "odoc" {with-doc}
 ]
 depopts: ["ocaml-option-nnp" "ancient"]

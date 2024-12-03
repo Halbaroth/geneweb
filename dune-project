@@ -48,6 +48,7 @@
     uutf
     zarith
     lwt
+    lwt_ppx
     tls-lwt
     cmdliner
     yojson
@@ -56,6 +57,7 @@
     httpun-lwt-unix
     httpun-ws
     logs
+    xdg
   )
   (depopts
     ocaml-option-nnp
