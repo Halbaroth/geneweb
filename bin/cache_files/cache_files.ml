@@ -1,6 +1,3 @@
-open Gwdb
-open Def
-
 let bname = ref ""
 let trace = ref false
 let fnames = ref false
@@ -51,12 +48,12 @@ let places_all base bname fname =
   (* FIXME: find the good heuristic *)
   let ht : (string, string) Hashtbl.t = Hashtbl.create ht_size in
   let ht_add istr _p =
-    let key : 'a = sou base istr in
+    let key : 'a = Gwdb.sou base istr in
     match Hashtbl.find_opt ht key with
     | Some _ -> Hashtbl.replace ht key key
     | None -> Hashtbl.add ht key key
   in
-  let len = nb_of_persons base in
+  let len = Gwdb.nb_of_persons base in
   if !prog then (
     Printf.eprintf "\nplaces\n";
     flush stdout;
@@ -65,32 +62,32 @@ let places_all base bname fname =
   let aux b fn p =
     if b then
       let x = fn p in
-      if not (is_empty_string x) then ht_add x p
+      if not (Gwdb.is_empty_string x) then ht_add x p
   in
 
-  Collection.iteri
+  Gwdb.Collection.iteri
     (fun i ip ->
-      let p = poi base ip in
-      aux true get_birth_place p;
-      aux true get_baptism_place p;
-      aux true get_death_place p;
-      aux true get_burial_place p;
+      let p = Gwdb.poi base ip in
+      aux true Gwdb.get_birth_place p;
+      aux true Gwdb.get_baptism_place p;
+      aux true Gwdb.get_death_place p;
+      aux true Gwdb.get_burial_place p;
       if !prog then ProgrBar.run i len else ())
     (Gwdb.ipers base);
 
   if !prog then ProgrBar.finish ();
-  let len = nb_of_families base in
+  let len = Gwdb.nb_of_families base in
   if !prog then (
     ProgrBar.full := '*';
     ProgrBar.start ());
 
-  Collection.iteri
+  Gwdb.Collection.iteri
     (fun i ifam ->
-      let fam = foi base ifam in
-      let pl_ma = get_marriage_place fam in
-      if not (is_empty_string pl_ma) then (
-        let fath = poi base (get_father fam) in
-        let moth = poi base (get_mother fam) in
+      let fam = Gwdb.foi base ifam in
+      let pl_ma = Gwdb.get_marriage_place fam in
+      if not (Gwdb.is_empty_string pl_ma) then (
+        let fath = Gwdb.poi base (Gwdb.get_father fam) in
+        let moth = Gwdb.poi base (Gwdb.get_mother fam) in
         ht_add pl_ma fath;
         ht_add pl_ma moth);
       if !prog then ProgrBar.run i len else ())
@@ -109,7 +106,7 @@ let places_all base bname fname =
 
 let names_all base bname fname alias =
   let ht = Hashtbl.create 1 in
-  let nb_ind = nb_of_persons base in
+  let nb_ind = Gwdb.nb_of_persons base in
   flush stderr;
   if !prog then (
     Printf.eprintf "\n%s\n" fname;
@@ -117,40 +114,44 @@ let names_all base bname fname alias =
     ProgrBar.full := '*';
     ProgrBar.start ());
 
-  Collection.iteri
+  Gwdb.Collection.iteri
     (fun i ip ->
       if !prog then ProgrBar.run i nb_ind;
-      let p = poi base ip in
+      let p = Gwdb.poi base ip in
       let nam =
         match fname with
-        | "fnames" -> [ get_first_name p ]
-        | "snames" -> [ get_surname p ]
-        | "aliases" -> get_aliases p
-        | "occupations" -> [ get_occupation p ]
-        | "qualifiers" -> get_qualifiers p
-        | "pub_names" -> [ get_public_name p ]
+        | "fnames" -> [ Gwdb.get_first_name p ]
+        | "snames" -> [ Gwdb.get_surname p ]
+        | "aliases" -> Gwdb.get_aliases p
+        | "occupations" -> [ Gwdb.get_occupation p ]
+        | "qualifiers" -> Gwdb.get_qualifiers p
+        | "pub_names" -> [ Gwdb.get_public_name p ]
         | "estates" ->
-            List.fold_left (fun acc t -> t.t_place :: acc) [] (get_titles p)
+            List.fold_left
+              (fun acc t -> t.Def.t_place :: acc)
+              [] (Gwdb.get_titles p)
         | "titles" ->
-            List.fold_left (fun acc t -> t.t_ident :: acc) [] (get_titles p)
+            List.fold_left
+              (fun acc t -> t.Def.t_ident :: acc)
+              [] (Gwdb.get_titles p)
         | "sources" ->
             let p_sources =
               List.fold_right
                 (fun evt events ->
-                  let src = evt.epers_src in
+                  let src = evt.Def.epers_src in
                   src :: events)
-                (get_pevents p)
-                [ get_psources p ]
+                (Gwdb.get_pevents p)
+                [ Gwdb.get_psources p ]
             in
-            let ifams = Array.to_list (get_family p) in
+            let ifams = Array.to_list (Gwdb.get_family p) in
             let f_sources =
               List.fold_left
                 (fun acc ifam ->
                   List.fold_right
                     (fun evt fam_fevents ->
-                      let src = evt.efam_src in
+                      let src = evt.Def.efam_src in
                       src :: fam_fevents)
-                    (get_fevents (foi base ifam))
+                    (Gwdb.get_fevents (Gwdb.foi base ifam))
                     []
                   :: acc)
                 [] ifams
@@ -160,7 +161,7 @@ let names_all base bname fname alias =
       in
       List.iter
         (fun nam ->
-          let key = sou base nam in
+          let key = Gwdb.sou base nam in
           if not (Hashtbl.mem ht key) then Hashtbl.add ht key (key, 1)
           else
             let vv, i = Hashtbl.find ht key in
@@ -169,13 +170,13 @@ let names_all base bname fname alias =
 
       let nam2 =
         match (fname, alias) with
-        | "fnames", "fna" -> get_first_names_aliases p
-        | "snames", "sna" -> get_surnames_aliases p
+        | "fnames", "fna" -> Gwdb.get_first_names_aliases p
+        | "snames", "sna" -> Gwdb.get_surnames_aliases p
         | _, _ -> []
       in
       List.iter
         (fun nam ->
-          let key = sou base nam in
+          let key = Gwdb.sou base nam in
           if not (Hashtbl.mem ht key) then Hashtbl.add ht key (key, 1)
           else
             let vv, i = Hashtbl.find ht key in
