@@ -39,8 +39,14 @@ let write_cache_file bname fname l =
       Gzip.output_substring oc s 0 (String.length s))
     l
 
-let places_all base bname fname =
+let with_timer f =
   let start = Unix.gettimeofday () in
+  let r = f () in
+  let stop = Unix.gettimeofday () in
+  Format.printf "%6.2f s" (stop -. start);
+  r
+
+let places_all base bname fname =
   let ht_size = 2048 in
   (* FIXME: find the good heuristic *)
   let ht : (string, string) Hashtbl.t = Hashtbl.create ht_size in
@@ -94,16 +100,14 @@ let places_all base bname fname =
   let places_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
   let places_list = List.sort Gutil.alphabetic_utf_8 places_list in
   write_cache_file bname fname places_list;
-  let stop = Unix.gettimeofday () in
   let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
-  Format.printf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
-    (List.length places_list) "places" (stop -. start);
-  Format.eprintf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
-    (List.length places_list) "places" (stop -. start);
-  flush stderr
+  Format.printf "@[<h>%-*s@ %8d@ %-14s@@]@," !width full_name
+    (List.length places_list) "places"
+
+let places_all base bname fname =
+  with_timer @@ fun () -> places_all base bname fname
 
 let names_all base bname fname alias =
-  let start = Unix.gettimeofday () in
   let ht = Hashtbl.create 1 in
   let nb_ind = nb_of_persons base in
   flush stderr;
@@ -183,13 +187,12 @@ let names_all base bname fname alias =
   let name_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
   let name_list = List.sort (fun v1 v2 -> compare v1 v2) name_list in
   write_cache_file bname fname (List.map fst name_list);
-  let stop = Unix.gettimeofday () in
   let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
-  Format.printf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
-    (List.length name_list) fname (stop -. start);
-  Format.eprintf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@," !width full_name
-    (List.length name_list) fname (stop -. start);
-  flush stderr
+  Format.printf "@[<h>%-*s@ %8d@ %-14s@]@." !width full_name
+    (List.length name_list) fname
+
+let names_all base bname fname alias =
+  with_timer @@ fun () -> names_all base bname fname alias
 
 let speclist =
   [
