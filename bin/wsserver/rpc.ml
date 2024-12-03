@@ -19,11 +19,18 @@ let search_index indexes id idx pattern =
       let seq =
         Seq.concat
         @@ List.to_seq
-             [ I.search pattern idx(* ; I.fuzzy_search ~max_dist:1 pattern idx  *)]
+             [
+               I.search pattern
+                 idx (* ; I.fuzzy_search ~max_dist:1 pattern idx  *);
+             ]
       in
       let seq = Seq.concat @@ Seq.map (fun (_, v) -> Util.SS.to_seq v) seq in
       Seq.take 10 seq |> List.of_seq
-      |> List.map (fun s -> `String s)
+      |> List.map (fun Util.{ str; pos = start, end_ } ->
+             `Assoc
+               [
+                 ("str", `String str); ("start", `Int start); ("end", `Int end_);
+               ])
       |> of_list id
 
 let dispatch indexes sockaddr Server.{ content; _ } =

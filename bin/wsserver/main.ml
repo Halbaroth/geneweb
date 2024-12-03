@@ -33,7 +33,9 @@ let generate_index_from_file path =
   let rec loop t =
     match In_channel.input_line ic with
     | None -> t
-    | Some word -> loop (I.add word (Util.SS.singleton word) t)
+    | Some word ->
+      let ctx = Util.{ str = word; pos = (0, String.length word) } in
+      loop (I.add word (Util.SS.singleton ctx) t)
   in
   loop I.empty
 
@@ -59,40 +61,46 @@ let fold_places f base acc =
      g (Gwdb.get_marriage_place f) acc)
    acc ifams *)
 
-let is_ignored_char c = c = ' ' || c = ',' || c = '-'
+let is_separator c = c = ' ' || c = ',' || c = '-'
+
+let flush_buf acc buf start curr =
+  match buf with [] -> acc | _ -> (List.rev buf, start, curr) :: acc
+
+let tokenize s =
+  let len = String.length s in
+  let rec loop acc buf start curr =
+    if curr = len then flush_buf acc buf start curr
+    else
+      let c = String.get s curr in
+      if is_separator c then
+        let acc = flush_buf acc buf start curr in
+        loop acc [] (curr + 1) (curr + 1)
+      else loop acc (c :: buf) start (curr + 1)
+  in
+  loop [] [] 0 0
 
 let generate_index_from_base cache_dir basename =
   let base = Gwdb.open_base basename in
-  let tokenize s =
-    let len = String.length s in
-    let rec loop acc tk i =
-      if i = len then acc
-      else
-        let c = String.get s i in
-        if is_ignored_char c then
-          match tk with
-          | [] -> loop acc tk (i + 1)
-          | _ -> loop (List.rev tk :: acc) [] (i + 1)
-        else loop acc (c :: tk) (i + 1)
-    in
-    loop [] [] 0
-  in
   let normalize tk = List.map Char.lowercase_ascii tk in
   let preprocess s =
     tokenize s
-    |> List.map (fun tk -> normalize tk |> List.to_seq |> String.of_seq)
+    |> List.map (fun (tk, start, end_) ->
+           let tk = normalize tk |> List.to_seq |> String.of_seq in
+           (tk, start, end_))
   in
   Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
   fold_places
     (fun s idx ->
       let words = preprocess s in
       List.fold_left
-        (fun idx w ->
+        (fun idx (w, start, end_) ->
           I.update w
             (fun set_opt ->
+              let ctx = Util.{ str = s; pos = (start, end_) } in
               match set_opt with
-              | Some set -> Some (Util.SS.add s set)
-              | None -> Some (Util.SS.singleton s))
+              | Some set ->
+                  Some (Util.SS.add ctx set)
+              | None -> Some (Util.SS.singleton ctx))
             idx)
         idx words)
     base I.empty
@@ -104,7 +112,9 @@ let generate_indexes cache_dir base_dir dict_dir =
       (fun kind acc ->
         match kind with
         | `Dir path when Util.is_gwdb_file path ->
-            (name path, generate_index_from_base cache_dir path) :: acc
+            let idx = generate_index_from_base cache_dir path in
+            Logs.debug (fun k -> k "%s: %a" (name path) I.pp_statistics idx);
+            (name path, idx) :: acc
         | `File _ | `Dir _ -> acc)
       base_dir []
   in

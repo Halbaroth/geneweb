@@ -134,6 +134,7 @@ export class RpcClient {
       if (callback === undefined) {
         console.error("BUG");
       } else {
+        console.debug(response);
         this.waiting.delete(response.id);
         callback(response.error, response.payload);
       }
