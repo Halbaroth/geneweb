@@ -43,62 +43,62 @@ let with_timer f =
   Format.printf "%6.2f s" (stop -. start);
   r
 
+module HT = struct
+  include Hashtbl.Make (struct
+    type t = Gwdb_driver.istr
+
+    let equal = Gwdb_driver.eq_istr
+    let hash = Gwdb_driver.hash_istr
+  end)
+
+  let add s i v = if not @@ Gwdb_driver.is_empty_string i then add s i v
+end
+
+let fullname bname fname = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz")
+
+let iter_places f base =
+  let ipers = Gwdb.ipers base in
+  let ifams = Gwdb.ifams base in
+  Gwdb.Collection.iteri
+    (fun i iper ->
+      let per = Gwdb.poi base iper in
+      f i (Gwdb.get_birth_place per);
+      f i (Gwdb.get_baptism_place per);
+      f i (Gwdb.get_death_place per);
+      f i (Gwdb.get_burial_place per))
+    ipers;
+  Gwdb.Collection.iteri
+    (fun i ifam ->
+      let fam = Gwdb.foi base ifam in
+      f i (Gwdb.get_marriage_place fam))
+    ifams
+
+(* FIXME: find the good heuristic *)
 let places_all base bname fname =
-  let ht_size = 2048 in
-  (* FIXME: find the good heuristic *)
-  let ht : (string, string) Hashtbl.t = Hashtbl.create ht_size in
-  let ht_add istr _p =
-    let key : 'a = Gwdb.sou base istr in
-    match Hashtbl.find_opt ht key with
-    | Some _ -> Hashtbl.replace ht key key
-    | None -> Hashtbl.add ht key key
-  in
-  let len = Gwdb.nb_of_persons base in
+  let len = Gwdb.nb_of_persons base + Gwdb.nb_of_families base in
+
   if !prog then (
     Printf.eprintf "\nplaces\n";
     flush stdout;
     ProgrBar.full := '*';
     ProgrBar.start ());
-  let aux b fn p =
-    if b then
-      let x = fn p in
-      if not (Gwdb.is_empty_string x) then ht_add x p
+
+  let set : unit HT.t = HT.create 2048 in
+  let add_place i istr =
+    if !prog && i mod 50 = 0 then ProgrBar.run i len;
+    HT.add set istr ()
   in
-
-  Gwdb.Collection.iteri
-    (fun i ip ->
-      let p = Gwdb.poi base ip in
-      aux true Gwdb.get_birth_place p;
-      aux true Gwdb.get_baptism_place p;
-      aux true Gwdb.get_death_place p;
-      aux true Gwdb.get_burial_place p;
-      if !prog then ProgrBar.run i len else ())
-    (Gwdb.ipers base);
+  iter_places add_place base;
 
   if !prog then ProgrBar.finish ();
-  let len = Gwdb.nb_of_families base in
-  if !prog then (
-    ProgrBar.full := '*';
-    ProgrBar.start ());
 
-  Gwdb.Collection.iteri
-    (fun i ifam ->
-      let fam = Gwdb.foi base ifam in
-      let pl_ma = Gwdb.get_marriage_place fam in
-      if not (Gwdb.is_empty_string pl_ma) then (
-        let fath = Gwdb.poi base (Gwdb.get_father fam) in
-        let moth = Gwdb.poi base (Gwdb.get_mother fam) in
-        ht_add pl_ma fath;
-        ht_add pl_ma moth);
-      if !prog then ProgrBar.run i len else ())
-    (Gwdb.ifams base);
-
-  if !prog then ProgrBar.finish ();
-  let places_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
-  let places_list = List.sort Gutil.alphabetic_utf_8 places_list in
+  let places_list =
+    HT.fold (fun k () acc -> Gwdb.sou base k :: acc) set []
+    |> List.sort Gutil.alphabetic_utf_8
+  in
   write_cache_file bname fname places_list;
-  let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
-  Format.printf "@[<h>%-*s@ %8d@ %-14s@@]@," !width full_name
+
+  Format.printf "@[<h>%-*s@ %8d@ %-14s@@]@," !width (fullname bname fname)
     (List.length places_list) "places"
 
 let places_all base bname fname =
@@ -188,8 +188,7 @@ let names_all base bname fname alias =
   let name_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
   let name_list = List.sort (fun v1 v2 -> compare v1 v2) name_list in
   write_cache_file bname fname name_list;
-  let full_name = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
-  Format.printf "@[<h>%-*s@ %8d@ %-14s@]@." !width full_name
+  Format.printf "@[<h>%-*s@ %8d@ %-14s@]@." !width (fullname bname fname)
     (List.length name_list) fname
 
 let names_all base bname fname alias =

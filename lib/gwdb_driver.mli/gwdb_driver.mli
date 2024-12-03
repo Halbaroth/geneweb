@@ -70,6 +70,9 @@ val dummy_ifam : ifam
 val eq_istr : istr -> istr -> bool
 (** [true] if strings with the giving ids are equal *)
 
+val hash_istr : istr -> int
+(** Return a hash of the string. *)
+
 val eq_ifam : ifam -> ifam -> bool
 (** [true] if families with the giving ids are equal *)
 
