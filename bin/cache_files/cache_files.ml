@@ -4,8 +4,8 @@ let fnames = ref false
 let snames = ref false
 let alias = ref false
 let pub_names = ref false
-let fname_alias = ref false
-let sname_alias = ref false
+let fname_aliases = ref false
+let sname_aliases = ref false
 let places = ref false
 let estates = ref false
 let titles = ref false
@@ -56,7 +56,7 @@ end
 
 let fullname bname fname = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz")
 
-let iter_places f base =
+let iteri_places f base =
   let ipers = Gwdb.ipers base in
   let ifams = Gwdb.ifams base in
   Gwdb.Collection.iteri
@@ -73,24 +73,25 @@ let iter_places f base =
       f i (Gwdb.get_marriage_place fam))
     ifams
 
-let iter_names f base = Gwdb.Collection.iteri f (Gwdb.ipers base)
+let iteri_pers f base =
+  Gwdb.Collection.iteri
+    (fun i iper -> f i (Gwdb.poi base iper))
+    (Gwdb.ipers base)
 
 (* FIXME: find the good heuristic *)
 let places_all base bname fname =
   let len = Gwdb.nb_of_persons base + Gwdb.nb_of_families base in
-
   if !prog then (
-    Printf.eprintf "\nplaces\n";
-    flush stdout;
+    Printf.printf "\nplaces@.";
     ProgrBar.full := '*';
     ProgrBar.start ());
 
   let set : unit HT.t = HT.create 2048 in
-  let add_place i istr =
-    if !prog && i mod 50 = 0 then ProgrBar.run i len;
-    HT.add set istr ()
-  in
-  iter_places add_place base;
+  iteri_places
+    (fun i istr ->
+      if !prog && i mod 50 = 0 then ProgrBar.run i len;
+      HT.add set istr ())
+    base;
 
   if !prog then ProgrBar.finish ();
 
@@ -106,95 +107,68 @@ let places_all base bname fname =
 let places_all base bname fname =
   with_timer @@ fun () -> places_all base bname fname
 
-let names_all base bname fname alias =
-  let ht : (string, string) Hashtbl.t = Hashtbl.create 17 in
-  let nb_ind = Gwdb.nb_of_persons base in
-  flush stderr;
+let iter_field base p f = function
+  | `Fnames -> f (Gwdb.get_first_name p)
+  | `Snames -> f (Gwdb.get_surname p)
+  | `Fname_aliases -> List.iter f (Gwdb.get_first_names_aliases p)
+  | `Sname_aliases -> List.iter f (Gwdb.get_surnames_aliases p)
+  | `Aliases -> List.iter f (Gwdb.get_aliases p)
+  | `Occupations -> f (Gwdb.get_occupation p)
+  | `Qualifiers -> List.iter f (Gwdb.get_qualifiers p)
+  | `Pub_names -> f (Gwdb.get_public_name p)
+  | `Estates -> List.iter (fun t -> f t.Def.t_place) (Gwdb.get_titles p)
+  | `Titles -> List.iter (fun t -> f t.Def.t_ident) (Gwdb.get_titles p)
+  | `Sources ->
+      f (Gwdb.get_psources p);
+      List.iter (fun t -> f t.Def.epers_src) (Gwdb.get_pevents p);
+      Array.iter
+        (fun ifam ->
+          List.iter
+            (fun evt -> f evt.Def.efam_src)
+            (Gwdb.get_fevents (Gwdb.foi base ifam)))
+        (Gwdb.get_family p)
+
+let field_to_string = function
+  | `Fnames -> "fnames"
+  | `Snames -> "snames"
+  | `Fname_aliases -> "fname_aliases"
+  | `Sname_aliases -> "Sname_aliases"
+  | `Aliases -> "aliases"
+  | `Occupations -> "occupations"
+  | `Qualifiers -> "qualifiers"
+  | `Pub_names -> "pub_names"
+  | `Estates -> "estates"
+  | `Titles -> "titles"
+  | `Sources -> "sources"
+
+let names_all base bname field =
+  let len = Gwdb.nb_of_persons base in
+  let fname = field_to_string field in
   if !prog then (
-    Printf.eprintf "\n%s\n" fname;
-    flush stdout;
+    Printf.eprintf "\n%s@." fname;
     ProgrBar.full := '*';
     ProgrBar.start ());
 
-  Gwdb.Collection.iteri
-    (fun i ip ->
-      if !prog then ProgrBar.run i nb_ind;
-      let p = Gwdb.poi base ip in
-      let nam =
-        match fname with
-        | "fnames" -> [ Gwdb.get_first_name p ]
-        | "snames" -> [ Gwdb.get_surname p ]
-        | "aliases" -> Gwdb.get_aliases p
-        | "occupations" -> [ Gwdb.get_occupation p ]
-        | "qualifiers" -> Gwdb.get_qualifiers p
-        | "pub_names" -> [ Gwdb.get_public_name p ]
-        | "estates" ->
-            List.fold_left
-              (fun acc t -> t.Def.t_place :: acc)
-              [] (Gwdb.get_titles p)
-        | "titles" ->
-            List.fold_left
-              (fun acc t -> t.Def.t_ident :: acc)
-              [] (Gwdb.get_titles p)
-        | "sources" ->
-            let p_sources =
-              List.fold_right
-                (fun evt events ->
-                  let src = evt.Def.epers_src in
-                  src :: events)
-                (Gwdb.get_pevents p)
-                [ Gwdb.get_psources p ]
-            in
-            let ifams = Array.to_list (Gwdb.get_family p) in
-            let f_sources =
-              List.fold_left
-                (fun acc ifam ->
-                  List.fold_right
-                    (fun evt fam_fevents ->
-                      let src = evt.Def.efam_src in
-                      src :: fam_fevents)
-                    (Gwdb.get_fevents (Gwdb.foi base ifam))
-                    []
-                  :: acc)
-                [] ifams
-            in
-            p_sources @ List.flatten f_sources
-        | _ -> []
-      in
-      List.iter
-        (fun nam ->
-          let key = Gwdb.sou base nam in
-          if not (Hashtbl.mem ht key) then Hashtbl.add ht key key
-          else
-            let vv = Hashtbl.find ht key in
-            Hashtbl.replace ht key vv)
-        nam;
+  let set : unit HT.t = HT.create 17 in
 
-      let nam2 =
-        match (fname, alias) with
-        | "fnames", "fna" -> Gwdb.get_first_names_aliases p
-        | "snames", "sna" -> Gwdb.get_surnames_aliases p
-        | _, _ -> []
-      in
-      List.iter
-        (fun nam ->
-          let key = Gwdb.sou base nam in
-          if not (Hashtbl.mem ht key) then Hashtbl.add ht key key
-          else
-            let vv = Hashtbl.find ht key in
-            Hashtbl.replace ht key vv)
-        nam2)
-    (Gwdb.ipers base);
+  iteri_pers
+    (fun i p ->
+      if !prog && i mod 50 = 0 then ProgrBar.run i len;
+      iter_field base p (fun istr -> HT.add set istr ()) field)
+    base;
 
   if !prog then ProgrBar.finish ();
-  let name_list = Hashtbl.fold (fun _k v acc -> v :: acc) ht [] in
-  let name_list = List.sort (fun v1 v2 -> compare v1 v2) name_list in
+
+  let name_list =
+    HT.fold (fun k () acc -> Gwdb.sou base k :: acc) set []
+    |> List.sort Gutil.alphabetic_utf_8
+  in
   write_cache_file bname fname name_list;
   Format.printf "@[<h>%-*s@ %8d@ %-14s@]@." !width (fullname bname fname)
     (List.length name_list) fname
 
-let names_all base bname fname alias =
-  with_timer @@ fun () -> names_all base bname fname alias
+let names_all base bname field =
+  with_timer @@ fun () -> names_all base bname field
 
 let speclist =
   [
@@ -203,8 +177,8 @@ let speclist =
     ("-sn", Arg.Set snames, " surnames");
     ("-al", Arg.Set alias, " aliases");
     ("-pu", Arg.Set pub_names, " public names");
-    ("-fna", Arg.Set fname_alias, " add first name aliases");
-    ("-sna", Arg.Set sname_alias, " add surname aliases");
+    ("-fna", Arg.Set fname_aliases, " add first name aliases");
+    ("-sna", Arg.Set sname_aliases, " add surname aliases");
     ("-qu", Arg.Set qualifiers, " qualifiers");
     ("-pl", Arg.Set places, " places");
     ("-es", Arg.Set estates, " estates");
@@ -234,35 +208,17 @@ let () =
   if not (Sys.file_exists !cache_dir) then Mutil.mkdir_p !cache_dir;
   Printf.printf "Generating cache(s) compressed with gzip\n";
 
-  let full_name = !cache_dir // (!bname ^ "_occupations.cache.gz") in
-  width := String.length full_name + 2;
-  Format.printf "@[<v>";
-  let fn_alias = if !fname_alias then "fna" else "" in
-  let sn_alias = if !sname_alias then "sna" else "" in
-  (* Ouvre une boite verticale *)
+  let fds = [] in
+  let fds = if !all || !fnames then `Fnames :: fds else fds in
+  let fds = if !all || !snames then `Fnames :: fds else fds in
+  let fds = if !all || !fname_aliases then `Fname_aliases :: fds else fds in
+  let fds = if !all || !sname_aliases then `Sname_aliases :: fds else fds in
+  let fds = if !all || !pub_names then `Pub_names :: fds else fds in
+  let fds = if !all || !estates then `Estates :: fds else fds in
+  let fds = if !all || !titles then `Titles :: fds else fds in
+  let fds = if !all || !occupations then `Occupations :: fds else fds in
+  let fds = if !all || !qualifiers then `Qualifiers :: fds else fds in
+  let fds = if !all || !sources then `Sources :: fds else fds in
+
   if !places then places_all base !bname "places";
-  if !fnames then names_all base !bname "fnames" fn_alias;
-  if !snames then names_all base !bname "snames" sn_alias;
-  if !alias then names_all base !bname "aliases" "";
-  if !pub_names then names_all base !bname "pub_names" "";
-  if !estates then names_all base !bname "estates" "";
-  if !titles then names_all base !bname "titles" "";
-  if !occupations then names_all base !bname "occupations" "";
-  if !sources then names_all base !bname "sources" "";
-  if !qualifiers then names_all base !bname "qualifiers" "";
-  if !all then (
-    let fn_alias = "fna" in
-    let sn_alias = "sna" in
-    places_all base !bname "places";
-    names_all base !bname "fnames" fn_alias;
-    names_all base !bname "snames" sn_alias;
-    names_all base !bname "aliases" "";
-    names_all base !bname "pub_names" "";
-    names_all base !bname "estates" "";
-    names_all base !bname "titles" "";
-    names_all base !bname "occupations" "";
-    names_all base !bname "sources" "";
-    names_all base !bname "qualifiers" "");
-  Format.printf "@]";
-  (* Ferme la boite verticale *)
-  flush stderr
+  List.iter (names_all base !bname) fds
