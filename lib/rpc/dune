@@ -1,0 +1,18 @@
+(library
+  (public_name geneweb-rpc.lib)
+  (name geneweb_rpc)
+  (libraries
+    js_of_ocaml
+    lwt
+    lwt.unix
+    yojson
+    fmt
+    digestif
+    httpun
+    httpun-lwt-unix
+    httpun-ws
+    tls
+    logs
+    logs.fmt
+    logs.lwt)
+  (preprocess (pps lwt_ppx)))

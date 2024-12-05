@@ -52,3 +52,23 @@
     ancient
   )
 )
+
+(package
+  (name geneweb-rpc)
+  (synopsis "RPC support")
+  (tags (rpc json))
+  (description "")
+  (depends
+    lwt
+    lwt_ppx
+    tls-lwt
+    cmdliner
+    logs
+    fmt
+    digestif
+    httpun
+    httpun-lwt-unix
+    httpun-ws
+    js_of_ocaml
+    yojson
+    fmt))
