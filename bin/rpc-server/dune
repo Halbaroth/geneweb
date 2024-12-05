@@ -1,0 +1,10 @@
+(executable
+  (package geneweb-rpc)
+  (name main)
+  (public_name geneweb-rpc.server)
+  (libraries
+    geneweb_rpc
+    lwt
+    cmdliner
+    logs
+    fmt))
