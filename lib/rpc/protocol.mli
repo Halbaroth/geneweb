@@ -1,7 +1,12 @@
 type t
-type 'a val_
+type 'a meth
+type binding = Binding : 'a Encoding.desc * 'a -> binding
 
-val mk : string -> 'a Encoding.desc -> 'a -> 'a val_
-val add : 'a val_ -> t -> t
-val find : t -> string -> 'a Encoding.desc -> 'a option
-val pingpong : t
+val meth : string -> 'a Encoding.desc -> 'a -> 'a meth
+val add : 'a meth -> t -> t
+val find : string -> t -> binding option
+
+module PingPong : sig
+  val all : t
+  val ping : string meth
+end

@@ -1,33 +1,20 @@
-type meth = Method : 'a Encoding.desc * 'a -> meth
+type 'a meth = string * 'a Encoding.desc * 'a
 
-module M = Map.Make (String)
+let meth name desc f = (name, desc, f)
 
-type t = meth M.t
+type binding = Binding : 'a Encoding.desc * 'a -> binding
 
-let empty = M.empty
-let[@inline always] add (name, desc, f) = M.add name (Method (desc, f))
+module MS = Map.Make (String)
 
-let find : type a. t -> string -> a Encoding.desc -> a option =
- fun t name desc ->
-  match M.find name t with
-  | exception Not_found -> None
-  | Method (d, v) -> (
-      match Encoding.equal_desc d desc with
-      | Some Equal -> Some v
-      | None -> None)
+type t = binding MS.t
+
+let empty = MS.empty
+let[@inline always] add (name, desc, f) = MS.add name (Binding (desc, f))
+let find = MS.find_opt
 
 module E = Encoding.Syntax
 
-type 'a val_ = string * 'a Encoding.desc * 'a
-
-let mk name desc f = (name, desc, f)
-
 module PingPong = struct
-  let ping =
-    mk __FUNCTION__ E.(int @-> ret (tup2 int string)) @@ fun i -> (i + 1, "ping")
-
-  let pong = mk __FUNCTION__ E.(ret string) "pong"
-  let t = empty |> add ping |> add pong
+  let ping = meth "ping" E.(ret string) "pong"
+  let all = empty |> add ping
 end
-
-let pingpong = PingPong.t

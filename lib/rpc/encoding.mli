@@ -19,8 +19,6 @@ val enum : name:string -> ('a * string) list -> 'a t
     The underlying encoding will raise {exception:Failwith} if it is called
     on a constructor of type ['a] that is not present in [l]. *)
 
-val equal : 'a t -> 'b t -> ('a, 'b) Compat.Type.eq option
-
 val generic :
   to_json:('a -> Yojson.Safe.t) ->
   of_json:(Yojson.Safe.t -> 'a option) ->
@@ -37,8 +35,6 @@ type !'a desc
 (** Type of the encoding of an arrow of type 'a. *)
 
 val eval : 'a desc -> 'a -> Yojson.Safe.t list -> Yojson.Safe.t option
-
-val equal_desc : 'a desc -> 'b desc -> ('a, 'b) Compat.Type.eq option
 
 val pp_desc : 'a desc Fmt.t
 (** [pp_desc ppf e] printst the encoding [e] on the formatter [ppf] for
