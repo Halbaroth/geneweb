@@ -20,6 +20,7 @@ type 'a generic = {
   to_json : 'a -> Y.Safe.t;
   of_json : Y.Safe.t -> 'a option;
   pp : unit Fmt.t;
+  id : 'a Compat.Type.Id.t;
 }
 
 type 'a t =
@@ -35,6 +36,38 @@ type 'a t =
   | Tuple3 : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
   | Tuple4 : 'a t * 'b t * 'c t * 'd t -> ('a * 'b * 'c * 'd) t
   | Gen : 'a generic -> 'a t
+
+let rec equal : type a b. a t -> b t -> (a, b) Compat.Type.eq option =
+ fun e1 e2 ->
+  match (e1, e2) with
+  | Unit, Unit -> Some Equal
+  | Bool, Bool -> Some Equal
+  | Float, Float -> Some Equal
+  | Int, Int -> Some Equal
+  | List u, List v -> (
+      match equal u v with Some Equal -> Some Equal | None -> None)
+  | Array u, Array v -> (
+      match equal u v with Some Equal -> Some Equal | None -> None)
+  | String, String -> Some Equal
+  | Option u, Option v -> (
+      match equal u v with Some Equal -> Some Equal | None -> None)
+  | Tuple2 (u1, u2), Tuple2 (v1, v2) -> (
+      match (equal u1 v1, equal u2 v2) with
+      | Some Equal, Some Equal -> Some Equal
+      | _ -> None)
+  | Tuple3 (u1, u2, u3), Tuple3 (v1, v2, v3) -> (
+      match (equal u1 v1, equal u2 v2, equal u3 v3) with
+      | Some Equal, Some Equal, Some Equal -> Some Equal
+      | _ -> None)
+  | Tuple4 (u1, u2, u3, u4), Tuple4 (v1, v2, v3, v4) -> (
+      match (equal u1 v1, equal u2 v2, equal u3 v3, equal u4 v4) with
+      | Some Equal, Some Equal, Some Equal, Some Equal -> Some Equal
+      | _ -> None)
+  | Gen { id = id1; _ }, Gen { id = id2; _ } -> (
+      match Compat.Type.Id.provably_equal id1 id2 with
+      | Some Equal -> Some Equal
+      | None -> None)
+  | _ -> None
 
 let rec val_of_json : type a. a t -> Y.Safe.t -> a option =
  fun t j ->
@@ -155,31 +188,38 @@ let enum ~name l =
       | _ -> None
   in
   let pp ppf () = Fmt.string ppf name in
-  Gen { to_json; of_json; pp }
+  Gen { to_json; of_json; pp; id = Compat.Type.Id.make () }
 
-let generic ~to_json ~of_json ~pp = Gen { to_json; of_json; pp }
+let generic ~to_json ~of_json ~pp =
+  Gen { to_json; of_json; pp; id = Compat.Type.Id.make () }
 
-type ('a, 'r) arrow =
-  | R : 'a t -> ('a, 'a) arrow
-  | N : 'a t * ('b, 'r) arrow -> ('a -> 'b, 'r) arrow
+type 'a desc = R : 'a t -> 'a desc | N : 'a t * 'b desc -> ('a -> 'b) desc
 
-let rec pp_arrow : type a r. (a, r) arrow Fmt.t =
+let rec equal_desc : type a b. a desc -> b desc -> (a, b) Compat.Type.eq option
+    =
+ fun desc1 desc2 ->
+  match (desc1, desc2) with
+  | R a1, R a2 -> equal a1 a2
+  | N (a1, r1), N (a2, r2) -> (
+      match (equal a1 a2, equal_desc r1 r2) with
+      | Some Equal, Some Equal -> Some Equal
+      | _ -> None)
+  | _ -> None
+
+let rec pp_desc : type a. a desc Fmt.t =
  fun ppf desc ->
   match desc with
   | R a -> pp ppf a
-  | N (a, r) -> Fmt.pf ppf "%a -> %a" pp a pp_arrow r
+  | N (a, r) -> Fmt.pf ppf "%a -> %a" pp a pp_desc r
 
-let rec eval : type a r. (a, r) arrow -> a -> Y.Safe.t list -> r option =
+let rec eval : type a. a desc -> a -> Y.Safe.t list -> Y.Safe.t option =
  fun desc f l ->
   match (desc, l) with
-  | R _, [] -> Some f
+  | R a, [] -> Some (val_to_json a f)
   | N (a, g), x :: xs ->
       let* y = val_of_json a x in
       eval g (f y) xs
   | _ -> None
-
-let rec compose : type a b c. (a, b) arrow -> (b, c) arrow -> (a, c) arrow =
- fun f1 f2 -> match f1 with R _ -> f2 | N (a, g) -> N (a, compose g f2)
 
 module Syntax = struct
   let unit = Unit

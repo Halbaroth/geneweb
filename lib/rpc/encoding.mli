@@ -1,6 +1,6 @@
 (** This module *)
 
-type 'a t
+type !'a t
 (* Type of encoding of the 'a value. *)
 
 val val_of_json : 'a t -> Yojson.Safe.t -> 'a option
@@ -19,6 +19,8 @@ val enum : name:string -> ('a * string) list -> 'a t
     The underlying encoding will raise {exception:Failwith} if it is called
     on a constructor of type ['a] that is not present in [l]. *)
 
+val equal : 'a t -> 'b t -> ('a, 'b) Compat.Type.eq option
+
 val generic :
   to_json:('a -> Yojson.Safe.t) ->
   of_json:(Yojson.Safe.t -> 'a option) ->
@@ -26,22 +28,20 @@ val generic :
   'a t
 (** [generic ~to_json ~of_jon ~pp] creates a encoding for the type ['a]
     using the encoder and decoder given as argument. [pp] is used to
-    print this encoding in [pp] and [pp_arrow]. *)
+    print this encoding in [pp] and [pp_desc]. *)
 
 val pp : 'a t Fmt.t
 (** [pp ppf e] prints the encoding [e] for debugging purposes. *)
 
-type ('a, 'b) arrow
-(** Type of the encoding of an arrow ['a -> 'b]. *)
+type !'a desc
+(** Type of the encoding of an arrow of type 'a. *)
 
-val eval : ('a, 'b) arrow -> 'a -> Yojson.Safe.t list -> 'b option
+val eval : 'a desc -> 'a -> Yojson.Safe.t list -> Yojson.Safe.t option
 
-val compose : ('a, 'b) arrow -> ('b, 'c) arrow -> ('a, 'c) arrow
-(** [compose e1 e2] composes the two encodings [e1] and [e2]. Returns
-    the encoding of ['a -> 'c]. *)
+val equal_desc : 'a desc -> 'b desc -> ('a, 'b) Compat.Type.eq option
 
-val pp_arrow : ('a, 'b) arrow Fmt.t
-(** [pp_arrow ppf e] printst the encoding [e] on the formatter [ppf] for
+val pp_desc : 'a desc Fmt.t
+(** [pp_desc ppf e] printst the encoding [e] on the formatter [ppf] for
     debugging purposes. *)
 
 module Syntax : sig
@@ -78,6 +78,7 @@ module Syntax : sig
   val tup4 : 'a t -> 'b t -> 'c t -> 'd t -> ('a * 'b * 'c * 'd) t
   (** Encoding of a quadruple. *)
 
-  val ret : 'a t -> ('a, 'a) arrow
-  val ( @-> ) : 'a t -> ('b, 'r) arrow -> ('a -> 'b, 'r) arrow
+  val ret : 'a t -> 'a desc
+
+  val ( @-> ) : 'a t -> 'b desc -> ('a -> 'b) desc
 end

@@ -164,6 +164,7 @@ let start ~interface ~port ?max_connection ?idle ?(tls = false) ?certfile
     if Connection_manager.add manager sockaddr fd then
       try%lwt create_connection_handler sockaddr fd
       with exn ->
+        (* Connection_manager.close manager fd; *)
         (* Exceptions can be raised in the client connection handler itself if
            the connection or the TLS negotiation fail. Any other exceptions
            should be treated as bugs, as they should have been handled
