@@ -13,5 +13,7 @@
    uucp
    uunf
    uutf
+   fmt
+   yojson
  )
 )
