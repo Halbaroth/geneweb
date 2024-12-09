@@ -1,0 +1,23 @@
+(executable
+  (package geneweb-search-server)
+  (name main)
+  (public_name search-server)
+  (libraries
+    geneweb
+    lwt
+    lwt.unix
+    cmdliner
+    yojson
+    digestif
+    httpun
+    httpun-lwt-unix
+    httpun-ws
+    logs
+    logs.fmt
+    logs.lwt
+    tls
+    fmt
+    geneweb.gwdb-legacy
+    geneweb_sosa_zarith
+    )
+  (preprocess (pps lwt_ppx)))

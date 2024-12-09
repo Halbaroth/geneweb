@@ -65,3 +65,20 @@
     ancient
   )
 )
+
+(package
+  (name geneweb-search-server)
+  (synopsis "GeneWeb server for advanced search engine")
+  (depends
+    lwt
+    lwt_ppx
+    tls-lwt
+    cmdliner
+    logs
+    fmt
+    digestif
+    httpun
+    httpun-lwt-unix
+    httpun-ws
+    yojson
+    fmt))

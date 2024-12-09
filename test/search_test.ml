@@ -76,7 +76,7 @@ let test_random_fuzzy_mem idx a =
     expected = result
 
 let create_index path =
-  File.with_in_channel path @@ fun ic ->
+  Compat.In_channel.with_open_text path @@ fun ic ->
   let rec loop t l i =
     match In_channel.input_line ic with
     | None -> (t, Array.of_list l)

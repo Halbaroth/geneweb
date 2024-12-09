@@ -1,11 +1,9 @@
 (executable
-  (package geneweb)
+  (package geneweb-search-server)
   (name main)
-  (public_name geneweb.wsserver)
+  (public_name search-server)
   (libraries
     geneweb
-    geneweb.gwdb-legacy
-    geneweb_sosa_zarith
     lwt
     lwt.unix
     cmdliner
@@ -19,5 +17,7 @@
     logs.lwt
     tls
     fmt
-    xdg)
+    %%%GWDB_PKG%%%
+    %%%SOSA_PKG%%%
+    %%%SYSLOG_PKG%%%)
   (preprocess (pps lwt_ppx)))
