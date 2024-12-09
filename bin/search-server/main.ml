@@ -28,6 +28,10 @@ let set_levels dflags =
 
 let ( // ) = Filename.concat
 
+let generate_indx_from_gzip_file path =
+  let ic = Gzip.open_in path in
+  Fun.protect ~finally:(fun () -> Gzip.close_in ic) @@ fun () -> ()
+
 let generate_index_from_file path =
   Compat.In_channel.with_open_text path @@ fun ic ->
   let rec loop t =
