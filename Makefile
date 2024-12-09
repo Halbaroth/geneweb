@@ -122,8 +122,6 @@ GENERATED_FILES_DEP = \
 	bin/gwd/dune \
 	bin/gwdiff/dune \
 	bin/gwgc/dune \
-	bin/gwrepl/dune \
-	bin/gwrepl/.depend \
 	bin/gwu/dune \
 	bin/setup/dune \
 	bin/update_nldb/dune \
