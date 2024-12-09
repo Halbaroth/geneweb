@@ -1,11 +1,12 @@
-type debug_flag = private Internal | Tls
+type dflag = private Server | TLS
 
 type cfg = private {
-  host : string;
+  interface : string;
   port : int;
   base_dir : string;
+  index_dir : string;
   tls : (string * string) option;
-  debug_flags : debug_flag list;
+  dflags : dflag list;
 }
 
 val parse : unit -> cfg

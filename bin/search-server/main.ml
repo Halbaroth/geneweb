@@ -8,23 +8,23 @@ let start indexes (cfg : Cmd.cfg) =
   Lwt.dont_wait
     (fun () ->
       let%lwt (_ : Lwt_io.server) =
-        Server.listen (Rpc.dispatch indexes) ~host:cfg.host ~port:cfg.port
+        Server.listen (Rpc.dispatch indexes) ~host:cfg.interface ~port:cfg.port
           ?tls:cfg.tls ()
       in
       Logs_lwt.info (fun k ->
-          k "Server listening on %s:%d..." cfg.host cfg.port))
+          k "Server listening on %s:%d..." cfg.interface cfg.port))
     handle_exn;
   let forever, _ = Lwt.wait () in
   Lwt_main.run forever
 
-let set_levels debug_flags =
+let set_levels dflags =
   let flag_to_src = function
-    | Cmd.Internal -> Logs.default
-    | Tls -> Tls.Core.src
+    | Cmd.Server-> Logs.default
+    | TLS -> Tls.Core.src
   in
   List.iter
     (fun flag -> Logs.Src.set_level (flag_to_src flag) (Some Debug))
-    debug_flags
+    dflags
 
 let ( // ) = Filename.concat
 
@@ -117,24 +117,14 @@ let generate_indexes cache_dir base_dir dict_dir =
        | `Dir _ -> acc)
      dict_dir acc *)
 
-let init_directories () =
-  let base = Xdg.create ~env:Sys.getenv_opt () in
-  let cache_dir = Xdg.cache_dir base // "geneweb" in
-  let data_dir = Xdg.data_dir base // "geneweb" in
-  let dict_dir = data_dir // "dict" in
-  File.create_dir cache_dir;
-  File.create_dir data_dir;
-  File.create_dir dict_dir;
-  (cache_dir, data_dir, dict_dir)
-
 let main (cfg : Cmd.cfg) =
-  set_levels cfg.debug_flags;
-  let cache_dir, data_dir, dict_dir = init_directories () in
+  set_levels cfg.dflags;
   Logs.info (fun k -> k "Generate indexes...");
-  let indexes = generate_indexes cache_dir cfg.base_dir dict_dir in
-  Logs.info (fun k -> k "%d indexes generated." (List.length indexes));
+  (* let indexes = generate_indexes cache_dir cfg.base_dir dict_dir in *)
+  (* Logs.info (fun k -> k "%d indexes generated." (List.length indexes)); *)
   if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!");
-  start indexes cfg
+  (* start indexes cfg *)
+  ()
 
 let () =
   Logs.set_reporter @@ Util.lwt_reporter ();
