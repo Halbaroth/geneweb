@@ -20,10 +20,6 @@ module type S = sig
   val pp_statistics : 'a t Fmt.t
 end
 
-type empty
-type nonempty
-type word
-
 module Make (W : Word.S) = struct
   module M = Map.Make (struct
     type t = W.char_
@@ -91,7 +87,7 @@ module Make (W : Word.S) = struct
     end) in
     let len = W.length word in
     let rec loop i t st =
-      let (Node (children, data, _)) = t in
+      let (Node (children, _, _)) = t in
       if i = len && A.accept st then true
       else if A.can_match st then
         M.exists (fun c child -> loop (i + 1) child (A.next c st)) children
@@ -119,7 +115,7 @@ module Make (W : Word.S) = struct
     let rec loop rev_pfx i t =
       if i = len then to_seq (of_rev_list rev_pfx) t
       else
-        let (Node (children, data, _)) = t in
+        let (Node (children, _, _)) = t in
         let c = W.get pfx i in
         match M.find c children with
         | exception Not_found -> Seq.empty
@@ -135,7 +131,7 @@ module Make (W : Word.S) = struct
       let max_dist = max_dist
     end) in
     let rec loop rev_pfx t st =
-      let (Node (children, data, _)) = t in
+      let (Node (children, _, _)) = t in
       if A.accept st then to_seq (of_rev_list rev_pfx) t
       else if A.can_match st then
         M.to_seq children

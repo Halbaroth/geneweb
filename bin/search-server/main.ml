@@ -77,7 +77,7 @@ let tokenize s =
   in
   loop [] [] 0 0
 
-let generate_index_from_base cache_dir basename =
+let generate_index_from_base _cache_dir basename =
   let base = Gwdb.open_base basename in
   let preprocess s =
     tokenize s
@@ -99,7 +99,7 @@ let generate_index_from_base cache_dir basename =
         idx words)
     base I.empty
 
-let generate_indexes cache_dir base_dir dict_dir =
+let generate_indexes cache_dir base_dir _dict_dir =
   let name path = Filename.(basename path |> chop_extension) in
   (* let acc = *)
   File.walk_folder

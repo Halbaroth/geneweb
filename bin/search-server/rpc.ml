@@ -27,7 +27,7 @@ let search_index indexes id idx pattern =
       |> List.map (fun s -> `String s)
       |> of_list id
 
-let dispatch indexes sockaddr Server.{ content; _ } =
+let dispatch indexes _sockaddr Server.{ content; _ } =
   let open Yojson.Safe.Util in
   let indexes = List.to_seq indexes |> Util.MS.of_seq in
   let search_index = search_index indexes in

@@ -21,7 +21,7 @@ let distance s1 s2 =
   done;
   prev.(l2)
 
-let test_cardinal idx _a () =
+let test_cardinal _idx _a () =
   let idx = I.of_list [ ("foo", ()); ("bar", ()); ("saucisse", ()) ] in
   A.(check int) "cardinal after insertion" 3 (I.cardinal idx)
 

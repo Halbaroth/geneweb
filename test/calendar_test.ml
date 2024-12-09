@@ -44,7 +44,7 @@ let round_trip ?(fail_expected = false) of_ to_ l () =
   let f d = of_ (to_ d) in
   (* todo should iter in v? *)
   match List.iter (fun d -> (check testable_calendar) "" d (f d)) l with
-  | exception exn when fail_expected -> ()
+  | exception _ when fail_expected -> ()
   | () when fail_expected -> raise Fail_expected
   | () -> ()
 
