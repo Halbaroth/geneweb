@@ -8,11 +8,25 @@ function stringLength(str) {
   return [...str].length;
 }
 
-function emphasize(text, offset, length) {
-  const before = text.slice(0, offset);
-  const emphasize = text.slice(offset, offset + length);
-  const after = text.slice(offset + length);
-  return before + `<strong>${emphasize}</strong>` + after;
+// function emphasize(text, offset, length) {
+//   const before = text.slice(0, offset);
+//   const emphasize = text.slice(offset, offset + length);
+//   const after = text.slice(offset + length);
+//   return before + `<strong>${emphasize}</strong>` + after;
+// }
+
+function emphasizeMultipleSubwords(text, subwords) {
+    subwords.sort((a, b) => b.offset - a.offset);
+
+    subwords.forEach(({ offset, len }) => {
+        const before = text.slice(0, offset);
+        const emphasize = text.slice(offset, offset + len);
+        const after = text.slice(offset + len);
+
+        text = before + `<strong>${emphasize}</strong>` + after;
+    });
+
+    return text;
 }
 
 export class DropDown {
@@ -137,9 +151,9 @@ export class DropDown {
     values.forEach(item => {
       const div = document.createElement("div");
       div.className = 'dropdown-item';
-      div.innerHTML = emphasize(item.word, item.offset, item.len);
+      div.innerHTML = emphasizeMultipleSubwords(item.word, item.context);
       div.addEventListener('click', (_ev) => {
-        this.input.value = item;
+        this.input.value = item.word;
         this.hide();
       });
       this.list.appendChild(div);

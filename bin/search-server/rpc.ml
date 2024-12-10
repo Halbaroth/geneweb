@@ -1,13 +1,8 @@
 module I = Geneweb_search.Index.Default
+module Index = Geneweb_search.Index
 
 module Context = struct
   type t = { word : string; offset : int; len : int }
-
-  let to_json t =
-    `Assoc
-      [
-        ("word", `String t.word); ("offset", `Int t.offset); ("len", `Int t.len);
-      ]
 
   let compare { word = c1; offset = o1; len = l1 }
       { word = c2; offset = o2; len = l2 } =
@@ -23,6 +18,15 @@ module Context = struct
     let compare = compare
   end)
 end
+
+let to_json (word, ctx) =
+  let a =
+    List.map
+      (fun c ->
+        `Assoc [ ("offset", `Int c.Index.offset); ("len", `Int c.Index.len) ])
+      ctx
+  in
+  `Assoc [ ("word", `String word); ("context", `List a) ]
 
 let of_payload id payload =
   `Assoc [ ("id", `Int id); ("error", `Null); ("payload", payload) ]
@@ -58,6 +62,25 @@ let preprocess s =
   |> List.map (fun (tk, _, _) ->
          List.to_seq tk |> String.of_seq |> Util.normalize)
 
+let heuristic l =
+  let tbl : (string, Index.loc list) Hashtbl.t = Hashtbl.create 17 in
+  List.iter
+    (fun (s, locs) ->
+      match Hashtbl.find tbl s with
+      | exception Not_found -> Hashtbl.replace tbl s (List.of_seq locs)
+      | l -> Hashtbl.replace tbl s (List.rev_append l (List.of_seq locs)))
+    l;
+  let l =
+    Hashtbl.to_seq tbl
+    |> Seq.map (fun (s, locs) ->
+           let locs = List.sort_uniq Index.compare_loc locs in
+           (s, locs, List.length l))
+    |> List.of_seq
+  in
+  List.sort (fun (_, _, u) (_, _, v) -> Int.compare v u) l
+  |> List.map (fun (u, v, _) -> (u, v))
+  |> List.to_seq |> Seq.take 10 |> List.of_seq
+
 let search_index indexes id idx input =
   match Util.MS.find idx indexes with
   | exception Not_found -> of_error id "unknown index"
@@ -66,15 +89,12 @@ let search_index indexes id idx input =
       let seq =
         Seq.concat
         @@ Seq.map
-             (fun pat -> Seq.take 4 @@ I.search pat idx)
+             (fun pat -> Seq.take 10 @@ I.search pat idx)
              (List.to_seq pats)
       in
-      let l =
-        Seq.concat
-        @@ Seq.map (fun (_, v) -> Seq.take 4 @@ Context.Set.to_seq v) seq
-        |> List.of_seq
-      in
-      l |> List.map Context.to_json |> of_list id
+      heuristic (List.of_seq seq)
+      |> List.map to_json
+      |> of_list id
 
 let dispatch indexes _sockaddr Server.{ content; _ } =
   let open Yojson.Safe.Util in

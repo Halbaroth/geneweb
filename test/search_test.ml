@@ -1,5 +1,5 @@
 module A = Alcotest
-module I = Geneweb_search.Index.Default
+module T = Geneweb_search.Trie.Default
 
 (* Compute the Levenshtein distance of [s1] and [s2]. *)
 let distance s1 s2 =
@@ -21,58 +21,58 @@ let distance s1 s2 =
   done;
   prev.(l2)
 
-let test_cardinal _idx _a () =
-  let idx = I.of_list [ ("foo", ()); ("bar", ()); ("saucisse", ()) ] in
-  A.(check int) "cardinal after insertion" 3 (I.cardinal idx)
+let test_cardinal _trie _a () =
+  let trie = T.of_list [ ("foo", ()); ("bar", ()); ("saucisse", ()) ] in
+  A.(check int) "cardinal after insertion" 3 (T.cardinal trie)
 
-let test_mem idx _a () =
-  A.(check bool) "mem Vieux-Fort" true (I.mem "Vieux-Fort" idx);
-  A.(check bool) "mem Vieu" false (I.mem "Vieu" idx);
-  A.(check bool) "mem Pariso" false (I.mem "Pariso" idx)
+let test_mem trie _a () =
+  A.(check bool) "mem Vieux-Fort" true (T.mem "Vieux-Fort" trie);
+  A.(check bool) "mem Vieu" false (T.mem "Vieu" trie);
+  A.(check bool) "mem Pariso" false (T.mem "Pariso" trie)
 
-let test_search idx _a () =
-  A.(check int) "search Vieux-Fort" 1 (Seq.length @@ I.search "Vieux-Fort" idx)
+let test_search trie _a () =
+  A.(check int) "search Vieux-Fort" 1 (Seq.length @@ T.search "Vieux-Fort" trie)
 
-let test_remove idx _a () =
-  A.(check bool) "remove Paris (before)" true (I.mem "Paris" idx);
-  let idx = I.remove "Paris" idx in
-  A.(check bool) "remove Paris (after)" false (I.mem "Paris" idx)
+let test_remove trie _a () =
+  A.(check bool) "remove Paris (before)" true (T.mem "Paris" trie);
+  let trie = T.remove "Paris" trie in
+  A.(check bool) "remove Paris (after)" false (T.mem "Paris" trie)
 
-let test_lexicographic_order _idx _a () =
-  let idx =
-    I.of_list [ ("abe", ()); ("ab", ()); ("a", ()); ("bcd", ()); ("abcd", ()) ]
+let test_lexicographic_order _trie _a () =
+  let trie =
+    T.of_list [ ("abe", ()); ("ab", ()); ("a", ()); ("bcd", ()); ("abcd", ()) ]
   in
   let expected = [ ("a", ()); ("ab", ()); ("abcd", ()); ("abe", ()) ] in
   A.(check (list (pair string unit)))
     "order" expected
-    (List.of_seq @@ I.search "a" idx)
+    (List.of_seq @@ T.search "a" trie)
 
-let test_random_mem idx a =
+let test_random_mem trie a =
   let sz = Array.length a in
   QCheck.Test.make ~count:1000 ~name:"random mem" QCheck.(int_bound (sz - 1))
-  @@ fun i -> I.mem a.(i) idx
+  @@ fun i -> T.mem a.(i) trie
 
-let test_random_search idx a =
+let test_random_search trie a =
   let sz = Array.length a in
   QCheck.Test.make ~count:1000 ~name:"random search" QCheck.(int_bound (sz - 1))
-  @@ fun i -> not @@ Seq.is_empty @@ I.search a.(i) idx
+  @@ fun i -> not @@ Seq.is_empty @@ T.search a.(i) trie
 
-let test_random_remove idx a =
+let test_random_remove trie a =
   let sz = Array.length a in
   QCheck.Test.make ~count:1000 ~name:"random remove" QCheck.(int_bound (sz - 1))
   @@ fun i ->
-  let idx = I.remove a.(i) idx in
-  not @@ I.mem a.(i) idx
+  let trie = T.remove a.(i) trie in
+  not @@ T.mem a.(i) trie
 
   (* TODO: mark this test as slow test. *)
-let test_random_fuzzy_mem idx a =
+let test_random_fuzzy_mem trie a =
   let sz = Array.length a in
   QCheck.Test.make ~count:3 ~name:"random fuzzy mem with dist <= 1"
     QCheck.(int_bound (sz - 1))
   @@ fun i ->
     let w1 = a.(i) in
     let expected = Array.exists (fun w2 -> distance w1 w2 <= 1) a in
-    let result = I.fuzzy_mem ~max_dist:1 w1 idx in
+    let result = T.fuzzy_mem ~max_dist:1 w1 trie in
     expected = result
 
 let create_index path =
@@ -80,17 +80,17 @@ let create_index path =
   let rec loop t l i =
     match In_channel.input_line ic with
     | None -> (t, Array.of_list l)
-    | Some line -> loop (I.add line i t) (line :: l) (i + 1)
+    | Some line -> loop (T.add line i t) (line :: l) (i + 1)
   in
-  loop I.empty [] 1
+  loop T.empty [] 1
 
 let () =
   match Array.to_list Sys.argv with
   | x :: dict :: xs ->
       let argv = Array.of_list (x :: xs) in
-      let idx, a = create_index dict in
-      let quick_test s tst = A.test_case s `Quick (tst idx a) in
-      let qcheck_test tst = QCheck_alcotest.to_alcotest (tst idx a) in
+      let trie, a = create_index dict in
+      let quick_test s tst = A.test_case s `Quick (tst trie a) in
+      let qcheck_test tst = QCheck_alcotest.to_alcotest (tst trie a) in
       A.run ~argv __FILE__
         [
           ( "index operations",

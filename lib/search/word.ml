@@ -8,6 +8,8 @@ module type S = sig
   val get : t -> int -> char_
   val ( ^ ) : t -> t -> t
   val suffix : int -> t -> t
+  val equal : t -> t -> bool
+  val hash : t -> int
   val compare_char : char_ -> char_ -> int
   val pp : t Fmt.t
 end
@@ -22,7 +24,8 @@ module Default : S with type char_ = char and type t = string = struct
   let get = String.get
   let ( ^ ) = ( ^ )
   let suffix offset s = String.sub s offset (String.length s)
-
+  let equal = String.equal
+  let hash = Hashtbl.hash
   let compare_char = Char.compare
 
   let pp = Fmt.string

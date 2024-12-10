@@ -8,4 +8,4 @@ module Context : sig
   module Set : Set.S with type elt = t
 end
 
-val dispatch : (string * Context.Set.t I.t) list -> Server.handler
+val dispatch : (string * I.t) list -> Server.handler

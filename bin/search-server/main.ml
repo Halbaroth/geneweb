@@ -1,4 +1,5 @@
 module I = Geneweb_search.Index.Default
+module Index = Geneweb_search.Index
 
 let handle_exn exn =
   Logs.err (fun k -> k "fatal error:@ %a" Util.pp_exn exn);
@@ -68,14 +69,14 @@ let tokenize s =
   in
   loop [] [] 0 0
 
-let generate_index_from_file path =
-  Compat.In_channel.with_open_text path @@ fun ic ->
-  let rec loop t =
-    match In_channel.input_line ic with
-    | None -> t
-    | Some word -> loop (I.add word (Util.SS.singleton word) t)
-  in
-  loop I.empty
+(* let generate_index_from_file path =
+   Compat.In_channel.with_open_text path @@ fun ic ->
+   let rec loop t =
+     match In_channel.input_line ic with
+     | None -> t
+     | Some word -> loop (I.add word (Util.SS.singleton word) t)
+   in
+   loop I.empty *)
 
 let preprocess s =
   tokenize s
@@ -98,49 +99,42 @@ let generate_index_from_cache =
           let words = preprocess s in
           List.fold_left
             (fun idx (word, start, end_) ->
-              let ctx =
-                Rpc.Context.{ word = s; offset = start; len = end_ - start }
-              in
-              I.update word
-                (function
-                  | Some set -> Some (Rpc.Context.Set.add ctx set)
-                  | None -> Some (Rpc.Context.Set.singleton ctx))
-                idx)
+              I.add word (s, Index.{ offset = start; len = end_ - start }) idx)
             idx words)
         ic I.empty )
 
-let generate_index_from_base _cache_dir basename =
-  let base = Gwdb.open_base basename in
-  let preprocess s =
-    tokenize s
-    |> List.map (fun (tk, _, _) ->
-           List.to_seq tk |> String.of_seq |> Util.normalize)
-  in
-  Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
-  fold_places
-    (fun s idx ->
-      let words = preprocess s in
-      List.fold_left
-        (fun idx w ->
-          I.update w
-            (fun set_opt ->
-              match set_opt with
-              | Some set -> Some (Util.SS.add s set)
-              | None -> Some (Util.SS.singleton s))
-            idx)
-        idx words)
-    base I.empty
+(* let generate_index_from_base _cache_dir basename =
+     let base = Gwdb.open_base basename in
+     let preprocess s =
+       tokenize s
+       |> List.map (fun (tk, _, _) ->
+              List.to_seq tk |> String.of_seq |> Util.normalize)
+     in
+     Fun.protect ~finally:(fun () -> Gwdb.close_base base) @@ fun () ->
+     fold_places
+       (fun s idx ->
+         let words = preprocess s in
+         List.fold_left
+           (fun idx w ->
+             I.update w
+               (fun set_opt ->
+                 match set_opt with
+                 | Some set -> Some (Util.SS.add s set)
+                 | None -> Some (Util.SS.singleton s))
+               idx)
+           idx words)
+       base I.empty
 
-let generate_indexes cache_dir base_dir _dict_dir =
-  let name path = Filename.(basename path |> chop_extension) in
-  (* let acc = *)
-  File.walk_folder
-    (fun kind acc ->
-      match kind with
-      | `Dir path when Util.is_gwdb_file path ->
-          (name path, generate_index_from_base cache_dir path) :: acc
-      | `File _ | `Dir _ -> acc)
-    base_dir []
+   let generate_indexes cache_dir base_dir _dict_dir =
+     let name path = Filename.(basename path |> chop_extension) in
+     (* let acc = *)
+     File.walk_folder
+       (fun kind acc ->
+         match kind with
+         | `Dir path when Util.is_gwdb_file path ->
+             (name path, generate_index_from_base cache_dir path) :: acc
+         | `File _ | `Dir _ -> acc)
+       base_dir [] *)
 (* in
    File.walk_folder
      (fun kind acc ->
