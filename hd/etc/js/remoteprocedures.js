@@ -22,10 +22,10 @@ export class RemoteProcedures extends RpcClient {
    *  @returns {Promise<Array<string>>} */
   async searchIndex(index, pattern) {
     const obj = await this.call("search_index", [...arguments]);
-    if (isStringArray(obj)) {
-      return Object.values(obj);
-    } else {
-      throw new Error("invalid json schema");
-    }
+    // if (isStringArray(obj)) {
+      return obj;
+    // } else {
+    //   throw new Error("invalid json schema");
+    // }
   }
 }

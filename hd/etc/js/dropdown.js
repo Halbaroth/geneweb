@@ -8,6 +8,13 @@ function stringLength(str) {
   return [...str].length;
 }
 
+function emphasize(text, offset, length) {
+  const before = text.slice(0, offset);
+  const emphasize = text.slice(offset, offset + length);
+  const after = text.slice(offset + length);
+  return before + `<strong>${emphasize}</strong>` + after;
+}
+
 export class DropDown {
   /** @type HTMLInputElement */
   input;
@@ -123,14 +130,14 @@ export class DropDown {
   }
 
   /** Replace all the values of the dropdown list.
-   * @param {Array<string>} values
+   * @param {Array<Object>} values
    */
   replace(values) {
     this.flush();
     values.forEach(item => {
       const div = document.createElement("div");
       div.className = 'dropdown-item';
-      div.textContent = item;
+      div.innerHTML = emphasize(item.word, item.offset, item.len);
       div.addEventListener('click', (_ev) => {
         this.input.value = item;
         this.hide();
@@ -155,7 +162,8 @@ export function dropDownWithCompletion(input, list, rp) {
 
       try {
         // TODO: change the name here
-        const values = await rp.searchIndex("roglo-v7_places.cache", lst.input.value);
+        var values =
+          await rp.searchIndex("roglo-v7_places.cache", lst.input.value);
         lst.replace(values);
       } catch (error) {
         console.error(error);

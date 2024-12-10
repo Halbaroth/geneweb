@@ -1,5 +1,29 @@
 module I = Geneweb_search.Index.Default
 
+module Context = struct
+  type t = { word : string; offset : int; len : int }
+
+  let to_json t =
+    `Assoc
+      [
+        ("word", `String t.word); ("offset", `Int t.offset); ("len", `Int t.len);
+      ]
+
+  let compare { word = c1; offset = o1; len = l1 }
+      { word = c2; offset = o2; len = l2 } =
+    let c = String.compare c1 c2 in
+    if c <> 0 then c
+    else
+      let c = Int.compare o1 o2 in
+      if c <> 0 then c else Int.compare l1 l2
+
+  module Set = Set.Make (struct
+    type nonrec t = t
+
+    let compare = compare
+  end)
+end
+
 let of_payload id payload =
   `Assoc [ ("id", `Int id); ("error", `Null); ("payload", payload) ]
   |> Server.of_json |> Lwt.return
@@ -11,21 +35,46 @@ let of_error id s =
 let of_string id s = of_payload id (`String s)
 let of_list id l = of_payload id (`List l)
 let pong id = of_string id "pong"
+let is_separator c = c = ' ' || c = ',' || c = '-'
 
-let search_index indexes id idx pattern =
+let flush_buf acc buf start curr =
+  match buf with [] -> acc | _ -> (List.rev buf, start, curr) :: acc
+
+let tokenize s =
+  let len = String.length s in
+  let rec loop acc buf start curr =
+    if curr = len then flush_buf acc buf start curr
+    else
+      let c = String.get s curr in
+      if is_separator c then
+        let acc = flush_buf acc buf start curr in
+        loop acc [] (curr + 1) (curr + 1)
+      else loop acc (c :: buf) start (curr + 1)
+  in
+  loop [] [] 0 0
+
+let preprocess s =
+  tokenize s |> List.rev
+  |> List.map (fun (tk, _, _) ->
+         List.to_seq tk |> String.of_seq |> Util.normalize)
+
+let search_index indexes id idx input =
   match Util.MS.find idx indexes with
   | exception Not_found -> of_error id "unknown index"
   | idx ->
-      let pattern = Util.normalize pattern in
+      let pats = preprocess input in
       let seq =
         Seq.concat
-        @@ List.to_seq
-             [ I.search pattern idx(* ; I.fuzzy_search ~max_dist:1 pattern idx  *)]
+        @@ Seq.map
+             (fun pat -> Seq.take 4 @@ I.search pat idx)
+             (List.to_seq pats)
       in
-      let seq = Seq.concat @@ Seq.map (fun (_, v) -> Util.SS.to_seq v) seq in
-      Seq.take 10 seq |> List.of_seq
-      |> List.map (fun s -> `String s)
-      |> of_list id
+      let l =
+        Seq.concat
+        @@ Seq.map (fun (_, v) -> Seq.take 4 @@ Context.Set.to_seq v) seq
+        |> List.of_seq
+      in
+      l |> List.map Context.to_json |> of_list id
 
 let dispatch indexes _sockaddr Server.{ content; _ } =
   let open Yojson.Safe.Util in

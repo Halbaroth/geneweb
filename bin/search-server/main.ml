@@ -79,8 +79,9 @@ let generate_index_from_file path =
 
 let preprocess s =
   tokenize s
-  |> List.map (fun (tk, _, _) ->
-         List.to_seq tk |> String.of_seq |> Util.normalize)
+  |> List.map (fun (tk, start, end_) ->
+         let s = List.to_seq tk |> String.of_seq |> Util.normalize in
+         (s, start, end_))
 
 let generate_index_from_cache =
   let name path = Filename.(basename path |> chop_extension) in
@@ -96,11 +97,14 @@ let generate_index_from_cache =
         (fun s idx ->
           let words = preprocess s in
           List.fold_left
-            (fun idx w ->
-              I.update w
+            (fun idx (word, start, end_) ->
+              let ctx =
+                Rpc.Context.{ word = s; offset = start; len = end_ - start }
+              in
+              I.update word
                 (function
-                  | Some set -> Some (Util.SS.add s set)
-                  | None -> Some (Util.SS.singleton s))
+                  | Some set -> Some (Rpc.Context.Set.add ctx set)
+                  | None -> Some (Rpc.Context.Set.singleton ctx))
                 idx)
             idx words)
         ic I.empty )
@@ -156,7 +160,7 @@ let main (cfg : Cmd.cfg) =
   (* let indexes = generate_indexes cache_dir cfg.base_dir dict_dir in *)
   (* Logs.info (fun k -> k "%d indexes generated." (List.length indexes)); *)
   if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!");
-  start [ name, index ] cfg
+  start [ (name, index) ] cfg
 
 let () =
   Logs.set_reporter @@ Util.lwt_reporter ();
