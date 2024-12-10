@@ -54,8 +54,9 @@ let read_until_newline ic =
   in
   loop 0
 
-(* Feed the queue with all the complete line in the buffer.
-   The eventual last incomplete line is returned. *)
+(* Feed the queue with all the complete lines in the buffer.
+   The eventual last incomplete line is returned. The buffer tail
+   is empty after calling this function. *)
 let flush_tail ic =
   let len = Buffer.length ic.tail in
   let rec loop s =
@@ -78,4 +79,6 @@ let rec input_line ic =
     let b = flush_tail ic in
     if r = 0 && Bytes.length b = 0 then raise End_of_file
     else if r = 0 then Bytes.to_string b
-    else input_line ic)
+    else (
+      Buffer.add_bytes ic.tail b;
+      input_line ic))
