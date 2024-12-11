@@ -4,17 +4,17 @@ module type S = sig
   type word
 
   val empty : 'a t
-  val of_list : (word * 'a) list -> 'a t
   val cardinal : 'a t -> int
   val mem : word -> 'a t -> bool
+  val search : word -> 'a t -> (word * 'a) Seq.t
   val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
+  val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
   val add : word -> 'a -> 'a t -> 'a t
   val update : word -> ('a option -> 'a option) -> 'a t -> 'a t
   val remove : word -> 'a t -> 'a t
-  val search : word -> 'a t -> (word * 'a) Seq.t
-  val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
   val fold : (word -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   val iter : (word -> 'a -> unit) -> 'a t -> unit
+  val of_seq : (word * 'a) Seq.t -> 'a t
   val to_seq : 'a t -> (word * 'a) Seq.t
   val pp : 'a Fmt.t -> 'a t Fmt.t
   val pp_statistics : 'a t Fmt.t
@@ -31,10 +31,11 @@ module Make (W : Word.S) = struct
 
   type char_ = W.char_
   type word = W.t
-  type 'a t = Node of 'a t M.t * 'a option * int
+  type 'a t = { children : 'a t M.t; data : 'a option; cardinal : int }
 
-  let empty = Node (M.empty, None, 0)
-  let[@inline always] cardinal (Node (_, _, cardinal)) = cardinal
+  let empty = { children = M.empty; data = None; cardinal = 0 }
+  let[@inline always] cardinal { cardinal; _ } = cardinal
+  let[@inline always] is_empty { cardinal; _ } = cardinal = 0
   let of_rev_list rl = W.of_list @@ List.rev rl
 
   let fold f t acc =
@@ -42,7 +43,7 @@ module Make (W : Word.S) = struct
       match stack with
       | [] -> acc
       | (rev_pfx, t) :: stack ->
-          let (Node (children, data, _)) = t in
+          let { children; data; _ } = t in
           let stack =
             M.fold
               (fun c tc stack -> (c :: rev_pfx, tc) :: stack)
@@ -65,39 +66,51 @@ module Make (W : Word.S) = struct
     @@ Fmt.parens
     @@ Fmt.pair ~sep:Fmt.comma W.pp pp_val
 
-  let mem word t =
-    let len = W.length word in
-    let rec loop i t =
-      let (Node (children, data, _)) = t in
-      if i = len then Option.is_some data
+  let update w f t =
+    let len = W.length w in
+    let rec loop t i =
+      let { children; data; cardinal } = t in
+      if i = len then
+        let diff =
+          match (data, f data) with
+          | Some _, Some _ | None, None -> 0
+          | Some _, None -> -1
+          | None, Some _ -> 1
+        in
+        let cardinal = t.cardinal + diff in
+        if cardinal = 0 then (diff, empty)
+        else (diff, { t with data = f data; cardinal })
       else
-        let c = W.get word i in
-        match M.find c children with
-        | exception Not_found -> false
-        | t -> loop (i + 1) t
+        let c = W.get w i in
+        let child =
+          match M.find c t.children with
+          | exception Not_found -> empty
+          | child -> child
+        in
+        let diff, nchild = loop child (i + 1) in
+        let children =
+          if is_empty nchild then M.remove c children
+          else M.add c nchild children
+        in
+        (diff, { t with children; cardinal = t.cardinal + diff })
     in
-    loop 0 t
+    loop t 0 |> snd
 
-  let fuzzy_mem ~max_dist word t =
-    let module A = Automaton (struct
-      type nonrec word = word
+  let add w v t = update w (fun _ -> Some v) t
+  let remove w t = update w (fun _ -> None) t
 
-      let pattern = word
-      let max_dist = max_dist
-    end) in
-    let len = W.length word in
-    let rec loop i t st =
-      let (Node (children, _, _)) = t in
-      if i = len && A.accept st then true
-      else if A.can_match st then
-        M.exists (fun c child -> loop (i + 1) child (A.next c st)) children
-      else false
+  let of_seq s =
+    let rec loop s acc =
+      match s () with
+      | Seq.Nil -> acc
+      | Cons ((w, v), s) -> loop s (add w v acc)
     in
-    loop 0 t A.init
+    loop s empty
 
+  (* TODO: this function needs to be tailrec *)
   let to_seq pfx t =
     let rec loop rev_pfx t =
-      let (Node (children, data, _)) = t in
+      let { children; data; _ } = t in
       let seq =
         Seq.concat_map (fun (c, tc) -> loop (c :: rev_pfx) tc)
         @@ M.to_seq children
@@ -110,12 +123,25 @@ module Make (W : Word.S) = struct
     in
     loop [] t
 
+  let mem word t =
+    let len = W.length word in
+    let rec loop i t =
+      let { children; data; _ } = t in
+      if i = len then Option.is_some data
+      else
+        let c = W.get word i in
+        match M.find c children with
+        | exception Not_found -> false
+        | t -> loop (i + 1) t
+    in
+    loop 0 t
+
   let search pfx t =
     let len = W.length pfx in
     let rec loop rev_pfx i t =
       if i = len then to_seq (of_rev_list rev_pfx) t
       else
-        let (Node (children, _, _)) = t in
+        let { children; _ } = t in
         let c = W.get pfx i in
         match M.find c children with
         | exception Not_found -> Seq.empty
@@ -123,6 +149,27 @@ module Make (W : Word.S) = struct
     in
     loop [] 0 t
 
+  (* TODO: this function is not tail-rec. Can we implement it
+     in a tail-rec way? *)
+  let fuzzy_mem ~max_dist word t =
+    let module A = Automaton (struct
+      type nonrec word = word
+
+      let pattern = word
+      let max_dist = max_dist
+    end) in
+    let len = W.length word in
+    let rec loop i t st =
+      let { children; _ } = t in
+      if i = len && A.accept st then true
+      else if A.can_match st then
+        M.exists (fun c child -> loop (i + 1) child (A.next c st)) children
+      else false
+    in
+    loop 0 t A.init
+
+  (* TODO: this function is not tail-rec. Can we implement it
+     in a tail-rec way? *)
   let fuzzy_search ~max_dist pfx t =
     let module A = Automaton (struct
       type nonrec word = word
@@ -131,7 +178,7 @@ module Make (W : Word.S) = struct
       let max_dist = max_dist
     end) in
     let rec loop rev_pfx t st =
-      let (Node (children, _, _)) = t in
+      let { children; _ } = t in
       if A.accept st then to_seq (of_rev_list rev_pfx) t
       else if A.can_match st then
         M.to_seq children
@@ -140,52 +187,6 @@ module Make (W : Word.S) = struct
       else Seq.empty
     in
     loop [] t A.init
-
-  let update w f t =
-    let len = W.length w in
-    let rec loop t i =
-      let (Node (children, data, cardinal)) = t in
-      if i = len then Node (children, f data, cardinal)
-      else
-        let children =
-          M.update (W.get w i)
-            (fun o ->
-              match o with
-              | Some child -> Some (loop child (i + 1))
-              | None -> Some (loop empty (i + 1)))
-            children
-        in
-        Node (children, data, cardinal + 1)
-    in
-    loop t 0
-
-  let add w v t = update w (fun _ -> Some v) t
-
-  let of_list l =
-    let rec loop l acc =
-      match l with [] -> acc | (w, v) :: l -> loop l (add w v acc)
-    in
-    loop l empty
-
-  let remove w t =
-    let len = W.length w in
-    let rec loop t i =
-      let (Node (children, data, cardinal)) = t in
-      if i = len then Node (children, None, cardinal - 1)
-      else
-        let children =
-          M.update (W.get w i)
-            (fun o ->
-              match o with
-              | None -> None
-              | Some child ->
-                  let (Node (_, _, cardinal) as nc) = loop child (i + 1) in
-                  if cardinal = 0 then None else Some nc)
-            children
-        in
-        Node (children, data, cardinal - 1)
-    in
-    loop t 0
 
   let to_seq t = to_seq W.empty t
 
@@ -197,8 +198,8 @@ module Make (W : Word.S) = struct
     else if qk > 0 then Fmt.pf ppf "%d Kio" rk
     else Fmt.pf ppf "%d o" rk
 
-  let pp_statistics ppf (Node (_, _, cardinal) as t) =
-    Fmt.pf ppf "%d words (size %a)" cardinal pp_human_size
+  let pp_statistics ppf t =
+    Fmt.pf ppf "%d words (size %a)" t.cardinal pp_human_size
       (Obj.reachable_words (Obj.repr t))
 end
 

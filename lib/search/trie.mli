@@ -6,18 +6,21 @@ module type S = sig
   val empty : 'a t
   (** An empty trie. *)
 
-  val of_list : (word * 'a) list -> 'a t
-  (** Create an trie from an associative list. *)
-
   val cardinal : 'a t -> int
   (** Return the cardinal of the trie, that is its number of elements. *)
 
   val mem : word -> 'a t -> bool
   (** [mem w t] checks if the word [w] is present in [t]. *)
 
+  val search : word -> 'a t -> (word * 'a) Seq.t
+  (** [search w t] returns the sequence in lexicographic order of all the
+      words in [t] with [w] as prefix. *)
+
   val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
   (** [fuzzy_mem ~max_dist w t] checks if there is a word in [t] at distance at
       most [max_dist] of [w]. *)
+
+  val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
 
   val add : word -> 'a -> 'a t -> 'a t
   (** [add w t v] adds the word [w] with the value [v] in [t].
@@ -29,17 +32,15 @@ module type S = sig
   val remove : word -> 'a t -> 'a t
   (** [remove w t] removes the word [w] if it is present in [t]. *)
 
-  val search : word -> 'a t -> (word * 'a) Seq.t
-  (** [search w t] returns the sequence in lexicographic order of all the
-      words in [t] with [w] as prefix. *)
-
-  val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
-
   val fold : (word -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
 
   val iter : (word -> 'a -> unit) -> 'a t -> unit
 
+  val of_seq : (word * 'a) Seq.t -> 'a t
+  (** Create an trie from an associative sequence. *)
+
   val to_seq : 'a t -> (word * 'a) Seq.t
+  (** Convert a trie into an associative sequence. *)
 
   val pp : 'a Fmt.t -> 'a t Fmt.t
   (** Prints all the binding in the trie in lexicographic order. *)
