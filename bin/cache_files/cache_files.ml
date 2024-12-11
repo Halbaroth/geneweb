@@ -91,12 +91,14 @@ let collect_places base bar =
   set
 
 let iter_field base p f = function
-  | `Fnames with_aliases ->
-      f (Gwdb.get_first_name p);
-      if with_aliases then List.iter f (Gwdb.get_first_names_aliases p)
-  | `Snames with_aliases ->
-      f (Gwdb.get_surname p);
-      if with_aliases then List.iter f (Gwdb.get_surnames_aliases p)
+  | `Fnames k ->
+      if k = `Name || k = `Both then f (Gwdb.get_first_name p);
+      if k = `Aliases || k = `Both then
+        List.iter f (Gwdb.get_first_names_aliases p)
+  | `Snames k ->
+      if k = `Name || k = `Both then f (Gwdb.get_surname p);
+      if k = `Aliases || k = `Both then
+        List.iter f (Gwdb.get_surnames_aliases p)
   | `Aliases -> List.iter f (Gwdb.get_aliases p)
   | `Occupations -> f (Gwdb.get_occupation p)
   | `Qualifiers -> List.iter f (Gwdb.get_qualifiers p)
@@ -199,13 +201,15 @@ let () =
   let fds = if !all || !pub_names then `Pub_names :: fds else fds in
   let fds = if !all || !aliases then `Aliases :: fds else fds in
   let fds =
-    if !all then `Snames true :: fds
-    else if !snames then `Snames !sname_aliases :: fds
+    if !all || (!snames && !sname_aliases) then `Snames `Both :: fds
+    else if !snames then `Snames `Name :: fds
+    else if !sname_aliases then `Snames `Aliases :: fds
     else fds
   in
   let fds =
-    if !all then `Fnames true :: fds
-    else if !fnames then `Fnames !fname_aliases :: fds
+    if !all || (!fnames && !fname_aliases) then `Fnames `Both :: fds
+    else if !fnames then `Fnames `Name :: fds
+    else if !fname_aliases then `Fnames `Aliases :: fds
     else fds
   in
 
@@ -222,7 +226,7 @@ let () =
           write_cache_file bname fname l;
           List.length l
         in
-        Format.printf "@[<h>%-*s@ %8d@ %-14s@ %6.2fs@]@." !width
+        Format.printf "@[<h>%-*s@ %8d@ %-14s@ %6.2f s@]@." !width
           (fullname bname fname) n fname duration;
         total_duration +. duration)
       total_duration fds
