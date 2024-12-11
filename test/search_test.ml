@@ -52,10 +52,13 @@ let test_lexicographic_order _trie _a () =
     @@ List.to_seq
          [ ("abe", ()); ("ab", ()); ("a", ()); ("bcd", ()); ("abcd", ()) ]
   in
-  let expected = [ ("a", ()); ("ab", ()); ("abcd", ()); ("abe", ()) ] in
+  let expected =
+    [ ("a", ()); ("ab", ()); ("abcd", ()); ("abe", ()); ("bcd", ()) ]
+  in
   A.(check (list (pair string unit)))
-    "order" expected
-    (List.of_seq @@ T.search "a" trie)
+    "order of_seq" expected (List.of_seq @@ T.to_seq trie);
+  let l = T.fold (fun w () acc -> (w, ()) :: acc) trie [] |> List.rev in
+  A.(check (list (pair string unit))) "order fold" expected l
 
 let test_random_mem trie a =
   let sz = Array.length a in

@@ -4,14 +4,15 @@ module type S = sig
   type word
 
   val empty : 'a t
+  val is_empty : 'a t -> bool
   val cardinal : 'a t -> int
   val mem : word -> 'a t -> bool
   val search : word -> 'a t -> (word * 'a) Seq.t
   val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
   val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
   val add : word -> 'a -> 'a t -> 'a t
-  val update : word -> ('a option -> 'a option) -> 'a t -> 'a t
   val remove : word -> 'a t -> 'a t
+  val update : word -> ('a option -> 'a option) -> 'a t -> 'a t
   val fold : (word -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   val iter : (word -> 'a -> unit) -> 'a t -> unit
   val of_seq : (word * 'a) Seq.t -> 'a t
@@ -24,7 +25,9 @@ module Make (W : Word.S) = struct
   module M = Map.Make (struct
     type t = W.char_
 
-    let compare = W.compare_char
+    (* The alphabet order is reversed to minimize slow reversals in the trie
+       iterators. *)
+    let compare x y = -W.compare_char x y
   end)
 
   module Automaton = Automaton.Make (W)
@@ -108,21 +111,24 @@ module Make (W : Word.S) = struct
     in
     loop s empty
 
-  (* TODO: this function needs to be tailrec *)
   let to_seq pfx t =
-    let rec loop rev_pfx t =
-      let { children; data; _ } = t in
-      let seq =
-        Seq.concat_map (fun (c, tc) -> loop (c :: rev_pfx) tc)
-        @@ M.to_seq children
-      in
-      match data with
-      | Some v ->
-          let w = W.(pfx ^ of_rev_list rev_pfx) in
-          Seq.cons (w, v) seq
-      | None -> seq
+    let rec loop stack () =
+      match stack with
+      | [] -> Seq.Nil
+      | (rev_pfx, t) :: stack -> (
+          let { children; data; _ } = t in
+          let stack =
+            M.fold
+              (fun c tc stack -> (c :: rev_pfx, tc) :: stack)
+              children stack
+          in
+          match data with
+          | Some v ->
+              let w = W.(pfx ^ of_rev_list rev_pfx) in
+              Seq.Cons ((w, v), loop stack)
+          | None -> loop stack ())
     in
-    loop [] t
+    loop [ ([], t) ]
 
   let mem word t =
     let len = W.length word in
