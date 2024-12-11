@@ -44,24 +44,6 @@ let is_separator c = c = ' ' || c = ',' || c = '-'
 let flush_buf acc buf start curr =
   match buf with [] -> acc | _ -> (List.rev buf, start, curr) :: acc
 
-let tokenize s =
-  let len = String.length s in
-  let rec loop acc buf start curr =
-    if curr = len then flush_buf acc buf start curr
-    else
-      let c = String.get s curr in
-      if is_separator c then
-        let acc = flush_buf acc buf start curr in
-        loop acc [] (curr + 1) (curr + 1)
-      else loop acc (c :: buf) start (curr + 1)
-  in
-  loop [] [] 0 0
-
-let preprocess s =
-  tokenize s |> List.rev
-  |> List.map (fun (tk, _, _) ->
-         List.to_seq tk |> String.of_seq |> Util.normalize)
-
 let heuristic l =
   let tbl : (string, Index.loc list) Hashtbl.t = Hashtbl.create 17 in
   List.iter
@@ -85,13 +67,10 @@ let search_index indexes id idx input =
   match Util.MS.find idx indexes with
   | exception Not_found -> of_error id "unknown index"
   | idx ->
-      let pats = preprocess input in
-      let seq =
-        Seq.concat
-        @@ Seq.map
-             (fun pat -> Seq.take 10 @@ I.search pat idx)
-             (List.to_seq pats)
+      let pats = Geneweb_search.Analyze.preprocess input
+        |> List.map (fun Index.{ content; _ } -> content)
       in
+      let l = I.search2 pats idx in
       heuristic (List.of_seq seq)
       |> List.map to_json
       |> of_list id

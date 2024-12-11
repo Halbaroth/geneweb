@@ -22,7 +22,10 @@ let distance s1 s2 =
   prev.(l2)
 
 let test_cardinal _trie _a () =
-  let trie = T.of_list [ ("foo", ()); ("bar", ()); ("saucisse", ()) ] in
+  let trie =
+    T.of_seq @@ List.to_seq [ ("foo", ()); ("bar", ()); ("saucisse", ()) ]
+  in
+  Fmt.pr "%a@." (T.pp (Fmt.any "()")) trie;
   A.(check int) "cardinal after insertion" 3 (T.cardinal trie)
 
 let test_mem trie _a () =
@@ -38,9 +41,16 @@ let test_remove trie _a () =
   let trie = T.remove "Paris" trie in
   A.(check bool) "remove Paris (after)" false (T.mem "Paris" trie)
 
+let test_update trie _a () =
+  let c = T.cardinal trie in
+  let trie = T.update "Paris" (function Some _ -> None | None -> None) trie in
+  A.(check bool) "update Paris" true (T.cardinal trie = c - 1)
+
 let test_lexicographic_order _trie _a () =
   let trie =
-    T.of_list [ ("abe", ()); ("ab", ()); ("a", ()); ("bcd", ()); ("abcd", ()) ]
+    T.of_seq
+    @@ List.to_seq
+         [ ("abe", ()); ("ab", ()); ("a", ()); ("bcd", ()); ("abcd", ()) ]
   in
   let expected = [ ("a", ()); ("ab", ()); ("abcd", ()); ("abe", ()) ] in
   A.(check (list (pair string unit)))
@@ -64,16 +74,16 @@ let test_random_remove trie a =
   let trie = T.remove a.(i) trie in
   not @@ T.mem a.(i) trie
 
-  (* TODO: mark this test as slow test. *)
+(* TODO: mark this test as slow test. *)
 let test_random_fuzzy_mem trie a =
   let sz = Array.length a in
   QCheck.Test.make ~count:3 ~name:"random fuzzy mem with dist <= 1"
     QCheck.(int_bound (sz - 1))
   @@ fun i ->
-    let w1 = a.(i) in
-    let expected = Array.exists (fun w2 -> distance w1 w2 <= 1) a in
-    let result = T.fuzzy_mem ~max_dist:1 w1 trie in
-    expected = result
+  let w1 = a.(i) in
+  let expected = Array.exists (fun w2 -> distance w1 w2 <= 1) a in
+  let result = T.fuzzy_mem ~max_dist:1 w1 trie in
+  expected = result
 
 let create_index path =
   Compat.In_channel.with_open_text path @@ fun ic ->
@@ -99,6 +109,7 @@ let () =
               quick_test "mem" test_search;
               quick_test "search" test_search;
               quick_test "remove" test_remove;
+              quick_test "update" test_update;
               quick_test "lexicography_order" test_lexicographic_order;
             ] );
           ( "random index operations",

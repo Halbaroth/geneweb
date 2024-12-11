@@ -71,15 +71,16 @@ module Make (W : Word.S) = struct
     let rec loop t i =
       let { children; data; cardinal } = t in
       if i = len then
+        let fdata = f data in
         let diff =
-          match (data, f data) with
+          match (data, fdata) with
           | Some _, Some _ | None, None -> 0
           | Some _, None -> -1
           | None, Some _ -> 1
         in
         let cardinal = t.cardinal + diff in
         if cardinal = 0 then (diff, empty)
-        else (diff, { t with data = f data; cardinal })
+        else (diff, { t with data = fdata; cardinal })
       else
         let c = W.get w i in
         let child =
