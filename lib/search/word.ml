@@ -5,6 +5,7 @@ module type S = sig
   val empty : t
   val of_list : char_ list -> t
   val length : t -> int
+  val compare : t -> t -> int
   val get : t -> int -> char_
   val ( ^ ) : t -> t -> t
   val suffix : int -> t -> t
@@ -20,6 +21,7 @@ module Default : S with type char_ = char and type t = string = struct
 
   let empty = ""
   let of_list l = String.of_seq @@ List.to_seq l
+  let compare = String.compare
   let length = String.length
   let get = String.get
   let ( ^ ) = ( ^ )

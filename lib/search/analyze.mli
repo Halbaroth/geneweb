@@ -1,8 +1,9 @@
-(* val tokenize : string -> string Index.loc list
+type 'a loc = { content : 'a; offset : int; len : int }
 
-(* TODO: remove loc here. *)
-val normalize : string Index.loc -> string Index.loc
+val tokenize : string -> string loc list
 
-val preprocess : string -> string Index.loc list
+val normalize : string -> string
 
-val index_from_gzip : string -> Index.Default.t *)
+val preprocess : string -> string loc list
+
+val index_from_gzip : string -> Index.Default.t

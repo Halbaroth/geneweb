@@ -1,34 +1,35 @@
-(* module I = Index.Default
+module I = Index.Default
+
+type 'a loc = { content : 'a; offset : int; len : int }
 
 let is_separator c = c = ' ' || c = ',' || c = '-'
-let string_of_rev_list l = List.rev l |> List.to_seq |> String.of_seq *)
 
-(* let flush_buf acc buf offset length =
+let flush_buf acc buf offset i =
   match buf with
-  | [] ->
-      (* Ignore empty token. *)
+  | [] | [_] | [_;_] ->
+      (* Ignore short tokens. *)
       acc
   | _ ->
-      let content = string_of_rev_list buf in
-      Index.{ content; offset; length } :: acc
+      let content = List.rev buf |> List.to_seq |> String.of_seq in
+      { content; offset; len = i - offset } :: acc
 
 let tokenize s =
   let len = String.length s in
-  let rec loop acc buf offset length =
-    if offset = len then flush_buf acc buf offset length
+  let rec loop acc buf offset i =
+    if i = len then flush_buf acc buf offset i
     else
-      let c = String.get s offset in
+      let c = String.get s i in
       if is_separator c then
-        let acc = flush_buf acc buf offset length in
-        loop acc [] (offset + 1) 0
-      else loop acc (c :: buf) offset (length + 1)
+        let acc = flush_buf acc buf offset i in
+        loop acc [] (i + 1) (i + 1)
+      else loop acc (c :: buf) offset (i + 1)
   in
   loop [] [] 0 0 |> List.rev
 
-let normalize Index.{ content; offset; length } =
-  Index.{ content = String.lowercase_ascii content; offset; length }
+let normalize = String.lowercase_ascii
 
-let preprocess s = tokenize s |> List.map normalize
+let preprocess s =
+  tokenize s |> List.map (fun t -> { t with content = normalize t.content })
 
 let index_from_gzip =
   let rec fold_line f ic acc =
@@ -41,11 +42,8 @@ let index_from_gzip =
     fold_line
       (fun content idx ->
         let words = preprocess content in
-        List.fold_left
-          (fun idx Index.{ content = word; offset; length } ->
-            I.add word Index.{ content; offset; length } idx)
-          idx words)
-      ic I.empty *)
+        List.fold_left (fun idx w -> I.add w.content content idx) idx words)
+      ic I.empty
 
 (* (* Fold iterator on all the places of the database [base]. *)
    let fold_places f base acc =

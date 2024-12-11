@@ -1,98 +1,58 @@
-type loc = { offset : int; len : int }
-
 module type S = sig
   type t
   type word
 
   val empty : t
-  val add : word -> word -> loc -> t -> t
-  val search : word -> t -> (word * loc) Seq.t
-  val search2 : word list -> t -> (word * loc) list
-  val pp_statistics : t Fmt.t
+  val add : word -> word -> t -> t
+  val search : word list -> t -> word list
 end
+
+let take k l =
+  let rec loop i l =
+    match l with
+    | [] -> []
+    | x :: xs ->
+      if i = k then []
+      else x :: loop (i + 1) xs
+  in
+  loop 0 l
 
 module Make (W : Word.S) = struct
   module T = Trie.Make (W)
+  module WS = Set.Make (W)
 
   type word = W.t
-
-  module HW = struct
-    type t = { w : word; mutable tag : int }
-
-    let equal u v = W.equal u.w v.w
-    let hash u = W.hash u.w
-  end
-
-  module W = Weak.Make (HW)
-
-  (* module Set = Set.Make (struct
-    type t = HW.t loc
-
-    let compare { content = w1; offset = o1; length = l1 }
-        { content = w2; offset = o2; length = l2 } =
-      let c = Int.compare w1.HW.tag w2.HW.tag in
-      if c <> 0 then c
-      else
-        let c = Int.compare o1 o2 in
-        if c <> 0 then c else Int.compare l1 l2
-  end)
-
-  let add_word =
-    let tbl = W.create 1_024 in
-    let ctr = ref 0 in
-    fun w ->
-      let hw = W.merge tbl { w; tag = -1 } in
-      if hw.tag = -1 then (
-        hw.tag <- !ctr;
-        incr ctr);
-      hw
-
-  type t = Set.t T.t
+  type t = WS.t T.t
 
   let empty = T.empty
 
   let add w s t =
-    let u =
-      { content = add_word s.content; offset = s.offset; length = s.length }
-    in
     T.update w
       (function
-        | Some set -> Some (Set.add u set) | None -> Some (Set.singleton u))
+        | Some set -> Some (WS.add s set) | None -> Some (WS.singleton s))
       t
 
-  let search w t =
-    T.search w t
-    |> Seq.map (fun (_, set) ->
-           Seq.map
-             (fun { content; offset; length } ->
-               { content = content.HW.w; offset; length })
-             (Set.to_seq set))
-    |> Seq.concat
-
-  let inter = assert false
-  (* let inter (seq1 : word loc Seq.t) (seq2 : word loc Seq.t) : string Seq.t =
-    match (seq1 (), seq2 ()) with
-    | Seq.Cons ({ content = w1; _ }, tl1), Seq.Cons ({ content = w2; _ }) ->
-        assert false
-    | _ -> fun () -> Seq.Nil *)
-
-  (* let search2 pats t =
-     let tbl : (string, word loc list) Hashtbl.t = Hashtbl.create 17 in
-     let l = List.map (fun w -> search w t |> List.of_seq) pats in
-     List.iteri
-       (fun i ws ->
-
-       ) l; *)
-
-  let pp_statistics = T.pp_statistics *)
-
-  type t = int
-  let empty = 0
-
-  let add = assert false
-  let search = assert false
-  let search2 = assert false
-  let pp_statistics = assert false
+  let search words t =
+    let tbl : (W.t, int) Hashtbl.t = Hashtbl.create 17 in
+    List.iter
+      (fun word ->
+        Seq.iter
+          (fun (_, set) ->
+            WS.iter
+              (fun s ->
+                let i =
+                  match Hashtbl.find tbl s with
+                  | exception Not_found -> 0
+                  | i -> i
+                in
+                Hashtbl.replace tbl s (i + 1))
+              set)
+          (T.search word t))
+      words;
+    Hashtbl.to_seq tbl |> List.of_seq
+    |> List.sort (fun (_, i) (_, j) -> Int.compare j i)
+    |> List.map fst
+    |> take 10
 end
 
 module Default = Make (Word.Default)

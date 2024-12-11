@@ -7,6 +7,7 @@ module type S = sig
   val is_empty : 'a t -> bool
   val cardinal : 'a t -> int
   val mem : word -> 'a t -> bool
+  val count : word -> 'a t -> int
   val search : word -> 'a t -> (word * 'a) Seq.t
   val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
   val fuzzy_search : max_dist:int -> word -> 'a t -> (word * 'a) Seq.t
@@ -72,7 +73,7 @@ module Make (W : Word.S) = struct
   let update w f t =
     let len = W.length w in
     let rec loop t i =
-      let { children; data; cardinal } = t in
+      let { children; data; _ } = t in
       if i = len then
         let fdata = f data in
         let diff =
@@ -136,9 +137,19 @@ module Make (W : Word.S) = struct
       let { children; data; _ } = t in
       if i = len then Option.is_some data
       else
-        let c = W.get word i in
-        match M.find c children with
+        match M.find (W.get word i) children with
         | exception Not_found -> false
+        | t -> loop (i + 1) t
+    in
+    loop 0 t
+
+  let count pfx t =
+    let len = W.length pfx in
+    let rec loop i t =
+      if i = len then cardinal t
+      else
+        match M.find (W.get pfx i) t.children with
+        | exception Not_found -> 0
         | t -> loop (i + 1) t
     in
     loop 0 t

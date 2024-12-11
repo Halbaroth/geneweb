@@ -37,7 +37,7 @@ let main (cfg : Cmd.cfg) =
   in
   let name = Filename.basename path |> Filename.remove_extension in
   let index = Geneweb_search.Analyze.index_from_gzip path in
-  Logs.info (fun k -> k "%s: %a" name I.pp_statistics index);
+  (* Logs.info (fun k -> k "%s: %a" name I.pp_statistics index); *)
   (* let indexes = generate_indexes cache_dir cfg.base_dir dict_dir in *)
   (* Logs.info (fun k -> k "%d indexes generated." (List.length indexes)); *)
   if Option.is_none cfg.tls then Logs.warn (fun k -> k "Connection unsecure!");

@@ -19,9 +19,15 @@ module type S = sig
   val mem : word -> 'a t -> bool
   (** [mem w t] checks if the word [w] is present in [t]. *)
 
+  val count : word -> 'a t -> int
+  (** [count w t] returns the number of words in [t] that have [w] as a
+      prefix.
+
+      This function is more efficient than [Seq.length (search w t)]. *)
+
   val search : word -> 'a t -> (word * 'a) Seq.t
-  (** [search w t] returns the sequence in lexicographic order of all the
-      words in [t] with [w] as prefix. *)
+  (** [search w t] returns a sequence of all words in [t] with [w] as a
+      prefix, ordered lexicographically. *)
 
   val fuzzy_mem : max_dist:int -> word -> 'a t -> bool
   (** [fuzzy_mem ~max_dist w t] checks if there is a word in [t] at distance at

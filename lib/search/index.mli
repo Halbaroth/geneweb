@@ -2,29 +2,14 @@
     engine. More precisely, it constructs a reverse index of sentences with
     location. *)
 
-type loc = { offset : int; len : int }
-
 module type S = sig
   type t
   type word
 
   val empty : t
-  (** The empty reverse index. *)
-
-  val add : word -> word -> loc -> t -> t
-  (** [add w s loc idx] binds the word [w] with the sentence [s] and the
-      location [loc] in [idx]. It means that [s] contains exactly the
-      word [w] at the location [loc]. *)
-
-  val search : word -> t -> (word * loc) Seq.t
-  (** [search w idx] returns the sequence of all the sentences in the index
-      [idx] with a sequence of locations of blabla. *)
-
-  val search2 : word list -> t -> (word * loc) list
-
-  val pp_statistics : t Fmt.t
+  val add : word -> word -> t -> t
+  val search : word list -> t -> word list
 end
 
 module Make (W : Word.S) : S with type word = W.t
-
 module Default : S with type word = string
