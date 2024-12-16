@@ -64,12 +64,6 @@ module Make (W : Word.S) = struct
 
   let iter f t = fold (fun w v () -> f w v) t ()
 
-  let pp pp_val =
-    Fmt.box
-    @@ Fmt.iter_bindings ~sep:Fmt.sp iter
-    @@ Fmt.parens
-    @@ Fmt.pair ~sep:Fmt.comma W.pp pp_val
-
   let update w f t =
     let len = W.length w in
     let rec loop t i =
@@ -219,6 +213,13 @@ module Make (W : Word.S) = struct
   let pp_statistics ppf t =
     Fmt.pf ppf "%d words (size %a)" t.cardinal pp_human_size
       (Obj.reachable_words (Obj.repr t))
+
+  let pp pp_val =
+    Fmt.box
+    @@ Fmt.iter_bindings ~sep:Fmt.sp iter
+    @@ Fmt.parens
+    @@ Fmt.pair ~sep:Fmt.comma W.pp pp_val
+
 end
 
 module Default = Make (Word.Default)
