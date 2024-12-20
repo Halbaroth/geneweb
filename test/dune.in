@@ -30,9 +30,9 @@
   (action (run %{test} %{dict})))
 
 (test
-  (name iset_test)
+  (name structure_test)
   (package geneweb)
-  (modules iset_test)
+  (modules structure_test)
   (libraries
     alcotest
     fmt
