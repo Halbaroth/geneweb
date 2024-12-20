@@ -3,4 +3,5 @@
   (name geneweb_search)
   (libraries
     geneweb_util
+    geneweb_structures
     fmt))

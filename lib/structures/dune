@@ -1,0 +1,4 @@
+(library
+  (public_name geneweb.structures)
+  (name geneweb_structures)
+  (libraries fmt))
