@@ -1,5 +1,14 @@
 module A = Alcotest
-module Iset = Geneweb_structures.Iset.Make (Int)
+
+module I = struct
+  include Int
+
+  let dummy = 0
+end
+
+module Iset = Geneweb_structures.Iset.Make (I)
+module It = Iset.Iterator
+module Join = Geneweb_structures.Iterator.Join (I) (Iset.Iterator)
 module SI = Set.Make (Int)
 
 let nonempty_array = QCheck.Gen.(array_size (int_range 1 100) int)
@@ -78,6 +87,31 @@ let test_random_iterator_seek =
   in
   Option.equal Int.equal v1 v2
 
+let test_random_join_iterator =
+  QCheck.Test.make ~count:1000 ~name:"random union iterator"
+    QCheck.(make Gen.(list_size (int_range 1 100) nonempty_array))
+  @@ fun l ->
+  let l1 = List.map (fun a -> Array.to_seq a |> SI.of_seq) l in
+  let s1 = List.fold_left SI.union SI.empty l1 |> SI.to_seq in
+  let l2 =
+    List.map (fun a -> Array.to_seq a |> Iset.of_seq |> Iset.iterator) l
+  in
+  let s2 = Join.join l2 in
+  let rec loop (s1 : int Seq.t) =
+    Join.next s2;
+    match s1 () with
+    | Seq.Nil -> (
+        try
+          let (_ : int) = Join.curr s2 in
+          false
+        with Join.End -> true)
+    | Seq.Cons (hd, tl) -> (
+        match Join.curr s2 with
+        | exception Join.End -> false
+        | v -> if I.equal hd v then loop tl else false)
+  in
+  loop s1
+
 let () =
   let quick_test s = A.test_case s `Quick in
   let qcheck_test = QCheck_alcotest.to_alcotest in
@@ -93,5 +127,6 @@ let () =
           qcheck_test test_random_mem;
           qcheck_test test_random_iterator_next;
           qcheck_test test_random_iterator_seek;
+          qcheck_test test_random_join_iterator;
         ] );
     ]

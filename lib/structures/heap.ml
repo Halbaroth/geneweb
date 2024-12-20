@@ -1,10 +1,3 @@
-module type Ordered = sig
-  type t
-
-  val dummy : t
-  val compare : t -> t -> int
-end
-
 module type S = sig
   type elt
   type t
@@ -14,9 +7,10 @@ module type S = sig
   val create : int -> t
   val insert : t -> elt -> unit
   val delete_min : t -> elt
+  val min : t -> elt
 end
 
-module Make (O : Ordered) = struct
+module Make (O : Intf.Ordered) = struct
   type elt = O.t
   type t = { tree : elt array; mutable sz : int }
 
@@ -73,4 +67,8 @@ module Make (O : Ordered) = struct
       t.sz <- t.sz - 1;
       percolate_down t 0;
       d
+
+  let min t =
+    if empty t then raise Empty
+    else get t 0
 end

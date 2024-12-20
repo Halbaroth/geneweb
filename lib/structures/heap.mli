@@ -1,12 +1,5 @@
 (** This module implements a simple imperative priority heap. *)
 
-module type Ordered = sig
-  type t
-
-  val dummy : t
-  val compare : t -> t -> int
-end
-
 module type S = sig
   type elt
   (** Type of the element in the heap. *)
@@ -34,6 +27,11 @@ module type S = sig
       the same priority.
 
       @raise Empty if the heap is empty. *)
+
+  val min : t -> elt
+  (** [min t] returns a minimum element of the heap [t].
+
+      @raise Empty if the heap is empty. *)
 end
 
-module Make (O : Ordered) : S with type elt = O.t
+module Make (O : Intf.Ordered) : S with type elt = O.t

@@ -1,9 +1,3 @@
-module type Ordered = sig
-  type t
-
-  val compare : t -> t -> int
-end
-
 module type S = sig
   type elt
   type t
@@ -13,20 +7,12 @@ module type S = sig
   val mem : elt -> t -> bool
   val cardinal : t -> int
 
-  module Iterator : sig
-    type t
-
-    exception End
-
-    val curr : t -> elt
-    val next : t -> unit
-    val seek : elt -> t -> unit
-  end
+  module Iterator : Iterator.S with type elt = elt
 
   val iterator : t -> Iterator.t
 end
 
-module Make (O : Ordered) = struct
+module Make (O : Intf.Ordered) = struct
   type elt = O.t
   type t = O.t array
 
@@ -56,6 +42,7 @@ module Make (O : Ordered) = struct
     | `Found _ -> true
 
   module Iterator = struct
+    type nonrec elt = elt
     type nonrec t = { arr : t; mutable idx : int }
 
     exception End
