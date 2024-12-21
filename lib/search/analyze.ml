@@ -6,7 +6,7 @@ let is_separator c = c = ' ' || c = ',' || c = '-'
 
 let flush_buf acc buf offset i =
   match buf with
-  | [] | [_] | [_;_] ->
+  | [] | [ _ ] | [ _; _ ] ->
       (* Ignore short tokens. *)
       acc
   | _ ->

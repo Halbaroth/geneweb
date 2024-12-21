@@ -11,9 +11,7 @@ let take k l =
   let rec loop i l =
     match l with
     | [] -> []
-    | x :: xs ->
-      if i = k then []
-      else x :: loop (i + 1) xs
+    | x :: xs -> if i = k then [] else x :: loop (i + 1) xs
   in
   loop 0 l
 
@@ -51,8 +49,7 @@ module Make (W : Word.S) = struct
       words;
     Hashtbl.to_seq tbl |> List.of_seq
     |> List.sort (fun (_, i) (_, j) -> Int.compare j i)
-    |> List.map fst
-    |> take 10
+    |> List.map fst |> take 10
 end
 
 module Default = Make (Word.Default)

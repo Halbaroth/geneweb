@@ -8,8 +8,8 @@ end
 module type S = sig
   type char_
   type word
-
   type state
+
   val init : state
   val next : char_ -> state -> state
   val accept : state -> bool

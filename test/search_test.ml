@@ -56,7 +56,8 @@ let test_lexicographic_order _trie _a () =
     [ ("a", ()); ("ab", ()); ("abcd", ()); ("abe", ()); ("bcd", ()) ]
   in
   A.(check (list (pair string unit)))
-    "order of_seq" expected (List.of_seq @@ T.to_seq trie);
+    "order of_seq" expected
+    (List.of_seq @@ T.to_seq trie);
   let l = T.fold (fun w () acc -> (w, ()) :: acc) trie [] |> List.rev in
   A.(check (list (pair string unit))) "order fold" expected l
 

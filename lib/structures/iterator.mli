@@ -41,3 +41,5 @@ module Join (O : Intf.Ordered) (It : S with type elt = O.t) : sig
 
      @raise Invalid_argument if the list is empty. *)
 end
+
+val to_seq : (module S with type elt = 'a and type t = 'b) -> 'b -> 'a Seq.t

@@ -219,7 +219,6 @@ module Make (W : Word.S) = struct
     @@ Fmt.iter_bindings ~sep:Fmt.sp iter
     @@ Fmt.parens
     @@ Fmt.pair ~sep:Fmt.comma W.pp pp_val
-
 end
 
 module Default = Make (Word.Default)
