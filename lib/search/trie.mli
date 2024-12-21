@@ -84,5 +84,4 @@ module type S = sig
 end
 
 module Make (W : Word.S) : S with type char_ = W.char_ and type word = W.t
-
 module Default : S with type char_ = char and type word = string

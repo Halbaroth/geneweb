@@ -29,6 +29,5 @@ module Default : S with type char_ = char and type t = string = struct
   let equal = String.equal
   let hash = Hashtbl.hash
   let compare_char = Char.compare
-
   let pp = Fmt.string
 end

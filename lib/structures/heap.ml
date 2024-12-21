@@ -41,9 +41,7 @@ module Make (O : Intf.Ordered) = struct
 
   let rec percolate_down t i =
     let l = left i and r = right i in
-    let min =
-      if l < t.sz && O.compare (get t l) (get t i) < 0 then l else i
-    in
+    let min = if l < t.sz && O.compare (get t l) (get t i) < 0 then l else i in
     let min =
       if r < t.sz && O.compare (get t r) (get t min) < 0 then r else min
     in
@@ -68,7 +66,5 @@ module Make (O : Intf.Ordered) = struct
       percolate_down t 0;
       d
 
-  let min t =
-    if empty t then raise Empty
-    else get t 0
+  let min t = if empty t then raise Empty else get t 0
 end
