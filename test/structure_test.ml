@@ -1,19 +1,21 @@
 module A = Alcotest
+module Iterator = Geneweb_structures.Iterator
 
 module I = struct
-  include Int
+  type elt = int
+  type witness
 
+  let compare = Int.compare
   let dummy = 0
 end
 
 module Iset = Geneweb_structures.Iset.Make (I)
-module Union = Geneweb_structures.Iterator.Union (I) (Iset.Iterator)
-module Join = Geneweb_structures.Iterator.Join (I) (Iset.Iterator)
 
 module Naive = struct
   module SI = Set.Make (Int)
 
   type elt = int
+  type cmp = I.witness
   type t = SI.t
 
   let of_seq = SI.of_seq
@@ -24,51 +26,33 @@ module Naive = struct
   let inter = SI.inter
   let union = SI.union
 
-  module Iterator = struct
-    type elt = int
-    type t = int Seq.t ref
+  let iterator t =
+    (module struct
+      type elt = int
+      type nonrec cmp = cmp
 
-    exception End
+      let state = ref (SI.to_seq t)
 
-    let curr t =
-      match !t () with Seq.Nil -> raise End | Seq.Cons (hd, _) -> hd
+      let curr () =
+        match !state () with
+        | Seq.Nil -> raise Iterator.End
+        | Seq.Cons (hd, _) -> hd
 
-    let next t = match !t () with Seq.Nil -> () | Seq.Cons (_, tl) -> t := tl
+      let next () =
+        match !state () with Seq.Nil -> () | Seq.Cons (_, tl) -> state := tl
 
-    let seek w t =
-      let rec loop () =
-        match curr t with
-        | exception End -> ()
-        | v when w <= v -> ()
-        | _ ->
-            next t;
-            loop ()
-      in
-      loop ()
-  end
-
-  let iterator t = ref (to_seq t)
+      let seek w =
+        let rec loop () =
+          match curr () with
+          | exception Iterator.End -> ()
+          | v when w <= v -> ()
+          | _ ->
+              next ();
+              loop ()
+        in
+        loop ()
+    end : Iterator.S with type elt = int and type cmp = cmp)
 end
-
-module type S = Geneweb_structures.Iterator.S
-
-let equal_iterator (type t1 t2)
-    (module It1 : S with type elt = int and type t = t1) (it1 : t1)
-    (module It2 : S with type elt = int and type t = t2) (it2 : t2) =
-  let rec loop () =
-    let v1 = try Some (It1.curr it1) with It1.End -> None in
-    let v2 = try Some (It2.curr it2) with It2.End -> None in
-    match (v1, v2) with
-    | Some v1, Some v2 ->
-        if not @@ Int.equal v1 v2 then false
-        else (
-          It1.next it1;
-          It2.next it2;
-          loop ())
-    | None, Some _ | Some _, None -> false
-    | None, None -> true
-  in
-  loop ()
 
 let nonempty_array = QCheck.Gen.(array_size (int_range 1 100) int)
 
@@ -80,11 +64,11 @@ let index_array =
 let test_empty () =
   let s = Iset.of_seq Seq.empty in
   let it = Iset.iterator s in
-  Iset.Iterator.next it;
-  Iset.Iterator.seek 10 it;
+  Iterator.next it;
+  Iterator.seek 10 it;
   let b =
-    match Iset.Iterator.curr it with
-    | exception Iset.Iterator.End -> true
+    match Iterator.curr it with
+    | exception Iterator.End -> true
     | _ -> false
   in
   A.(check bool) "end iterator" true b
@@ -92,10 +76,10 @@ let test_empty () =
 let test_seek_advance () =
   let s = Iset.of_seq (List.to_seq [ 1; 3; 5; 9 ]) in
   let it = Iset.iterator s in
-  Iset.Iterator.seek 4 it;
-  A.(check int) "first seek" 5 (Iset.Iterator.curr it);
-  Iset.Iterator.seek 4 it;
-  A.(check int) "second seek" 5 (Iset.Iterator.curr it)
+  Iterator.seek 4 it;
+  A.(check int) "first seek" 5 (Iterator.curr it);
+  Iterator.seek 4 it;
+  A.(check int) "second seek" 5 (Iterator.curr it)
 
 let test_random_mem =
   QCheck.Test.make ~count:1000 ~name:"random mem" (QCheck.make index_array)
@@ -112,7 +96,7 @@ let test_random_iterator_next =
   let seq = Array.to_seq a in
   let it1 = Naive.iterator @@ Naive.of_seq seq in
   let it2 = Iset.iterator @@ Iset.of_seq seq in
-  equal_iterator (module Naive.Iterator) it1 (module Iset.Iterator) it2
+  Iterator.equal (module I) it1 it2
 
 let test_random_iterator_seek =
   QCheck.Test.make ~count:1000 ~name:"random iterator seek"
@@ -122,12 +106,12 @@ let test_random_iterator_seek =
   let it1 = Naive.iterator @@ Naive.of_seq seq in
   let it2 = Iset.iterator @@ Iset.of_seq seq in
   let probe = a.(i) + 5 in
-  Naive.Iterator.seek probe it1;
-  Iset.Iterator.seek probe it2;
+  Iterator.seek probe it1;
+  Iterator.seek probe it2;
   let v1 =
-    try Some (Naive.Iterator.curr it1) with Naive.Iterator.End -> None
+    try Some (Iterator.curr it1) with Iterator.End -> None
   in
-  let v2 = try Some (Iset.Iterator.curr it2) with Iset.Iterator.End -> None in
+  let v2 = try Some (Iterator.curr it2) with Iterator.End -> None in
   Option.equal Int.equal v1 v2
 
 let test_random_iterator_union =
@@ -142,9 +126,9 @@ let test_random_iterator_union =
     let l2 =
       List.map (fun a -> Array.to_seq a |> Iset.of_seq |> Iset.iterator) l
     in
-    Union.union l2
+    Iterator.union (module I) l2
   in
-  equal_iterator (module Naive.Iterator) it1 (module Union) it2
+  Iterator.equal (module I) it1 it2
 
 let test_random_iterator_join =
   QCheck.Test.make ~count:1000 ~name:"random iterator join"
@@ -159,9 +143,9 @@ let test_random_iterator_join =
     let l2 =
       List.map (fun a -> Array.to_seq a |> Iset.of_seq |> Iset.iterator) l
     in
-    Join.join l2
+    Iterator.join (module I) l2
   in
-  equal_iterator (module Naive.Iterator) it1 (module Join) it2
+  Iterator.equal (module I) it1 it2
 
 let () =
   let quick_test s = A.test_case s `Quick in
