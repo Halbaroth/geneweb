@@ -1,24 +1,23 @@
 module type S = sig
   type elt
   type t
+  type cmp
 
   val of_seq : elt Seq.t -> t
   val to_seq : t -> elt Seq.t
   val mem : elt -> t -> bool
   val cardinal : t -> int
-
-  module Iterator : Iterator.S with type elt = elt
-
-  val iterator : t -> Iterator.t
+  val iterator : t -> (elt, cmp) Iterator.t
 end
 
-module Make (O : Intf.Ordered) = struct
-  type elt = O.t
-  type t = O.t array
+module Make (C : Comparator.S) = struct
+  type elt = C.elt
+  type t = C.elt array
+  type cmp = C.witness
 
   let of_seq s =
     let l = List.of_seq s in
-    let l = List.sort O.compare l in
+    let l = List.sort C.compare l in
     Array.of_list l
 
   let to_seq = Array.to_seq
@@ -29,7 +28,7 @@ module Make (O : Intf.Ordered) = struct
       if i >= j then `Gap i
       else
         let mid = i + ((j - i) / 2) in
-        let c = O.compare t.(mid) e in
+        let c = C.compare t.(mid) e in
         if c = 0 then `Found mid
         else if c < 0 then loop (mid + 1) j
         else loop i mid
@@ -41,22 +40,20 @@ module Make (O : Intf.Ordered) = struct
     | `Gap _ -> false
     | `Found _ -> true
 
-  module Iterator = struct
-    type nonrec elt = elt
-    type nonrec t = { arr : t; mutable idx : int }
+  let iterator t =
+    (module struct
+      type elt = C.elt
+      type cmp = C.witness
 
-    exception End
+      let idx = ref 0
+      let curr () = if !idx < cardinal t then t.(!idx) else raise Iterator.End
+      let next () = if !idx < cardinal t then incr idx
 
-    let curr { arr; idx } = if idx < cardinal arr then arr.(idx) else raise End
-    let next it = if it.idx < cardinal it.arr then it.idx <- it.idx + 1
-
-    let seek e it =
-      if it.idx < cardinal it.arr then
-        let (`Gap i | `Found i) =
-          binary_search e it.arr it.idx (cardinal it.arr)
-        in
-        it.idx <- i
-  end
-
-  let iterator t = Iterator.{ arr = t; idx = 0 }
+      let seek e =
+        if !idx < cardinal t then
+          let (`Gap i | `Found i) = binary_search e t !idx (cardinal t) in
+          idx := i
+    end : Iterator.S
+      with type elt = C.elt
+       and type cmp = C.witness)
 end

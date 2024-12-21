@@ -1,45 +1,47 @@
+exception End
+(** Exception raised when attempting to access elements beyond the
+    end of the iterator. *)
+
 module type S = sig
   type elt
-  (** Type of elements of the collection. *)
+  type cmp
 
-  type t
-  (** Type of forward iterator. *)
-
-  exception End
-  (** Exception raised when we reach the end of the collection. *)
-
-  val curr : t -> elt
-  (* [curr it] returns the element currently pointed by the iterator [it].
-     @raise End if we reach the end of the collection. *)
-
-  val next : t -> unit
-  (* [next it] advances the iterator [it] to the next element. *)
-
-  val seek : elt -> t -> unit
-  (* [seek e it] advances the iterator [it] to the smallest element in the
-     collection that is greater or equal to [e].
-
-     If [it] is already positioned at this smallest element, it remains
-     unchanged. *)
+  val curr : unit -> elt
+  val next : unit -> unit
+  val seek : elt -> unit
 end
 
-module Union (O : Intf.Ordered) (It : S with type elt = O.t) : sig
-  type t
+type ('a, 'cmp) t = (module S with type elt = 'a and type cmp = 'cmp)
+(** Type of an iterator parametrized by element type and comparator
+    function. *)
 
-  include S with type elt = O.t and type t := t
+val curr : ('a, 'cmp) t -> 'a
+(** [curr it] returns the element currently pointed by the iterator [it].
+    @raise End if the iterator has reached the end of the collection. *)
 
-  val union : It.t list -> t
-end
+val next : ('a, 'cmp) t -> unit
+(** [next it] advances the iterator [it] to the next element. *)
 
-module Join (O : Intf.Ordered) (It : S with type elt = O.t) : sig
-  type t
+val seek : 'a -> ('a, 'cmp) t -> unit
+(** [seek e] advances the iterator [it] at the smallest element in the
+    collection that is greater or equal to [e].
 
-  include S with type elt = O.t and type t := t
+    If already positioned at this smallest element, the iterator remains
+    unchanged. *)
 
-  val join : It.t list -> t
-  (* [join l] computes the join iterator of the iterators [l].
+val equal : ('a, 'cmp) Comparator.t -> ('a, 'cmp) t -> ('a, 'cmp) t -> bool
+(** [equal cmp it1 it2] checks if two iterators [it1] and [it2] are equal. *)
 
-     @raise Invalid_argument if the list is empty. *)
-end
+val union : ('a, 'cmp) Comparator.t -> ('a, 'cmp) t list -> ('a, 'cmp) t
+(** [union cmp l] creates a new iterator whose the elements are the union of
+    the elements of the iterators in [l]. The resulting iterator produces
+    elements in ascending order based on [cmp]. *)
 
-val to_seq : (module S with type elt = 'a and type t = 'b) -> 'b -> 'a Seq.t
+val join : ('a, 'cmp) Comparator.t -> ('a, 'cmp) t list -> ('a, 'cmp) t
+(** [join l] computes the join iterator of the iterators [l]. The resulting
+    iterator produces elements in ascending order based on [cmp].
+
+    @raise Invalid_argument if the list is empty. *)
+
+val to_seq : ('a, 'cmp) t -> 'a Seq.t
+(** [to_seq it] converts the iterator [it] into a sequence. *)

@@ -10,8 +10,8 @@ module type S = sig
   val min : t -> elt
 end
 
-module Make (O : Intf.Ordered) = struct
-  type elt = O.t
+module Make (C : Comparator.S) = struct
+  type elt = C.elt
   type t = { tree : elt array; mutable sz : int }
 
   exception Empty
@@ -20,7 +20,7 @@ module Make (O : Intf.Ordered) = struct
   let[@inline always] set { tree; _ } i v = Array.unsafe_set tree i v
 
   let[@inline always] create cap =
-    { tree = Array.init cap (fun _ -> O.dummy); sz = 0 }
+    { tree = Array.init cap (fun _ -> C.dummy); sz = 0 }
 
   let[@inline always] full { tree; sz; _ } = Array.length tree = sz
   let[@inline always] empty { sz; _ } = sz = 0
@@ -35,15 +35,15 @@ module Make (O : Intf.Ordered) = struct
 
   let rec percolate_up t i =
     let p = parent i in
-    if O.compare (get t i) (get t p) < 0 then (
+    if C.compare (get t i) (get t p) < 0 then (
       swap t i p;
       percolate_up t p)
 
   let rec percolate_down t i =
     let l = left i and r = right i in
-    let min = if l < t.sz && O.compare (get t l) (get t i) < 0 then l else i in
+    let min = if l < t.sz && C.compare (get t l) (get t i) < 0 then l else i in
     let min =
-      if r < t.sz && O.compare (get t r) (get t min) < 0 then r else min
+      if r < t.sz && C.compare (get t r) (get t min) < 0 then r else min
     in
     if i <> min then (
       swap t i min;

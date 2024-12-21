@@ -2,6 +2,8 @@ module type S = sig
   type elt
   (** Type of elements of the collection. *)
 
+  type cmp
+
   type t
   (** Type of immutable set. *)
 
@@ -19,11 +21,10 @@ module type S = sig
   val cardinal : t -> int
   (** [cardinal t] returns the cardinal of the set. *)
 
-  module Iterator : Iterator.S with type elt = elt
-
-  val iterator : t -> Iterator.t
+  val iterator : t -> (elt, cmp) Iterator.t
   (** [iterator t] creates a mutable iterator for the set [t] starting on the
       first element. This iterator cannot be invalidate as the set immutable. *)
 end
 
-module Make (O : Intf.Ordered) : S with type elt = O.t
+module Make (C : Comparator.S) :
+  S with type elt = C.elt and type cmp = C.witness
