@@ -106,8 +106,6 @@ let join (type a w)
     type elt = a
     type cmp = w
 
-    exception End
-
     type s = { arr : (a, w) t array; mutable ended : bool }
 
     let[@inline always] omin u v = if C.compare u v < 0 then u else v
