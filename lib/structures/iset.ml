@@ -26,7 +26,7 @@ module Make (O : Intf.Ordered) = struct
 
   let binary_search e t u v =
     let rec loop i j =
-      if i >= j then `Hole i
+      if i >= j then `Gap i
       else
         let mid = i + ((j - i) / 2) in
         let c = O.compare t.(mid) e in
@@ -38,7 +38,7 @@ module Make (O : Intf.Ordered) = struct
 
   let mem e t =
     match binary_search e t 0 (cardinal t) with
-    | `Hole _ -> false
+    | `Gap _ -> false
     | `Found _ -> true
 
   module Iterator = struct
@@ -52,7 +52,7 @@ module Make (O : Intf.Ordered) = struct
 
     let seek e it =
       if it.idx < cardinal it.arr then
-        let (`Hole i | `Found i) =
+        let (`Gap i | `Found i) =
           binary_search e it.arr it.idx (cardinal it.arr)
         in
         it.idx <- i
