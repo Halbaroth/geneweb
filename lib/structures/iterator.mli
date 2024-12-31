@@ -2,32 +2,19 @@ exception End
 (** Exception raised when attempting to access elements beyond the
     end of the iterator. *)
 
-module type S = sig
-  type elt
-  type cmp
-
-  val curr : unit -> elt
-  val next : unit -> unit
-  val seek : elt -> unit
-end
-
-type ('a, 'cmp) t = (module S with type elt = 'a and type cmp = 'cmp)
+type ('a, 'cmp) t =
+  < curr : unit -> 'a ; next : unit -> unit ; seek : 'a -> unit >
 (** Type of an iterator parametrized by element type and comparator
-    function. *)
+    function.
 
-val curr : ('a, 'cmp) t -> 'a
-(** [curr it] returns the element currently pointed by the iterator [it].
-    @raise End if the iterator has reached the end of the collection. *)
+    [it#curr ()] returns the element currently pointed by the iterator [it].
+    @raise End if the iterator has reached the end of the collection.
 
-val next : ('a, 'cmp) t -> unit
-(** [next it] advances the iterator [it] to the next element. *)
+    [it#next ()] advances the iterator [it] to the next element.
 
-val seek : 'a -> ('a, 'cmp) t -> unit
-(** [seek e] advances the iterator [it] at the smallest element in the
-    collection that is greater or equal to [e].
-
-    If already positioned at this smallest element, the iterator remains
-    unchanged. *)
+    [it#seek e] advances the iterator [it] at the smallest element in the
+    collection that is greater or equal to [e]. If already positioned at this
+    smallest element, the iterator remains unchanged. *)
 
 val equal : ('a, 'cmp) Comparator.t -> ('a, 'cmp) t -> ('a, 'cmp) t -> bool
 (** [equal cmp it1 it2] checks if two iterators [it1] and [it2] are equal.

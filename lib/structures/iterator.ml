@@ -1,38 +1,20 @@
 exception End
 
-module type S = sig
-  type elt
-  type cmp
-
-  val curr : unit -> elt
-  val next : unit -> unit
-  val seek : elt -> unit
-end
-
-type ('a, 'cmp) t = (module S with type elt = 'a and type cmp = 'cmp)
-
-let curr (type a w) (module It : S with type elt = a and type cmp = w) =
-  It.curr ()
-
-let next (type a w) (module It : S with type elt = a and type cmp = w) =
-  It.next ()
-
-let seek (type a w) (e : a) (module It : S with type elt = a and type cmp = w) =
-  It.seek e
+type ('a, 'cmp) t =
+  < curr : unit -> 'a ; next : unit -> unit ; seek : 'a -> unit >
 
 let equal (type a w)
     (module C : Comparator.S with type elt = a and type witness = w)
-    (module It1 : S with type elt = a and type cmp = w)
-    (module It2 : S with type elt = a and type cmp = w) =
+    (it1 : (a, w) t) (it2 : (a, w) t) =
   let rec loop () =
-    let v1 = try Some (It1.curr ()) with End -> None in
-    let v2 = try Some (It2.curr ()) with End -> None in
+    let v1 = try Some (it1#curr ()) with End -> None in
+    let v2 = try Some (it2#curr ()) with End -> None in
     match (v1, v2) with
     | Some v1, Some v2 ->
         if C.compare v1 v2 <> 0 then false
         else (
-          It1.next ();
-          It2.next ();
+          it1#next ();
+          it2#next ();
           loop ())
     | None, Some _ | Some _, None -> false
     | None, None -> true
@@ -42,131 +24,111 @@ let equal (type a w)
 let union (type a w)
     (module C : Comparator.S with type elt = a and type witness = w)
     (l : (a, w) t list) =
-  (module struct
-    type elt = a
-    type cmp = w
+  let module H = Heap.Make (struct
+    type elt = int * a
+    type witness = C.witness
 
-    module H = Heap.Make (struct
-      type elt = int * a
-      type witness = C.witness
+    let dummy = (0, C.dummy)
+    let compare (_, v1) (_, v2) = C.compare v1 v2
+  end) in
+  let arr = Array.of_list l in
+  let len = Array.length arr in
+  let hp = H.create 256 in
+  for i = 0 to len - 1 do
+    match arr.(i)#curr () with exception End -> () | v -> H.insert hp (i, v)
+  done;
+  object
+    val hp = hp
+    val arr = arr
 
-      let dummy = (0, C.dummy)
-      let compare (_, v1) (_, v2) = C.compare v1 v2
-    end)
-
-    type nonrec t = { hp : H.t; arr : (a, w) t array }
-
-    let state =
-      let arr = Array.of_list l in
-      let len = Array.length arr in
-      let hp = H.create 256 in
-      for i = 0 to len - 1 do
-        match curr arr.(i) with exception End -> () | v -> H.insert hp (i, v)
-      done;
-      { hp; arr }
-
-    let seek w =
+    method seek w =
       let rec loop () =
-        match H.min state.hp with
+        match H.min hp with
         | exception H.Empty -> ()
         | _, v when C.compare w v <= 0 -> ()
         | i, _ ->
-            let (_ : int * a) = H.delete_min state.hp in
-            seek w state.arr.(i);
+            let (_ : int * a) = H.delete_min hp in
+            arr.(i)#seek w;
             let () =
-              match curr state.arr.(i) with
+              match arr.(i)#curr () with
               | exception End -> ()
-              | v -> H.insert state.hp (i, v)
+              | v -> H.insert hp (i, v)
             in
             loop ()
       in
       loop ()
 
-    let next () =
-      match H.delete_min state.hp with
+    method next () =
+      match H.delete_min hp with
       | exception H.Empty -> ()
       | i, _ -> (
-          next state.arr.(i);
-          match curr state.arr.(i) with
+          arr.(i)#next ();
+          match arr.(i)#curr () with
           | exception End -> ()
-          | v -> H.insert state.hp (i, v))
+          | v -> H.insert hp (i, v))
 
-    let curr () =
-      match H.min state.hp with exception H.Empty -> raise End | _, v -> v
-  end : S
-    with type elt = a
-     and type cmp = w)
+    method curr () =
+      match H.min hp with exception H.Empty -> raise End | _, v -> v
+  end
 
 let join (type a w)
     (module C : Comparator.S with type elt = a and type witness = w)
     (l : (a, w) t list) =
   let arr = Array.of_list l in
   if Array.length arr = 0 then invalid_arg "join";
-  (module struct
-    type elt = a
-    type cmp = w
-
-    type s = { arr : (a, w) t array; mutable ended : bool }
-
-    let[@inline always] omin u v = if C.compare u v < 0 then u else v
-    let[@inline always] omax u v = if C.compare u v > 0 then u else v
-
-    let seek w t =
-      let rec loop w =
-        let module It = (val t.arr.(0)) in
-        let v = It.curr () in
-        let mi, ma =
-          Array.fold_left
-            (fun (mi, ma) (it : (a, w) t) ->
-              let module It = (val it) in
-              It.seek w;
-              let v = It.curr () in
-              (omin mi v, omax ma v))
-            (v, v) t.arr
-        in
-        if mi < ma then loop ma
+  let[@inline always] omin u v = if C.compare u v < 0 then u else v in
+  let[@inline always] omax u v = if C.compare u v > 0 then u else v in
+  let seek w =
+    let rec loop w =
+      let v = arr.(0)#curr () in
+      let mi, ma =
+        Array.fold_left
+          (fun (mi, ma) (it : (a, w) t) ->
+            it#seek w;
+            let v = it#curr () in
+            (omin mi v, omax ma v))
+          (v, v) arr
       in
-      if not t.ended then try loop w with End -> t.ended <- true
+      if mi < ma then loop ma
+    in
+    try
+      loop w;
+      false
+    with End -> true
+  in
+  let ended =
+    match arr.(0)#curr () with exception End -> true | w -> seek w
+  in
+  object (self)
+    val mutable ended = ended
+    val arr = arr
 
-    let state =
-      match curr arr.(0) with
-      | exception End -> { arr; ended = true }
-      | w ->
-          let t = { arr; ended = false } in
-          seek w t;
-          t
+    method seek w =
+      let (_ : bool) = seek w in
+      ()
 
-    let seek w = seek w state
-
-    let[@inline always] curr () =
-      if state.ended then raise End
-      else
-        let module It = (val state.arr.(0)) in
-        It.curr ()
-
-    let next () =
-      if not state.ended then
+    method next () =
+      if not ended then
         try
-          let module It = (val state.arr.(0)) in
-          let v = It.curr () in
-          (* Advances each iterator by one step and return the maximum value. *)
+          let v = arr.(0)#curr () in
+          (* Advances each iterator by one step and return the maximum
+             value. *)
           let max =
             Array.fold_left
               (fun ma (it : (a, w) t) ->
-                let module It = (val it) in
-                It.next ();
-                let v = It.curr () in
+                it#next ();
+                let v = it#curr () in
                 omax ma v)
-              v state.arr
+              v arr
           in
-          seek max
-        with End -> state.ended <- true
-  end : S
-    with type elt = a
-     and type cmp = w)
+          self#seek max
+        with End -> ended <- true
 
-let to_seq (type a w) (module It : S with type elt = a and type cmp = w) =
+    method curr () = if ended then raise End else arr.(0)#curr ()
+  end
+
+let to_seq it =
   let rec loop () =
-    match It.curr () with exception End -> Seq.Nil | v -> Seq.Cons (v, loop)
+    match it#curr () with exception End -> Seq.Nil | v -> Seq.Cons (v, loop)
   in
   loop

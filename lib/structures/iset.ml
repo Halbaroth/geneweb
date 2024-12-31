@@ -41,19 +41,14 @@ module Make (C : Comparator.S) = struct
     | `Found _ -> true
 
   let iterator t =
-    (module struct
-      type elt = C.elt
-      type cmp = C.witness
+    object
+      val mutable idx = 0
+      method curr () = if idx < cardinal t then t.(idx) else raise Iterator.End
+      method next () = if idx < cardinal t then idx <- idx + 1
 
-      let idx = ref 0
-      let curr () = if !idx < cardinal t then t.(!idx) else raise Iterator.End
-      let next () = if !idx < cardinal t then incr idx
-
-      let seek e =
-        if !idx < cardinal t then
-          let (`Gap i | `Found i) = binary_search e t !idx (cardinal t) in
-          idx := i
-    end : Iterator.S
-      with type elt = C.elt
-       and type cmp = C.witness)
+      method seek e =
+        if idx < cardinal t then
+          let (`Gap i | `Found i) = binary_search e t idx (cardinal t) in
+          idx <- i
+    end
 end

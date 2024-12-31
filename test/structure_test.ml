@@ -27,31 +27,28 @@ module Naive = struct
   let union = SI.union
 
   let iterator t =
-    (module struct
-      type elt = int
-      type nonrec cmp = cmp
+    object (self)
+      val mutable state = SI.to_seq t
 
-      let state = ref (SI.to_seq t)
-
-      let curr () =
-        match !state () with
+      method curr () =
+        match state () with
         | Seq.Nil -> raise Iterator.End
         | Seq.Cons (hd, _) -> hd
 
-      let next () =
-        match !state () with Seq.Nil -> () | Seq.Cons (_, tl) -> state := tl
+      method next () =
+        match state () with Seq.Nil -> () | Seq.Cons (_, tl) -> state <- tl
 
-      let seek w =
+      method seek w =
         let rec loop () =
-          match curr () with
+          match self#curr () with
           | exception Iterator.End -> ()
           | v when w <= v -> ()
           | _ ->
-              next ();
+              self#next ();
               loop ()
         in
         loop ()
-    end : Iterator.S with type elt = int and type cmp = cmp)
+    end
 end
 
 let nonempty_array = QCheck.Gen.(array_size (int_range 1 100) int)
@@ -64,22 +61,20 @@ let index_array =
 let test_empty () =
   let s = Iset.of_seq Seq.empty in
   let it = Iset.iterator s in
-  Iterator.next it;
-  Iterator.seek 10 it;
+  it#next ();
+  it#seek 10;
   let b =
-    match Iterator.curr it with
-    | exception Iterator.End -> true
-    | _ -> false
+    match it#curr () with exception Iterator.End -> true | _ -> false
   in
   A.(check bool) "end iterator" true b
 
 let test_seek_advance () =
   let s = Iset.of_seq (List.to_seq [ 1; 3; 5; 9 ]) in
   let it = Iset.iterator s in
-  Iterator.seek 4 it;
-  A.(check int) "first seek" 5 (Iterator.curr it);
-  Iterator.seek 4 it;
-  A.(check int) "second seek" 5 (Iterator.curr it)
+  it#seek 4;
+  A.(check int) "first seek" 5 (it#curr ());
+  it#seek 4;
+  A.(check int) "second seek" 5 (it#curr ())
 
 let test_random_mem =
   QCheck.Test.make ~count:1000 ~name:"random mem" (QCheck.make index_array)
@@ -106,12 +101,10 @@ let test_random_iterator_seek =
   let it1 = Naive.iterator @@ Naive.of_seq seq in
   let it2 = Iset.iterator @@ Iset.of_seq seq in
   let probe = a.(i) + 5 in
-  Iterator.seek probe it1;
-  Iterator.seek probe it2;
-  let v1 =
-    try Some (Iterator.curr it1) with Iterator.End -> None
-  in
-  let v2 = try Some (Iterator.curr it2) with Iterator.End -> None in
+  it1#seek probe;
+  it2#seek probe;
+  let v1 = try Some (it1#curr ()) with Iterator.End -> None in
+  let v2 = try Some (it2#curr ()) with Iterator.End -> None in
   Option.equal Int.equal v1 v2
 
 let test_random_iterator_union =
