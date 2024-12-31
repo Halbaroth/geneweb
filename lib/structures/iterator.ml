@@ -38,9 +38,6 @@ let union (type a w)
     match arr.(i)#curr () with exception End -> () | v -> H.insert hp (i, v)
   done;
   object
-    val hp = hp
-    val arr = arr
-
     method seek w =
       let rec loop () =
         match H.min hp with
@@ -91,21 +88,18 @@ let join (type a w)
       in
       if mi < ma then loop ma
     in
+    loop w
+  in
+  let ended =
     try
-      loop w;
+      let w = arr.(0)#curr () in
+      seek w;
       false
     with End -> true
   in
-  let ended =
-    match arr.(0)#curr () with exception End -> true | w -> seek w
-  in
   object (self)
     val mutable ended = ended
-    val arr = arr
-
-    method seek w =
-      let (_ : bool) = seek w in
-      ()
+    method seek w = try seek w with End -> ended <- true
 
     method next () =
       if not ended then
