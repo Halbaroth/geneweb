@@ -33,11 +33,9 @@ let union (type a w)
   end) in
   let arr = Array.of_list l in
   let len = Array.length arr in
-  let hp = H.create 256 in
-  for i = 0 to len - 1 do
-    match arr.(i)#curr () with exception End -> () | v -> H.insert hp (i, v)
-  done;
   object
+    val hp = H.create 256
+
     method seek w =
       let rec loop () =
         match H.min hp with
@@ -66,6 +64,11 @@ let union (type a w)
 
     method curr () =
       match H.min hp with exception H.Empty -> raise End | _, v -> v
+
+    initializer
+    for i = 0 to len - 1 do
+      match arr.(i)#curr () with exception End -> () | v -> H.insert hp (i, v)
+    done
   end
 
 let join (type a w)
@@ -75,31 +78,23 @@ let join (type a w)
   if Array.length arr = 0 then invalid_arg "join";
   let[@inline always] omin u v = if C.compare u v < 0 then u else v in
   let[@inline always] omax u v = if C.compare u v > 0 then u else v in
-  let seek w =
-    let rec loop w =
-      let v = arr.(0)#curr () in
-      let mi, ma =
-        Array.fold_left
-          (fun (mi, ma) (it : (a, w) t) ->
-            it#seek w;
-            let v = it#curr () in
-            (omin mi v, omax ma v))
-          (v, v) arr
-      in
-      if mi < ma then loop ma
-    in
-    loop w
-  in
-  let ended =
-    try
-      let w = arr.(0)#curr () in
-      seek w;
-      false
-    with End -> true
-  in
   object (self)
-    val mutable ended = ended
-    method seek w = try seek w with End -> ended <- true
+    val mutable ended = false
+
+    method seek w =
+      let rec loop w =
+        let v = arr.(0)#curr () in
+        let mi, ma =
+          Array.fold_left
+            (fun (mi, ma) (it : (a, w) t) ->
+              it#seek w;
+              let v = it#curr () in
+              (omin mi v, omax ma v))
+            (v, v) arr
+        in
+        if mi < ma then loop ma
+      in
+      try loop w with End -> ended <- true
 
     method next () =
       if not ended then
@@ -119,6 +114,12 @@ let join (type a w)
         with End -> ended <- true
 
     method curr () = if ended then raise End else arr.(0)#curr ()
+
+    initializer
+      try
+        let w = arr.(0)#curr () in
+        self#seek w
+      with End -> ended <- true
   end
 
 let to_seq it =
