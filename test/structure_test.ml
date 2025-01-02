@@ -1,8 +1,9 @@
 module A = Alcotest
 module Iterator = Geneweb_structures.Iterator
+module Comparator = Geneweb_structures.Comparator
 
 module I = struct
-  type elt = int
+  type t = int
   type witness
 
   let compare = Int.compare
@@ -29,6 +30,11 @@ module Naive = struct
   let iterator t =
     object (self)
       val mutable state = SI.to_seq t
+
+      method comparator
+          : (module Comparator.S with type t = int and type witness = I.witness)
+          =
+        (module I)
 
       method curr () =
         match state () with
@@ -63,9 +69,7 @@ let test_empty () =
   let it = Iset.iterator s in
   it#next ();
   it#seek 10;
-  let b =
-    match it#curr () with exception Iterator.End -> true | _ -> false
-  in
+  let b = match it#curr () with exception Iterator.End -> true | _ -> false in
   A.(check bool) "end iterator" true b
 
 let test_seek_advance () =
@@ -91,7 +95,7 @@ let test_random_iterator_next =
   let seq = Array.to_seq a in
   let it1 = Naive.iterator @@ Naive.of_seq seq in
   let it2 = Iset.iterator @@ Iset.of_seq seq in
-  Iterator.equal (module I) it1 it2
+  Iterator.equal it1 it2
 
 let test_random_iterator_seek =
   QCheck.Test.make ~count:1000 ~name:"random iterator seek"
@@ -119,9 +123,9 @@ let test_random_iterator_union =
     let l2 =
       List.map (fun a -> Array.to_seq a |> Iset.of_seq |> Iset.iterator) l
     in
-    Iterator.union (module I) l2
+    Iterator.union l2
   in
-  Iterator.equal (module I) it1 it2
+  Iterator.equal it1 it2
 
 let test_random_iterator_join =
   QCheck.Test.make ~count:1000 ~name:"random iterator join"
@@ -136,9 +140,9 @@ let test_random_iterator_join =
     let l2 =
       List.map (fun a -> Array.to_seq a |> Iset.of_seq |> Iset.iterator) l
     in
-    Iterator.join (module I) l2
+    Iterator.join l2
   in
-  Iterator.equal (module I) it1 it2
+  Iterator.equal it1 it2
 
 let () =
   let quick_test s = A.test_case s `Quick in

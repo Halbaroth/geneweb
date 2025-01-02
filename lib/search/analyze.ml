@@ -1,7 +1,5 @@
 module I = Index.Default
 
-type 'a loc = { content : 'a; offset : int; len : int }
-
 let is_separator c = c = ' ' || c = ',' || c = '-'
 
 let flush_buf acc buf offset i =
@@ -11,7 +9,7 @@ let flush_buf acc buf offset i =
       acc
   | _ ->
       let content = List.rev buf |> List.to_seq |> String.of_seq in
-      { content; offset; len = i - offset } :: acc
+      Index.{ content; offset; len = i - offset } :: acc
 
 let tokenize s =
   let len = String.length s in
@@ -29,21 +27,31 @@ let tokenize s =
 let normalize = String.lowercase_ascii
 
 let preprocess s =
-  tokenize s |> List.map (fun t -> { t with content = normalize t.content })
+  List.map
+    (fun t ->
+      let content = normalize t.Index.content in
+      Index.{ t with content })
+    (tokenize s)
 
-let index_from_gzip =
-  let rec fold_line f ic acc =
+let file_to_seq ic =
+  let rec loop () =
     match My_gzip.input_line ic with
-    | exception End_of_file -> acc
-    | s -> fold_line f ic (f s acc)
+    | exception End_of_file -> Seq.Nil
+    | s -> Seq.Cons (s, loop)
   in
-  fun path ->
-    My_gzip.with_open path @@ fun ic ->
-    fold_line
-      (fun content idx ->
-        let words = preprocess content in
-        List.fold_left (fun idx w -> I.add w.content content idx) idx words)
-      ic I.empty
+  loop
+
+let index_from_gzip path =
+  My_gzip.with_open path @@ fun ic ->
+  let seq =
+    Seq.concat_map
+      (fun line ->
+        let words = preprocess line in
+        List.to_seq words
+        |> Seq.map (fun w -> (w.Index.content, { w with content = line })))
+      (file_to_seq ic)
+  in
+  I.of_seq seq
 
 (* (* Fold iterator on all the places of the database [base]. *)
    let fold_places f base acc =

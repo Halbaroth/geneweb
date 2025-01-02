@@ -1,11 +1,11 @@
 module type S = sig
-  type elt
+  type t
   type witness
 
-  val compare : elt -> elt -> int
-  val dummy : elt
+  val compare : t -> t -> int
+  val dummy : t
 end
 
-type ('a, 'w) t = (module S with type elt = 'a and type witness = 'w)
+type ('a, 'w) t = (module S with type t = 'a and type witness = 'w)
 
 val make : compare:('a -> 'a -> int) -> dummy:'a -> ('a, 'w) t

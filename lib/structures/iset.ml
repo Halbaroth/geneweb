@@ -11,8 +11,8 @@ module type S = sig
 end
 
 module Make (C : Comparator.S) = struct
-  type elt = C.elt
-  type t = C.elt array
+  type elt = C.t
+  type t = C.t array
   type cmp = C.witness
 
   let of_seq s =
@@ -43,6 +43,12 @@ module Make (C : Comparator.S) = struct
   let iterator t =
     object
       val mutable idx = 0
+
+      method comparator
+          : (module Comparator.S with type t = C.t and type witness = C.witness)
+          =
+        (module C)
+
       method curr () = if idx < cardinal t then t.(idx) else raise Iterator.End
       method next () = if idx < cardinal t then idx <- idx + 1
 

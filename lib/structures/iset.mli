@@ -26,5 +26,4 @@ module type S = sig
       first element. This iterator cannot be invalidate as the set immutable. *)
 end
 
-module Make (C : Comparator.S) :
-  S with type elt = C.elt and type cmp = C.witness
+module Make (C : Comparator.S) : S with type elt = C.t and type cmp = C.witness

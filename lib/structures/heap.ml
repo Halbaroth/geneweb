@@ -11,7 +11,7 @@ module type S = sig
 end
 
 module Make (C : Comparator.S) = struct
-  type elt = C.elt
+  type elt = C.t
   type t = { tree : elt array; mutable sz : int }
 
   exception Empty

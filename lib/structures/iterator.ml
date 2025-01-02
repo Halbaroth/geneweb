@@ -1,11 +1,16 @@
 exception End
 
 type ('a, 'cmp) t =
-  < curr : unit -> 'a ; next : unit -> unit ; seek : 'a -> unit >
+  < comparator : ('a, 'cmp) Comparator.t
+  ; curr : unit -> 'a
+  ; next : unit -> unit
+  ; seek : 'a -> unit >
 
-let equal (type a w)
-    (module C : Comparator.S with type elt = a and type witness = w)
-    (it1 : (a, w) t) (it2 : (a, w) t) =
+let equal (type a w) (it1 : (a, w) t) (it2 : (a, w) t) =
+  let module C = (val it1#comparator : Comparator.S
+                    with type t = a
+                     and type witness = w)
+  in
   let rec loop () =
     let v1 = try Some (it1#curr ()) with End -> None in
     let v2 = try Some (it2#curr ()) with End -> None in
@@ -21,20 +26,24 @@ let equal (type a w)
   in
   loop ()
 
-let union (type a w)
-    (module C : Comparator.S with type elt = a and type witness = w)
-    (l : (a, w) t list) =
+let union (type a w) (l : (a, w) t list) =
+  let arr = Array.of_list l in
+  if Array.length arr = 0 then invalid_arg "union";
+  let module C = (val arr.(0)#comparator : Comparator.S
+                    with type t = a
+                     and type witness = w)
+  in
   let module H = Heap.Make (struct
-    type elt = int * a
+    type t = int * a
     type witness = C.witness
 
     let dummy = (0, C.dummy)
     let compare (_, v1) (_, v2) = C.compare v1 v2
   end) in
-  let arr = Array.of_list l in
   let len = Array.length arr in
   object
     val hp = H.create 256
+    method comparator = arr.(0)#comparator
 
     method seek w =
       let rec loop () =
@@ -71,15 +80,18 @@ let union (type a w)
     done
   end
 
-let join (type a w)
-    (module C : Comparator.S with type elt = a and type witness = w)
-    (l : (a, w) t list) =
+let join (type a w) (l : (a, w) t list) =
   let arr = Array.of_list l in
   if Array.length arr = 0 then invalid_arg "join";
+  let module C = (val arr.(0)#comparator : Comparator.S
+                    with type t = a
+                     and type witness = w)
+  in
   let[@inline always] omin u v = if C.compare u v < 0 then u else v in
   let[@inline always] omax u v = if C.compare u v > 0 then u else v in
   object (self)
     val mutable ended = false
+    method comparator = arr.(0)#comparator
 
     method seek w =
       let rec loop w =
@@ -116,10 +128,10 @@ let join (type a w)
     method curr () = if ended then raise End else arr.(0)#curr ()
 
     initializer
-      try
-        let w = arr.(0)#curr () in
-        self#seek w
-      with End -> ended <- true
+    try
+      let w = arr.(0)#curr () in
+      self#seek w
+    with End -> ended <- true
   end
 
 let to_seq it =

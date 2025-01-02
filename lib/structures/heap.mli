@@ -34,4 +34,4 @@ module type S = sig
       @raise Empty if the heap is empty. *)
 end
 
-module Make (C : Comparator.S) : S with type elt = C.elt
+module Make (C : Comparator.S) : S with type elt = C.t
