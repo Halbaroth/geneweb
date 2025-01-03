@@ -87,50 +87,49 @@ let join (type a w) (l : (a, w) t list) =
                     with type t = a
                      and type witness = w)
   in
-  let[@inline always] omin u v = if C.compare u v < 0 then u else v in
-  let[@inline always] omax u v = if C.compare u v > 0 then u else v in
   object (self)
     val mutable ended = false
+    val mutable pos = 0
     method comparator = arr.(0)#comparator
 
-    method seek w =
-      let rec loop w =
-        let v = arr.(0)#curr () in
-        let mi, ma =
-          Array.fold_left
-            (fun (mi, ma) (it : (a, w) t) ->
-              it#seek w;
-              let v = it#curr () in
-              (omin mi v, omax ma v))
-            (v, v) arr
-        in
-        if mi < ma then loop ma
+    method private search () =
+      let k = Array.length arr in
+      let rec loop x =
+        let y = arr.(pos)#curr () in
+        if C.compare x y <> 0 then (
+          arr.(pos)#seek x;
+          match arr.(pos)#curr () with
+          | exception End -> ended <- true
+          | x ->
+              pos <- (pos + 1) mod k;
+              loop x)
       in
-      try loop w with End -> ended <- true
+      loop (arr.((k + pos - 1) mod k)#curr ())
+
+    method seek w =
+      arr.(pos)#seek w;
+      match arr.(pos)#curr () with
+      | exception End -> ended <- true
+      | _ ->
+          let k = Array.length arr in
+          pos <- (pos + 1) mod k;
+          self#search ()
 
     method next () =
-      if not ended then
-        try
-          let v = arr.(0)#curr () in
-          (* Advances each iterator by one step and return the maximum
-             value. *)
-          let max =
-            Array.fold_left
-              (fun ma (it : (a, w) t) ->
-                it#next ();
-                let v = it#curr () in
-                omax ma v)
-              v arr
-          in
-          self#seek max
-        with End -> ended <- true
+      arr.(pos)#next ();
+      match arr.(pos)#curr () with
+      | exception End -> ended <- true
+      | _ ->
+          let k = Array.length arr in
+          pos <- (pos + 1) mod k;
+          self#search ()
 
     method curr () = if ended then raise End else arr.(0)#curr ()
 
     initializer
     try
-      let w = arr.(0)#curr () in
-      self#seek w
+      Array.sort (fun it1 it2 -> C.compare (it1#curr ()) (it2#curr ())) arr;
+      self#search ()
     with End -> ended <- true
   end
 

@@ -17,7 +17,10 @@ type ('a, 'cmp) t =
 
     [it#seek e] advances the iterator [it] at the smallest element in the
     collection that is greater or equal to [e]. If already positioned at this
-    smallest element, the iterator remains unchanged. *)
+    smallest element, the iterator remains unchanged. For a sequence of
+    calls [it#seek ei] where e1 <= ... <= en, the amortized complexity of
+    is expected to be O(1 + log(N/n)) where N is the cardinal of the set
+    and n is the number of calls. *)
 
 val equal : ('a, 'cmp) t -> ('a, 'cmp) t -> bool
 (** [equal it1 it2] checks if two iterators [it1] and [it2] are equal.

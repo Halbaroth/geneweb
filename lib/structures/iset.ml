@@ -40,7 +40,7 @@ module Make (C : Comparator.S) = struct
     | `Gap _ -> false
     | `Found _ -> true
 
-  let exponential_search e t lo =
+  let exponential_search e t _lo =
     let c = cardinal t in
     let rec loop i = if i < c && t.(i) < e then loop (2 * i) else min i c in
     let hi = loop 1 in
