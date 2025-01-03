@@ -40,11 +40,15 @@ module Make (C : Comparator.S) = struct
     | `Gap _ -> false
     | `Found _ -> true
 
-  let exponential_search e t _lo =
+  (* Perform a exponential search of the value [e] in the array [t], starting
+     from index [lo]. Returns the index of [e] if found, or the index where it
+     could be inserted to maintain ascending order. *)
+  let exponential_search e t lo =
     let c = cardinal t in
     let rec loop i = if i < c && t.(i) < e then loop (2 * i) else min i c in
-    let hi = loop 1 in
-    binary_search e t (hi / 2) hi
+    let hi = loop (max lo 1) in
+    let lo = max lo (hi / 2) in
+    binary_search e t lo hi
 
   let iterator t =
     object
