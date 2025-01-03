@@ -42,7 +42,7 @@ let union (type a w) (l : (a, w) t list) =
   end) in
   let len = Array.length arr in
   object
-    val hp = H.create 256
+    val hp = H.create len
     method comparator = arr.(0)#comparator
 
     method seek w =
@@ -136,6 +136,10 @@ let join (type a w) (l : (a, w) t list) =
 
 let to_seq it =
   let rec loop () =
-    match it#curr () with exception End -> Seq.Nil | v -> Seq.Cons (v, loop)
+    match it#curr () with
+    | exception End -> Seq.Nil
+    | v ->
+        it#next ();
+        Seq.Cons (v, loop)
   in
   loop

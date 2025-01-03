@@ -134,14 +134,14 @@ module Default =
 
       let dummy = { content = ""; offset = -1; len = -1 }
 
-      let compare e1 e2 =
-        let c = Int.compare e1.offset e2.offset in
+      let compare e1 e2 = String.compare e1.content e2.content
+        (* let c = Int.compare e1.offset e2.offset in
         if c <> 0 then c
         else
           let c = Int.compare e1.len e2.len in
-          if c <> 0 then c else String.compare e1.content e2.content
+          if c <> 0 then c else String.compare e1.content e2.content *)
 
-      let hash = Hashtbl.hash
+      let hash e = Hashtbl.hash e.content
 
       let pp ppf { content; offset; len } =
         Fmt.pf ppf "{ content = %s; offset = %d; len = %d }" content offset len
