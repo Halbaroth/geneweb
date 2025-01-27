@@ -2,3 +2,10 @@ build: [
   [ "ocaml" "./configure.ml" "--release" ]
   [ make "build" ]
 ]
+
+pin-depends: [
+  [
+  "ancient.dev"
+  "git+https://github.com/UnixJunkie/ocaml-ancient.git#06656d4de61262f974f9f1dd2ac5bc272ca1ef29"
+  ]
+]

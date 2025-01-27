@@ -12,7 +12,7 @@ doc: "https://geneweb.tuxfamily.org/wiki/GeneWeb"
 bug-reports: "https://github.com/geneweb/geneweb/issues"
 depends: [
   "dune" {>= "2.9"}
-  "ancient" {ocaml-option-nnp}
+  "ancient"
   "alcotest" {with-test}
   "benchmark"
   "calendars" {= "1.0.0"}
@@ -41,9 +41,15 @@ depends: [
   "utop" {dev}
   "odoc" {with-doc}
 ]
-depopts: ["ocaml-option-nnp"]
 dev-repo: "git+https://github.com/geneweb/geneweb.git"
 build: [
   [ "ocaml" "./configure.ml" "--release" ]
   [ make "build" ]
+]
+
+pin-depends: [
+  [
+  "ancient.dev"
+  "git+https://github.com/UnixJunkie/ocaml-ancient.git#06656d4de61262f974f9f1dd2ac5bc272ca1ef29"
+  ]
 ]
