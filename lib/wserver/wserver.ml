@@ -363,13 +363,12 @@ let accept_connection ~timeout ?max_forks callback socket =
   Logs.debug (fun k -> k "Worker %d got a job" pid);
   Unix.setsockopt socket_client Unix.SO_KEEPALIVE true;
   wserver_sock := socket_client;
-  Fun.protect ~finally:(fun () ->
-      flush !wserver_oc;
-      Unix.close socket_client)
-  @@ fun () ->
   let oc = Unix.out_channel_of_descr socket_client in
   wserver_oc := oc;
-  treat_connection ~timeout callback addr socket_client
+  Fun.protect ~finally:(fun () ->
+      flush oc;
+      Unix.close socket_client)
+  @@ fun () -> treat_connection ~timeout callback addr socket_client
 
 let f syslog addr_opt port ~timeout ?max_forks g =
   match
