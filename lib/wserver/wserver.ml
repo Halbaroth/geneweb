@@ -287,80 +287,87 @@ let check_stopping () =
     flush stderr;
     exit 0)
 
-let client_connection ~timeout callback addr t =
-  let oc = Unix.out_channel_of_descr t in
-  wserver_oc := oc;
-  Fun.protect ~finally:close_connection @@ fun () ->
-  treat_connection ~timeout callback addr t
+(* let accept_connection ~timeout ?max_forks callback s =
+   let () = wait_available max_forks s in
+   let t, addr = Unix.accept s in
+   connection_closed := false;
+   wserver_sock := t;
+   check_stopping ();
+   Unix.setsockopt t Unix.SO_KEEPALIVE true;
+   Fun.protect
+     ~finally:(fun () ->
+       if not !connection_closed then (
+         connection_closed := true;
+         Unix.close t))
+     (fun () ->
+       if Sys.unix then (
+         if !no_fork then client_connection ~timeout callback addr t
+         else
+           match Unix.fork () with
+           | exception _ -> Format.eprintf "Fork failed@."
+           | 0 -> (
+               match Unix.fork () with
+               | exception _ -> Format.eprintf "Fork failed@."
+               | 0 ->
+                   Unix.close s;
+                   client_connection ~timeout callback addr t
+               | pid -> exit 0)
+           | pid ->
+               let _ = Unix.waitpid [] pid in
+               if Option.is_some max_forks then pids := pid :: !pids)
+       else (
+         Compat.Out_channel.with_open_bin !sock_in (fun oc ->
+             try copy_what_necessary t oc with Unix.Unix_error _ -> ());
+         let pid =
+           let env =
+             Array.append (Unix.environment ())
+               [| "WSERVER=" ^ string_of_sockaddr addr |]
+           in
+           let args = Sys.argv in
+           Unix.create_process_env Sys.argv.(0) args env Unix.stdin Unix.stdout
+             Unix.stderr
+         in
+         let _ = Unix.waitpid [] pid in
+         Compat.In_channel.with_open_bin !sock_in close_in;
+         let shutdown () =
+           (try Unix.shutdown t Unix.SHUTDOWN_SEND with _ -> ());
+           skip_possible_remaining_chars t;
+           try Unix.shutdown t Unix.SHUTDOWN_RECEIVE with _ -> ()
+         in
+         Fun.protect ~finally:shutdown (fun () ->
+             try
+               Compat.In_channel.with_open_bin !sock_out (fun ic ->
+                   try
+                     let rec loop () =
+                       let len = input ic buff 0 (Bytes.length buff) in
+                       if len = 0 then ()
+                       else (
+                         (let rec loop_write i =
+                            let olen = Unix.write t buff i (len - i) in
+                            if i + olen < len then loop_write (i + olen)
+                          in
+                          loop_write 0);
+                         loop ())
+                     in
+                     loop ()
+                   with Unix.Unix_error _ -> ())
+             with Unix.Unix_error _ ->
+               (* A Unix exception could be raised by [In_channel.open_bin]
+                  inside [In_channel.with_open_bin]. *)
+               ()))) *)
 
-let accept_connection ~timeout ?max_forks callback s =
-  let () = wait_available max_forks s in
-  let t, addr = Unix.accept s in
-  connection_closed := false;
-  wserver_sock := t;
-  check_stopping ();
-  Unix.setsockopt t Unix.SO_KEEPALIVE true;
-  Fun.protect
-    ~finally:(fun () ->
-      if not !connection_closed then (
-        connection_closed := true;
-        Unix.close t))
-    (fun () ->
-      if Sys.unix then
-        if !no_fork then client_connection ~timeout callback addr t
-        else
-          match Unix.fork () with
-          | exception _ -> Format.eprintf "Fork failed@."
-          | 0 -> (
-              match Unix.fork () with
-              | exception _ -> Format.eprintf "Fork failed@."
-              | 0 ->
-                  Unix.close s;
-                  client_connection ~timeout callback addr t
-              | pid -> exit 0)
-          | pid ->
-              let _ = Unix.waitpid [] pid in
-              if Option.is_some max_forks then pids := pid :: !pids
-              else (
-                Compat.Out_channel.with_open_bin !sock_in (fun oc ->
-                    try copy_what_necessary t oc with Unix.Unix_error _ -> ());
-                let pid =
-                  let env =
-                    Array.append (Unix.environment ())
-                      [| "WSERVER=" ^ string_of_sockaddr addr |]
-                  in
-                  let args = Sys.argv in
-                  Unix.create_process_env Sys.argv.(0) args env Unix.stdin
-                    Unix.stdout Unix.stderr
-                in
-                let _ = Unix.waitpid [] pid in
-                Compat.In_channel.with_open_bin !sock_in close_in;
-                let shutdown () =
-                  (try Unix.shutdown t Unix.SHUTDOWN_SEND with _ -> ());
-                  skip_possible_remaining_chars t;
-                  try Unix.shutdown t Unix.SHUTDOWN_RECEIVE with _ -> ()
-                in
-                Fun.protect ~finally:shutdown (fun () ->
-                    try
-                      Compat.In_channel.with_open_bin !sock_out (fun ic ->
-                          try
-                            let rec loop () =
-                              let len = input ic buff 0 (Bytes.length buff) in
-                              if len = 0 then ()
-                              else (
-                                (let rec loop_write i =
-                                   let olen = Unix.write t buff i (len - i) in
-                                   if i + olen < len then loop_write (i + olen)
-                                 in
-                                 loop_write 0);
-                                loop ())
-                            in
-                            loop ()
-                          with Unix.Unix_error _ -> ())
-                    with Unix.Unix_error _ ->
-                      (* A Unix exception could be raised by [In_channel.open_bin]
-                         inside [In_channel.with_open_bin]. *)
-                      ())))
+let accept_connection ~timeout ?max_forks callback socket =
+  let max_forks = Option.value ~default:3 max_forks in
+  Pool.start max_forks @@ fun pid ->
+  let socket_client, addr = Unix.accept socket in
+  if pid mod 3 = 0 then assert false;
+  Logs.debug (fun k -> k "Worker %d got a job" pid);
+  Unix.setsockopt socket_client Unix.SO_KEEPALIVE true;
+  wserver_sock := socket_client;
+  Fun.protect ~finally:(fun () -> Unix.close socket_client) @@ fun () ->
+  let oc = Unix.out_channel_of_descr socket_client in
+  wserver_oc := oc;
+  treat_connection ~timeout callback addr socket_client
 
 let f syslog addr_opt port ~timeout ?max_forks g =
   match
@@ -397,7 +404,8 @@ let f syslog addr_opt port ~timeout ?max_forks g =
         Unix.setsockopt s Unix.IPV6_ONLY false;
       Unix.setsockopt s Unix.SO_REUSEADDR true;
       Unix.bind s (Unix.ADDR_INET (addr, port));
-      Unix.listen s 4;
+      let m = Option.value ~default:3 max_forks in
+      Unix.listen s m;
       let tm = Unix.localtime (Unix.time ()) in
       eprintf "Ready %4d-%02d-%02d %02d:%02d port %d...\n"
         (1900 + tm.Unix.tm_year) (succ tm.Unix.tm_mon) tm.Unix.tm_mday

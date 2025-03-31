@@ -2111,8 +2111,25 @@ let main () =
     end
   else geneweb_server ()
 
+let reporter ppf =
+  Fmt.set_style_renderer ppf `Ansi_tty;
+  let report _src level ~over k msgf =
+    let k _ =
+      over ();
+      k ()
+    in
+    let with_header h _tags k ppf fmt =
+      Fmt.kpf k ppf ("@[%a " ^^ fmt ^^ "@]@.") Logs_fmt.pp_header (level, h)
+    in
+    msgf @@ fun ?header ?tags fmt -> with_header header tags k ppf fmt
+  in
+  { Logs.report }
+
 let () =
-  try main ()
+  try
+    Logs.set_reporter (reporter Fmt.stderr);
+    Logs.set_level (Some Logs.Debug);
+    main ()
   with
   | Unix.Unix_error (Unix.EADDRINUSE, "bind", _) ->
     Printf.eprintf "\nError: ";

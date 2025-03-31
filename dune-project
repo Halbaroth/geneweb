@@ -27,7 +27,8 @@
     camlp-streams
     camlzip
     cppo
-    (fmt :with-test)
+    fmt
+    logs
     jingoo
     markup
     (ocaml (>= 4.08))
