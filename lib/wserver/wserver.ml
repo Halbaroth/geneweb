@@ -360,7 +360,6 @@ let accept_connection ~timeout ?max_forks callback socket =
   let max_forks = Option.value ~default:3 max_forks in
   Pool.start max_forks @@ fun pid ->
   let socket_client, addr = Unix.accept socket in
-  if pid mod 3 = 0 then assert false;
   Logs.debug (fun k -> k "Worker %d got a job" pid);
   Unix.setsockopt socket_client Unix.SO_KEEPALIVE true;
   wserver_sock := socket_client;
