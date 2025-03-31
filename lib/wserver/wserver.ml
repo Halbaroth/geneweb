@@ -19,10 +19,44 @@ let wsocket () = !wserver_sock
 let woc () = !wserver_oc
 let wflush () = flush !wserver_oc
 
+let rec is_data_available ~timeout fd =
+  let start = Unix.gettimeofday () in
+  match Unix.select [ fd ] [] [] timeout with
+  | exception Unix.Unix_error (Unix.EINTR, "select", "") ->
+      (* The system call can be interrupted by a signal and we need to recall
+         it immediately. This happens when a child process terminates and sends
+         the signal SIGCHLD. *)
+      let stop = Unix.gettimeofday () in
+      let timeout = max 0. (timeout -. (stop -. start)) in
+      is_data_available ~timeout fd
+  | [ _ ], _, _ -> true
+  | _ -> false
+
+let rec loop_wait pid =
+  match Unix.wait pid with
+  | exception Unix.Unix_error (Unix.EINTR, "wait", "") ->
+      (* The system call can be interrupted by a signal and we need to recall
+         it immediately. This happens when a child process terminates and sends
+         the signal SIGCHLD. *)
+      loop_wait pid
+  | r -> r
+
+let rec loop_accept socket =
+  match Unix.accept socket with
+  | exception Unix.Unix_error (Unix.EINTR, "accept", "") ->
+      (* The system call can be interrupted by a signal and we need to recall
+         it immediately. This happens when a child process terminates and sends
+         the signal SIGCHLD. *)
+      loop_accept socket
+  | r -> r
+
 let skip_possible_remaining_chars fd =
   let b = Bytes.create 3 in
   try
     let rec loop () =
+      (* We do not need to catch [Unix.EINTR] because this function
+         is only called in children if [!no_fork] is [false] or
+         the signal SIGCHLD is not caught if [!no_fork] is [true]. *)
       match Unix.select [ fd ] [] [] 5.0 with
       | [ _ ], [], [] ->
           let len = Unix.read fd b 0 (Bytes.length b) in
@@ -241,38 +275,22 @@ let rec list_remove x = function
 
 let pids = ref []
 
-let cleanup_sons () =
-  List.iter
-    (fun p ->
-      match fst (Unix.waitpid [ Unix.WNOHANG ] p) with
-      | 0 -> ()
-      | (exception Unix.Unix_error (Unix.ECHILD, "waitpid", _))
-      (* should not be needed anymore since [Unix.getpid () <> ppid] loop security *)
-      | _ ->
-          pids := list_remove p !pids)
-    !pids
-
-let wait_available max_clients s =
+(* If there is a maximum number of forks, this function waits until
+   the number of active forks is under this limit. *)
+let wait_available max_clients socket =
   match max_clients with
   | Some m ->
-      (if List.length !pids >= m then
-       let pid, _ = Unix.wait () in
-       pids := list_remove pid !pids);
-      if !pids <> [] then cleanup_sons ();
+      if List.length !pids >= m then ignore @@ loop_wait ();
       let stop_verbose = ref false in
-      while !pids <> [] && Unix.select [ s ] [] [] 15.0 = ([], [], []) do
-        cleanup_sons ();
-        if !pids <> [] && not !stop_verbose then (
+      while !pids <> [] && (not @@ is_data_available ~timeout:15. socket) do
+        if not !stop_verbose then (
           stop_verbose := true;
           let tm = Unix.localtime (Unix.time ()) in
-          eprintf
+          Format.eprintf
             "*** %02d/%02d/%4d %02d:%02d:%02d %d process(es) remaining after \
-             cleanup (%d)\n"
+             cleanup@."
             tm.Unix.tm_mday (succ tm.Unix.tm_mon) (1900 + tm.Unix.tm_year)
-            tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec (List.length !pids)
-            (List.hd !pids);
-          flush stderr;
-          ())
+            tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec (List.length !pids))
       done
   | None -> ()
 
@@ -295,7 +313,7 @@ let client_connection tmout callback addr t =
 
 let accept_connection tmout max_clients callback s =
   let () = wait_available max_clients s in
-  let t, addr = Unix.accept s in
+  let t, addr = loop_accept s in
   connection_closed := false;
   wserver_sock := t;
   check_stopping ();
@@ -311,20 +329,16 @@ let accept_connection tmout max_clients callback s =
         else
           match Unix.fork () with
           | exception _ ->
-              eprintf "Fork failed\n";
-              flush stderr
+              Format.eprintf "Fork failed@."
           | 0 -> (
               try
-                if max_clients = None && Unix.fork () <> 0 then exit 0;
                 Unix.close s;
                 client_connection tmout callback addr t;
                 exit 0
               with Unix.Unix_error (Unix.ECONNRESET, "read", _) -> exit 0)
-          | id ->
-              if max_clients = None then
-                let _ = Unix.waitpid [] id in
-                ()
-              else pids := id :: !pids
+          | pid ->
+              Format.eprintf "Fork %d@." pid;
+              pids := pid :: !pids
       else (
         Compat.Out_channel.with_open_bin !sock_in (fun oc ->
             try copy_what_necessary t oc with Unix.Unix_error _ -> ());
@@ -366,7 +380,28 @@ let accept_connection tmout max_clients callback s =
                  inside [In_channel.with_open_bin]. *)
               ())))
 
+let reap_children =
+  let wait_any_child () = Unix.waitpid [ Unix.WNOHANG ] (-1) |> fst in
+  fun (_ : int) ->
+    (* This code follows Section 26.3.1 of `The Linux Programming Interface`
+       by Michael Kerrisk. It prevents zombie processes by repeadly waiting for
+       terminated children until none remain.
+
+       A loop is necessary, as multiple children may terminate while the master
+       process is executing this handler and the SIGCHLD signal of these children
+       could be ignored. *)
+    try
+      while true do
+        match wait_any_child () with
+        | 0 | (exception Unix.Unix_error (Unix.ECHILD, "waitpid", "")) ->
+            raise_notrace Exit
+        | pid -> pids := list_remove pid !pids
+      done
+    with Exit -> ()
+
 let f syslog addr_opt port tmout max_clients g =
+  if Sys.unix && not !no_fork then
+    Sys.set_signal Sys.sigchld (Signal_handle reap_children);
   match
     if Sys.unix then None
     else try Some (Sys.getenv "WSERVER") with Not_found -> None
