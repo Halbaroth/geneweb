@@ -1804,8 +1804,10 @@ let geneweb_server () =
         else exit 0;
         File.create_dir ~parent:true ~required_perm:0o755 !GWPARAM.cnt_dir
     end;
-  Wserver.f GwdLog.syslog !selected_addr !selected_port !conn_timeout
-    (if Sys.unix then !max_clients else None) connection
+  (* FIXME: The number of active forks is not equal to the number of clients.
+     A single request can require several forks to be handled. *)
+  Wserver.f GwdLog.syslog !selected_addr !selected_port ~timeout:!conn_timeout
+    ?max_forks:!max_clients connection
 
 let cgi_timeout conf tmout _ =
   Output.header conf "Content-type: text/html; charset=iso-8859-1";

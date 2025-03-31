@@ -15,8 +15,8 @@ val f :
   unit) ->
   string option ->
   int ->
-  int ->
-  int option ->
+  timeout:int ->
+  ?max_forks:int ->
   (Unix.sockaddr * string list -> string -> Adef.encoded_string -> unit) ->
   unit
 (** [ Wserver.f syslog addr port tmout maxc g ]
