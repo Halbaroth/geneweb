@@ -402,6 +402,7 @@ let f syslog addr_opt port ~timeout ?max_forks g =
       if Unix.string_of_inet_addr Unix.inet6_addr_any <> "::" then
         Unix.setsockopt s Unix.IPV6_ONLY false;
       Unix.setsockopt s Unix.SO_REUSEADDR true;
+      Unix.setsockopt s Unix.SO_REUSEPORT true;
       Unix.bind s (Unix.ADDR_INET (addr, port));
       let m = Option.value ~default:3 max_forks in
       Unix.listen s m;
