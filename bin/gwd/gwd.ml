@@ -1806,7 +1806,7 @@ let geneweb_server () =
     end;
   (* FIXME: The number of active forks is not equal to the number of clients.
      A single request can require several forks to be handled. *)
-  Wserver.f GwdLog.syslog !selected_addr !selected_port ~timeout:!conn_timeout
+  Wserver.start ?addr:!selected_addr ~port:!selected_port ~timeout:!conn_timeout
     ?max_forks:!max_clients connection
 
 let cgi_timeout conf tmout _ =

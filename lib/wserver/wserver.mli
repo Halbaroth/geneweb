@@ -2,41 +2,26 @@
 
 (* module [Wserver]: elementary web service *)
 
-val f :
-  ([ `LOG_EMERG
-   | `LOG_ALERT
-   | `LOG_CRIT
-   | `LOG_ERR
-   | `LOG_WARNING
-   | `LOG_NOTICE
-   | `LOG_INFO
-   | `LOG_DEBUG ] ->
-  string ->
-  unit) ->
-  string option ->
-  int ->
+val start :
+  ?addr:string ->
+  port:int ->
   timeout:int ->
   ?max_forks:int ->
   (Unix.sockaddr * string list -> string -> Adef.encoded_string -> unit) ->
   unit
-(** [ Wserver.f syslog addr port tmout maxc g ]
-    Starts an elementary httpd server at port [port] in the current
-    machine. The variable [addr] is [Some the-address-to-use] or
-    [None] for any of the available addresses of the present machine.
-    The port number is any number greater than 1024 (to create a
-    client < 1024, you must be root). At each connection, the function
-    [g] is called: [g (addr, request) path query] where [addr] is the
-    client identification socket, [request] the browser request, [path]
-    the part of the [request] before the query part and [query] the query content.
-    The function [g] has [tmout] seconds to answer some
-    text on standard output. If [maxc] is [Some n], maximum [n]
-    clients can be treated at the same time; [None] means no limit.
-    [syslog] is the function used to log errors or debug info. It is
-    called syslog because it is used with the same gravity levels, but
-    it can be anything.
+(** [start ?addr ~port ~timeout ?max_forks handler] starts a simple HTTP 1.1 server
+    at the port [port] and address [addr].
 
-    See the example below.
-*)
+    Each client connection is handled by [handler].
+    [handler (addr, request) path query] where:
+    - [addr] is the client identification socket.
+    - [request] is the browser request.
+    - [path] is path requested.
+    - [query] the query content.
+
+    On Unix, the function has a timelimit given by [timeout].
+    On Unix, [max_forks] is the maximum of forks that can be created in the
+    pool. *)
 
 val close_connection : unit -> unit
 (** Closes the current socket *)
@@ -93,6 +78,7 @@ val cgi : bool ref
 val no_fork : bool ref
 (** Do not fork processes at every request (default: false) *)
 
+(* TODO: update this documentation. *)
 (* Example:
 
     - Source program "foo.ml":

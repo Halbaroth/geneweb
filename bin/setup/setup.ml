@@ -2029,4 +2029,4 @@ let () =
 #else
   if Sys.getenv_opt "WSERVER" = None then intro () ;
 #endif
-  Wserver.f (fun _ -> prerr_endline) None !port ~timeout:0 wrap_setup
+  Wserver.start ~port:!port ~timeout:0 wrap_setup

@@ -3,8 +3,7 @@ let src = Logs.Src.create ~doc:"Pool" __MODULE__
 module Log = (val Logs.src_log src : Logs.LOG)
 
 type worker = { pid : int } [@@unboxed]
-
-type t = { k : int -> unit; workers : (worker, unit) Hashtbl.t }
+type t = { workers : (worker, unit) Hashtbl.t } [@@unboxed]
 
 let pp_exception ppf (e, bt) =
   let pp_header ppf pid = Fmt.pf ppf "Exception raised in %d:" pid in
@@ -16,25 +15,30 @@ let pp_exception ppf (e, bt) =
     Fmt.(list ~sep:cut string)
     lines
 
-let add_worker t =
+let add_worker t k =
   match Unix.fork () with
-  | 0 -> (
-      try
-        while true do
-          t.k @@ Unix.getpid ()
-        done
-      with e ->
-        let bt = Printexc.get_raw_backtrace () in
-        Log.debug (fun k -> k "%a" pp_exception (e, bt)))
+  | 0 ->
+      (try
+         while true do
+           k @@ Unix.getpid ()
+         done
+       with e ->
+         let bt = Printexc.get_raw_backtrace () in
+         Log.debug (fun k -> k "%a" pp_exception (e, bt)));
+      exit 1
   | pid ->
-      Log.debug (fun k -> k "Creating worker %d@?" pid);
+      Log.debug (fun k -> k "Creating worker %d" pid);
       Hashtbl.replace t.workers { pid } ()
 
+let cleanup { workers } =
+  Hashtbl.iter (fun { pid } () -> try Unix.kill 9 pid with _ -> ()) workers
+
 let start n k =
-  if n < 1 then invalid_arg "start";
-  let t = { k; workers = Hashtbl.create n } in
+  if (not Sys.unix) || n < 1 then invalid_arg "start";
+  let t = { workers = Hashtbl.create n } in
+  Fun.protect ~finally:(fun () -> cleanup t) @@ fun () ->
   for _ = 0 to n - 1 do
-    add_worker t
+    add_worker t k
   done;
   while true do
     let pid = Unix.waitpid [] (-1) |> fst in
@@ -44,6 +48,6 @@ let start n k =
     match Hashtbl.find t.workers { pid } with
     | () ->
         Log.debug (fun k -> k "Worker %d is dead, replace it" pid);
-        add_worker t
+        add_worker t k
     | exception Not_found -> assert false
   done
