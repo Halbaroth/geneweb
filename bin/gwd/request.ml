@@ -6,6 +6,8 @@ open Def
 open Gwdb
 open Util
 
+module GwdLog = Wserver.GwdLog
+
 let person_is_std_key conf base p k =
   let k = Name.strip_lower k in
   if k = Name.strip_lower (p_first_name base p ^ " " ^ p_surname base p) then
@@ -571,8 +573,8 @@ let treat_request =
           w_wizard @@ w_lock @@ w_base @@ UpdateFamOk.print_inv
         | "KILL_ANC" ->
           w_wizard @@ w_lock @@ w_base @@ MergeIndDisplay.print_kill_ancestors
-        | "L" -> w_base @@ fun conf base -> Perso.interp_templ "list" conf base 
-              (Gwdb.empty_person base Gwdb.dummy_iper) 
+        | "L" -> w_base @@ fun conf base -> Perso.interp_templ "list" conf base
+              (Gwdb.empty_person base Gwdb.dummy_iper)
         | "LB" when conf.wizard || conf.friend ->
           w_base @@ BirthDeathDisplay.print_birth
         | "LD" when conf.wizard || conf.friend ->
@@ -813,7 +815,7 @@ let treat_request =
             (conf.command :> string) base_name
             (transl_nth conf "wizard/wizards/friend/friends/exterior" 0)
     in
-    Output.print_sstring conf 
+    Output.print_sstring conf
       (Printf.sprintf {|
         <form class="form-inline" method="post" action="%s">
           <div class="input-group mt-1">
