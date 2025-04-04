@@ -1230,7 +1230,7 @@ let has_witness_for_event conf base p event_name =
     (Event.events conf base p)
 
 let get_env v env =
-  try match List.assoc v env with Vlazy l -> Lazy.force l | x -> x
+  try match Templ.Env.find v env with Vlazy l -> Lazy.force l | x -> x
   with Not_found -> Vnone
 
 let get_vother = function Vother x -> Some x | _ -> None
@@ -2036,13 +2036,15 @@ and eval_compound_var conf base env ((a, _) as ep) loc = function
           let ep = (p, auth) in
           eval_person_field_var conf base env ep loc sl
       | _ -> raise Not_found)
-  | "enclosing" :: sl ->
-      let rec loop = function
-        | ("#loop", _) :: env -> eval_person_field_var conf base env ep loc sl
-        | _ :: env -> loop env
-        | [] -> raise Not_found
-      in
-      loop env
+  | "enclosing" :: _sl ->
+      (* TODO: fix it! *)
+      assert false
+      (* let rec loop = function
+           | ("#loop", _) :: env -> eval_person_field_var conf base env ep loc sl
+           | _ :: env -> loop env
+           | [] -> raise Not_found
+         in
+         loop env *)
   | "event_witness_relation" :: sl -> (
       match get_env "event_witness_relation" env with
       | Vevent (p, e) ->
@@ -2085,7 +2087,7 @@ and eval_compound_var conf base env ((a, _) as ep) loc = function
           match !GWPARAM_ITL.get_father conf base conf.command (get_iper a) with
           | Some (ep, base_prefix) ->
               let conf = { conf with command = base_prefix } in
-              let env = ("p_link", Vbool true) :: env in
+              let env = Templ.Env.add "p_link" (Vbool true) env in
               eval_person_field_var conf base env ep loc sl
           | None -> warning_use_has_parents_before_parent loc "father" null_val)
       )
@@ -2103,7 +2105,7 @@ and eval_compound_var conf base env ((a, _) as ep) loc = function
           match !GWPARAM_ITL.get_mother conf base conf.command (get_iper a) with
           | Some (ep, base_prefix) ->
               let conf = { conf with command = base_prefix } in
-              let env = ("p_link", Vbool true) :: env in
+              let env = Templ.Env.add "p_link" (Vbool true) env in
               eval_person_field_var conf base env ep loc sl
           | None -> warning_use_has_parents_before_parent loc "mother" null_val)
       )
@@ -2339,7 +2341,7 @@ and eval_compound_var conf base env ((a, _) as ep) loc = function
               match !GWPARAM_ITL.get_person conf base baseprefix ip with
               | Some (ep, baseprefix) ->
                   let conf = { conf with command = baseprefix } in
-                  let env = ("p_link", Vbool true) :: env in
+                  let env = Templ.Env.add "p_link" (Vbool true) env in
                   eval_person_field_var conf base env ep loc sl
               | None -> raise Not_found)
           | _ -> raise Not_found))
@@ -2843,7 +2845,7 @@ and eval_person_field_var conf base env ((p, p_auth) as ep) loc = function
           match !GWPARAM_ITL.get_father conf base conf.command (get_iper p) with
           | Some (ep, baseprefix) ->
               let conf = { conf with command = baseprefix } in
-              let env = ("p_link", Vbool true) :: env in
+              let env = Templ.Env.add "p_link" (Vbool true) env in
               eval_person_field_var conf base env ep loc sl
           | None -> warning_use_has_parents_before_parent loc "father" null_val)
       )
@@ -2966,7 +2968,7 @@ and eval_person_field_var conf base env ((p, p_auth) as ep) loc = function
           match !GWPARAM_ITL.get_mother conf base conf.command (get_iper p) with
           | Some (ep, baseprefix) ->
               let conf = { conf with command = baseprefix } in
-              let env = ("p_link", Vbool true) :: env in
+              let env = Templ.Env.add "p_link" (Vbool true) env in
               eval_person_field_var conf base env ep loc sl
           | None -> warning_use_has_parents_before_parent loc "mother" null_val)
       )
@@ -4275,8 +4277,12 @@ let print_foreach conf base print_ast eval_expr =
     else
       Mutil.list_iter_first
         (fun first a ->
-          let env = ("alias", Vstring (sou base a)) :: env in
-          let env = ("first", Vbool first) :: env in
+          let env =
+            Templ.Env.(
+              env
+              |> add "alias" (Vstring (sou base a))
+              |> add "first" (Vbool first))
+          in
           List.iter (print_ast env ep) al)
         (get_aliases p)
   in
@@ -4292,9 +4298,11 @@ let print_foreach conf base print_ast eval_expr =
               | GP_missing (_, _) -> ()
               | GP_person _ | GP_same _ | GP_interv _ ->
                   let env =
-                    ("ancestor", Vanc gp) :: ("first", Vbool first)
-                    :: ("last", Vbool (gl = []))
-                    :: ("mode", Vstring "Vgpl") :: env
+                    Templ.Env.(
+                      env |> add "ancestor" (Vanc gp)
+                      |> add "first" (Vbool first)
+                      |> add "last" (Vbool (gl = []))
+                      |> add "mode" (Vstring "Vgpl"))
                   in
                   List.iter (print_ast env ep) al);
               loop false gl
@@ -4314,29 +4322,30 @@ let print_foreach conf base print_ast eval_expr =
                let ianc_env =
                  match iancl with
                  | ianc1 :: ianc2 :: _ ->
-                     [
-                       ("anc1", Vind (pget conf base ianc1));
-                       ("anc2", Vind (pget conf base ianc2));
-                     ]
+                     Templ.Env.(
+                       env
+                       |> add "anc1" (Vind (pget conf base ianc1))
+                       |> add "anc2" (Vind (pget conf base ianc2)))
                  | ianc1 :: _ ->
-                     [
-                       ("anc1", Vind (pget conf base ianc1));
-                       ("anc2", Vind (poi base Gwdb.dummy_iper));
-                     ]
+                     Templ.Env.(
+                       env
+                       |> add "anc1" (Vind (pget conf base ianc1))
+                       |> add "anc2" (Vind (poi base Gwdb.dummy_iper)))
                  | _ ->
-                     [
-                       ("anc1", Vind (poi base Gwdb.dummy_iper));
-                       ("anc2", Vind (poi base Gwdb.dummy_iper));
-                     ]
+                     Templ.Env.(
+                       env
+                       |> add "anc1" (Vind (poi base Gwdb.dummy_iper))
+                       |> add "anc2" (Vind (poi base Gwdb.dummy_iper)))
                in
                let env =
-                 ("path_end", Vind (poi base ip))
-                 :: ("anc_level", Vint lev) :: ("lev_cnt", Vint lev_cnt)
-                 :: ("first", Vbool first) :: ("cnt", Vint cnt)
-                 :: ("nbr", Vint nbr)
-                 :: ("last", Vbool (l = []))
-                 :: env
-                 @ ianc_env
+                 Templ.Env.(
+                   ianc_env
+                   |> add "path_end" (Vind (poi base ip))
+                   |> add "anc_level" (Vint lev)
+                   |> add "lev_cnt" (Vint lev_cnt)
+                   |> add "first" (Vbool first) |> add "cnt" (Vint cnt)
+                   |> add "nbr" (Vint nbr)
+                   |> add "last" (Vbool (l = [])))
                in
                List.iter (print_ast env ep) al);
               loop false (cnt + 1) l
@@ -4366,10 +4375,10 @@ let print_foreach conf base print_ast eval_expr =
             n gpl
         in
         let env =
-          ("gpl", Vgpl gpl) :: ("level", Vint i)
-          :: ("nbr_a", Vint (n - 1))
-          :: ("nbr_a_l", Vint (n - prev_n))
-          :: env
+          Templ.Env.(
+            env |> add "gpl" (Vgpl gpl) |> add "level" (Vint i)
+            |> add "nbr_a" (Vint (n - 1))
+            |> add "nbr_a_l" (Vint (n - prev_n)))
         in
         List.iter (print_ast env ep) al;
         let gpl = next_generation conf base mark gpl in
@@ -4385,7 +4394,9 @@ let print_foreach conf base print_ast eval_expr =
     let rec loop gpl i =
       if i > max_level then ()
       else
-        let env = ("gpl", Vgpl gpl) :: ("level", Vint i) :: env in
+        let env =
+          Templ.Env.(env |> add "gpl" (Vgpl gpl) |> add "level" (Vint i))
+        in
         List.iter (print_ast env ep) al;
         Gwdb.Collection.iter
           (fun i -> Gwdb.Marker.set mark i Sosa.zero)
@@ -4412,7 +4423,9 @@ let print_foreach conf base print_ast eval_expr =
           (fun (a, b, c, d, e, f) ->
             let b = (b : Adef.escaped_string :> Adef.safe_string) in
             let env =
-              ("ancestor", Vanc_surn (Eclair (a, b, c, d, e, f, loc))) :: env
+              Templ.Env.add "ancestor"
+                (Vanc_surn (Eclair (a, b, c, d, e, f, loc)))
+                env
             in
             List.iter (print_ast env ep) al)
           l
@@ -4421,7 +4434,9 @@ let print_foreach conf base print_ast eval_expr =
         List.iter
           (fun (a, (((b, c, d), e), f)) ->
             let env =
-              ("ancestor", Vanc_surn (Branch (a, b, c, d, e, f, loc))) :: env
+              Templ.Env.add "ancestor"
+                (Vanc_surn (Branch (a, b, c, d, e, f, loc)))
+                env
             in
             List.iter (print_ast env ep) al)
           l
@@ -4444,9 +4459,9 @@ let print_foreach conf base print_ast eval_expr =
     let rec loop first = function
       | g :: gl ->
           let env =
-            ("celll", Vcelll g) :: ("first", Vbool first)
-            :: ("last", Vbool (gl = []))
-            :: env
+            Templ.Env.(
+              env |> add "celll" (Vcelll g) |> add "first" (Vbool first)
+              |> add "last" (Vbool (gl = [])))
           in
           List.iter (print_ast env ep) al;
           loop false gl
@@ -4462,7 +4477,10 @@ let print_foreach conf base print_ast eval_expr =
     in
     Mutil.list_iter_first
       (fun first cell ->
-        let env = ("cell", Vcell cell) :: ("first", Vbool first) :: env in
+        let env =
+          Templ.Env.(
+            env |> add "cell" (Vcell cell) |> add "first" (Vbool first))
+        in
         List.iter (print_ast env ep) al)
       celll
   in
@@ -4480,10 +4498,12 @@ let print_foreach conf base print_ast eval_expr =
             in
             List.iter
               (fun (((p, _) as ep), baseprefix) ->
-                let env = ("#loop", Vint 0) :: env in
-                let env = ("child_link", Vind p) :: env in
-                let env = ("baseprefix", Vstring baseprefix) :: env in
-                let env = ("p_link", Vbool true) :: env in
+                let env =
+                  Templ.Env.(
+                    env |> add "#loop" (Vint 0) |> add "child_link" (Vind p)
+                    |> add "baseprefix" (Vstring baseprefix)
+                    |> add "p_link" (Vbool true))
+                in
                 List.iter (print_ast env ep) al)
               children
         | _ ->
@@ -4492,7 +4512,7 @@ let print_foreach conf base print_ast eval_expr =
                 (fun ip -> authorized_age conf base (pget conf base ip))
                 (get_children fam)
             in
-            let env = ("auth", Vbool auth) :: env in
+            let env = Templ.Env.add "auth" (Vbool auth) env in
             let n =
               let p =
                 match get_env "p" env with Vind p -> p | _ -> assert false
@@ -4508,16 +4528,16 @@ let print_foreach conf base print_ast eval_expr =
               (fun i ip ->
                 let p = pget conf base ip in
                 let env =
-                  ("#loop", Vint 0) :: ("child", Vind p)
-                  :: ("child_cnt", Vint (i + 1))
-                  :: env
+                  Templ.Env.(
+                    env |> add "#loop" (Vint 0) |> add "child" (Vind p)
+                    |> add "child_cnt" (Vint (i + 1)))
                 in
                 let env =
                   if i = n - 1 && not (is_hidden p) then
-                    ("pos", Vstring "prev") :: env
-                  else if i = n then ("pos", Vstring "self") :: env
+                    Templ.Env.add "pos" (Vstring "prev") env
+                  else if i = n then Templ.Env.add "pos" (Vstring "self") env
                   else if i = n + 1 && not (is_hidden p) then
-                    ("pos", Vstring "next") :: env
+                    Templ.Env.add "pos" (Vstring "next") env
                   else env
                 in
                 let ep = (p, authorized_age conf base p) in
@@ -4530,9 +4550,11 @@ let print_foreach conf base print_ast eval_expr =
                   (fun ((p, _), baseprefix, can_merge) ->
                     if not can_merge then
                       let env =
-                        ("#loop", Vint 0) :: ("child_link", Vind p)
-                        :: ("baseprefix", Vstring baseprefix)
-                        :: ("p_link", Vbool true) :: env
+                        Templ.Env.(
+                          env |> add "#loop" (Vint 0)
+                          |> add "child_link" (Vind p)
+                          |> add "baseprefix" (Vstring baseprefix)
+                          |> add "p_link" (Vbool true))
                       in
                       let ep = (p, true) in
                       List.iter (print_ast env ep) al)
@@ -4566,11 +4588,12 @@ let print_foreach conf base print_ast eval_expr =
       | ip :: ip_l ->
           let ep = (poi base ip, true) in
           let env =
-            ("descendant", Vind (poi base ip))
-            :: ("nbr", Vint i)
-            :: ("first", Vbool (i = 0))
-            :: ("last", Vbool (ip_l = []))
-            :: env
+            Templ.Env.(
+              env
+              |> add "descendant" (Vind (poi base ip))
+              |> add "nbr" (Vint i)
+              |> add "first" (Vbool (i = 0))
+              |> add "last" (Vbool (ip_l = [])))
           in
           List.iter (print_ast env ep) al;
           loop (succ i) ip_l
@@ -4584,7 +4607,7 @@ let print_foreach conf base print_ast eval_expr =
     let rec loop i =
       if i > max_level then ()
       else
-        let env = ("level", Vint i) :: env in
+        let env = Templ.Env.add "level" (Vint i) env in
         List.iter (print_ast env ep) al;
         loop (succ i)
     in
@@ -4593,8 +4616,10 @@ let print_foreach conf base print_ast eval_expr =
   let print_foreach_event env al ((p, _) as ep) =
     Mutil.list_iter_first
       (fun first evt ->
-        let env = ("event", Vevent (p, evt)) :: env in
-        let env = ("first", Vbool first) :: env in
+        let env =
+          Templ.Env.(
+            env |> add "event" (Vevent (p, evt)) |> add "first" (Vbool first))
+        in
         List.iter (print_ast env ep) al)
       (Event.sorted_events conf base p)
   in
@@ -4615,9 +4640,10 @@ let print_foreach conf base print_ast eval_expr =
             (fun i (ip, _) ->
               let p = pget conf base ip in
               let env =
-                (epers_event_witness_string, Vind p)
-                :: ("first", Vbool (i = 0))
-                :: env
+                Templ.Env.(
+                  env
+                  |> add epers_event_witness_string (Vind p)
+                  |> add "first" (Vbool (i = 0)))
               in
               List.iter (print_ast env ep) al)
             wl
@@ -4634,11 +4660,12 @@ let print_foreach conf base print_ast eval_expr =
               let wk_s = Util.string_of_witness_kind conf (get_sex p) wk in
               let wk_r = Util.string_of_witness_kind_raw wk in
               let env =
-                ("event_witness", Vind p)
-                :: ("witness_kind", Vstring (wk_r :> string))
-                :: ("event_witness_kind", Vstring (wk_s :> string))
-                :: ("first", Vbool (i = 0))
-                :: env
+                Templ.Env.(
+                  env
+                  |> add "event_witness" (Vind p)
+                  |> add "witness_kind" (Vstring (wk_r :> string))
+                  |> add "event_witness_kind" (Vstring (wk_s :> string))
+                  |> add "first" (Vbool (i = 0)))
               in
               List.iter (print_ast env ep) al)
             witnesses
@@ -4677,11 +4704,12 @@ let print_foreach conf base print_ast eval_expr =
     List.iter
       (fun (p, wk, evt) ->
         if p_auth then
-          let env = ("event_witness_relation", Vevent (p, evt)) :: env in
           let env =
-            ( "event_witness_relation_kind",
-              Vstring (wk : Adef.safe_string :> string) )
-            :: env
+            Templ.Env.(
+              env
+              |> add "event_witness_relation" (Vevent (p, evt))
+              |> add "event_witness_relation_kind"
+                   (Vstring (wk : Adef.safe_string :> string)))
           in
           List.iter (print_ast env ep) al)
       events_witnesses
@@ -4698,9 +4726,9 @@ let print_foreach conf base print_ast eval_expr =
                 else (Util.string_of_witness_kind conf (get_sex p) wk :> string)
               in
               let env =
-                ("witness", Vind p) :: ("first", Vbool first)
-                :: ("witness_kind", Vstring wk_s)
-                :: env
+                Templ.Env.(
+                  env |> add "witness" (Vind p) |> add "first" (Vbool first)
+                  |> add "witness_kind" (Vstring wk_s))
               in
               if witness_kind = Witness || witness_kind = wk then (
                 List.iter (print_ast env ep) al;
@@ -4752,7 +4780,7 @@ let print_foreach conf base print_ast eval_expr =
           && authorized_age conf base (pget conf base imoth)
         in
         if m_auth then
-          let env = ("fam", Vfam (ifam, fam, cpl, true)) :: env in
+          let env = Templ.Env.add "fam" (Vfam (ifam, fam, cpl, true)) env in
           List.iter (print_ast env ep) al)
       l
   in
@@ -4769,15 +4797,16 @@ let print_foreach conf base print_ast eval_expr =
           (fun (prev, i) (ifam, fam, (ifath, imoth, spouse), baseprefix, _) ->
             let cpl = (ifath, imoth, get_iper spouse) in
             let vfam = Vfam (ifam, fam, cpl, true) in
-            let env = ("#loop", Vint 0) :: env in
-            let env = ("fam_link", vfam) :: env in
-            let env = ("f_link", Vbool true) :: env in
-            let env = ("is_link", Vbool true) :: env in
-            let env = ("baseprefix", Vstring baseprefix) :: env in
-            let env = ("family_cnt", Vint (i + 1)) :: env in
+            let env =
+              Templ.Env.(
+                env |> add "#loop" (Vint 0) |> add "fam_link" vfam
+                |> add "f_link" (Vbool true) |> add "is_link" (Vbool true)
+                |> add "baseprefix" (Vstring baseprefix)
+                |> add "family_cnt" (Vint (i + 1)))
+            in
             let env =
               match prev with
-              | Some vfam -> ("prev_fam", vfam) :: env
+              | Some vfam -> Templ.Env.add "prev_fam" vfam env
               | None -> env
             in
             List.iter (print_ast env ini_ep) al;
@@ -4800,13 +4829,16 @@ let print_foreach conf base print_ast eval_expr =
                authorized_age conf base (pget conf base ifath)
                && authorized_age conf base (pget conf base imoth)
              in
+
              let vfam = Vfam (ifam, fam, cpl, m_auth) in
-             let env = ("#loop", Vint 0) :: env in
-             let env = ("fam", vfam) :: env in
-             let env = ("family_cnt", Vint (i + 1)) :: env in
+             let env =
+               Templ.Env.(
+                 env |> add "#loop" (Vint 0) |> add "fam" vfam
+                 |> add "family_cnt" (Vint (i + 1)))
+             in
              let env =
                match prev with
-               | Some vfam -> ("prev_fam", vfam) :: env
+               | Some vfam -> Templ.Env.add "prev_fam" vfam env
                | None -> env
              in
              List.iter (print_ast env ini_ep) al;
@@ -4819,15 +4851,16 @@ let print_foreach conf base print_ast eval_expr =
             else
               let cpl = (ifath, imoth, get_iper sp) in
               let vfam = Vfam (ifam, fam, cpl, true) in
-              let env = ("#loop", Vint 0) :: env in
-              let env = ("fam_link", vfam) :: env in
-              let env = ("f_link", Vbool true) :: env in
-              let env = ("is_link", Vbool true) :: env in
-              let env = ("baseprefix", Vstring baseprefix) :: env in
-              let env = ("family_cnt", Vint (i + 1)) :: env in
+              let env =
+                Templ.Env.(
+                  env |> add "#loop" (Vint 0) |> add "fam_link" vfam
+                  |> add "f_link" (Vbool true) |> add "is_link" (Vbool true)
+                  |> add "baseprefix" (Vstring baseprefix)
+                  |> add "family_cnt" (Vint (i + 1)))
+              in
               let env =
                 match prev with
-                | Some vfam -> ("prev_fam", vfam) :: env
+                | Some vfam -> Templ.Env.add "prev_fam" vfam env
                 | None -> env
               in
               List.iter (print_ast env ini_ep) al;
@@ -4842,8 +4875,12 @@ let print_foreach conf base print_ast eval_expr =
     else
       Mutil.list_iter_first
         (fun first s ->
-          let env = ("first_name_alias", Vstring (sou base s)) :: env in
-          let env = ("first", Vbool first) :: env in
+          let env =
+            Templ.Env.(
+              env
+              |> add "first_name_alias" (Vstring (sou base s))
+              |> add "first" (Vbool first))
+          in
           List.iter (print_ast env ep) al)
         (get_first_names_aliases p)
   in
@@ -4901,7 +4938,7 @@ let print_foreach conf base print_ast eval_expr =
     let rec loop i =
       if i > max_level then ()
       else
-        let env = ("level", Vint i) :: env in
+        let env = Templ.Env.add "level" (Vint i) env in
         List.iter (print_ast env ep) al;
         loop (succ i)
     in
@@ -4913,8 +4950,12 @@ let print_foreach conf base print_ast eval_expr =
       let titles = nobility_titles_list conf base p in
       Mutil.list_iter_first
         (fun first x ->
-          let env = ("nobility_title", Vtitle (p, x)) :: env in
-          let env = ("first", Vbool first) :: env in
+          let env =
+            Templ.Env.(
+              env
+              |> add "nobility_title" (Vtitle (p, x))
+              |> add "first" (Vbool first))
+          in
           List.iter (print_ast env ep) al)
         titles
   in
@@ -4923,8 +4964,12 @@ let print_foreach conf base print_ast eval_expr =
       let titles = nobility_titles_list conf base p in
       Mutil.list_iter_first
         (fun first x ->
-          let env = ("nob_title", Vtitle (p, x)) :: env in
-          let env = ("first", Vbool first) :: env in
+          let env =
+            Templ.Env.(
+              env
+              |> add "nob_title" (Vtitle (p, x))
+              |> add "first" (Vbool first))
+          in
           List.iter (print_ast env ep) al)
         titles
   in
@@ -4935,7 +4980,7 @@ let print_foreach conf base print_ast eval_expr =
         Array.iter
           (fun iper ->
             let p = pget conf base iper in
-            let env = ("parent", Vind p) :: env in
+            let env = Templ.Env.add "parent" (Vind p) env in
             List.iter (print_ast env ep) al)
           (get_parent_array cpl)
     | None -> ()
@@ -4945,8 +4990,12 @@ let print_foreach conf base print_ast eval_expr =
     else
       Mutil.list_iter_first
         (fun first nn ->
-          let env = ("qualifier", Vstring (sou base nn)) :: env in
-          let env = ("first", Vbool first) :: env in
+          let env =
+            Templ.Env.(
+              env
+              |> add "qualifier" (Vstring (sou base nn))
+              |> add "first" (Vbool first))
+          in
           List.iter (print_ast env ep) al)
         (get_qualifiers p)
   in
@@ -4954,8 +5003,10 @@ let print_foreach conf base print_ast eval_expr =
     if p_auth then
       Mutil.list_iter_first
         (fun first r ->
-          let env = ("rel", Vrel (r, None)) :: env in
-          let env = ("first", Vbool first) :: env in
+          let env =
+            Templ.Env.(
+              env |> add "rel" (Vrel (r, None)) |> add "first" (Vbool first))
+          in
           List.iter (print_ast env ep) al)
         (get_rparents p)
   in
@@ -5000,7 +5051,7 @@ let print_foreach conf base print_ast eval_expr =
       in
       List.iter
         (fun (c, r) ->
-          let env = ("rel", Vrel (r, Some c)) :: env in
+          let env = Templ.Env.add "rel" (Vrel (r, Some c)) env in
           List.iter (print_ast env ep) al)
         l
   in
@@ -5014,7 +5065,9 @@ let print_foreach conf base print_ast eval_expr =
       | [] -> ()
       | _ :: sll as gsll ->
           let item = Vslistlm gsll in
-          let env = ("item", item) :: ("prev_item", prev_item) :: env in
+          let env =
+            Templ.Env.(env |> add "item" item |> add "prev_item" prev_item)
+          in
           List.iter (print_ast env ep) al;
           loop item sll
     in
@@ -5090,10 +5143,11 @@ let print_foreach conf base print_ast eval_expr =
     let rec loop first = function
       | (src_typ, src) :: srcl ->
           let env =
-            ("first", Vbool first)
-            :: ("last", Vbool (srcl = []))
-            :: ("src_typ", Vstring src_typ)
-            :: ("src", Vstring src) :: env
+            Templ.Env.(
+              env |> add "first" (Vbool first)
+              |> add "last" (Vbool (srcl = []))
+              |> add "src_typ" (Vstring src_typ)
+              |> add "src" (Vstring src))
           in
           List.iter (print_ast env ep) al;
           loop false srcl
@@ -5106,8 +5160,12 @@ let print_foreach conf base print_ast eval_expr =
     else
       Mutil.list_iter_first
         (fun first s ->
-          let env = ("surname_alias", Vstring (sou base s)) :: env in
-          let env = ("first", Vbool first) :: env in
+          let env =
+            Templ.Env.(
+              env
+              |> add "surname_alias" (Vstring (sou base s))
+              |> add "first" (Vbool first))
+          in
           List.iter (print_ast env ep) al)
         (get_surnames_aliases p)
   in
@@ -5124,12 +5182,14 @@ let print_foreach conf base print_ast eval_expr =
       | [] -> ()
       | (name, url, src, note) :: l ->
           let env =
-            ("carrousel_img", Vstring (Filename.basename name))
-            :: ("carrousel_img_src", Vstring src)
-            :: ("carrousel_img_note", Vstring note)
-            :: ("first", Vbool first)
-            :: ("last", Vbool (l = []))
-            :: ("url", Vstring url) :: ("img_cnt", Vint cnt) :: env
+            Templ.Env.(
+              env
+              |> add "carrousel_img" (Vstring (Filename.basename name))
+              |> add "carrousel_img_src" (Vstring src)
+              |> add "carrousel_img_note" (Vstring note)
+              |> add "first" (Vbool first)
+              |> add "last" (Vbool (l = []))
+              |> add "url" (Vstring url) |> add "img_cnt" (Vint cnt))
           in
           List.iter (print_ast env ep) al;
           loop false (cnt + 1) l
@@ -5230,8 +5290,11 @@ let print_foreach conf base print_ast eval_expr =
           | _ -> (
               match get_env "child_link" env with
               | Vind p ->
-                  let env = ("p_link", Vbool true) :: env in
-                  let env = ("f_link", Vbool true) :: env in
+                  let env =
+                    Templ.Env.(
+                      env |> add "p_link" (Vbool true)
+                      |> add "f_link" (Vbool true))
+                  in
                   let auth = authorized_age conf base p in
                   let ep = (p, auth) in
                   loop env ep efam sl
@@ -5257,9 +5320,12 @@ let print_foreach conf base print_ast eval_expr =
               match !GWPARAM_ITL.get_father' conf base (get_iper a) with
               | Some (baseprefix, ep, ifam, fam, cpl) ->
                   let efam = Vfam (ifam, fam, cpl, true) in
-                  let env = ("p_link", Vbool true) :: env in
-                  let env = ("f_link", Vbool true) :: env in
-                  let env = ("baseprefix", Vstring baseprefix) :: env in
+                  let env =
+                    Templ.Env.(
+                      env |> add "p_link" (Vbool true)
+                      |> add "f_link" (Vbool true)
+                      |> add "baseprefix" (Vstring baseprefix))
+                  in
                   loop env ep efam sl
               | None -> warning_use_has_parents_before_parent loc "father" ()))
       | "mother" :: sl -> (
@@ -5278,9 +5344,12 @@ let print_foreach conf base print_ast eval_expr =
               match !GWPARAM_ITL.get_mother' conf base (get_iper a) with
               | Some (baseprefix, ep, ifam, fam, cpl) ->
                   let efam = Vfam (ifam, fam, cpl, true) in
-                  let env = ("p_link", Vbool true) :: env in
-                  let env = ("f_link", Vbool true) :: env in
-                  let env = ("baseprefix", Vstring baseprefix) :: env in
+                  let env =
+                    Templ.Env.(
+                      env |> add "p_link" (Vbool true)
+                      |> add "f_link" (Vbool true)
+                      |> add "baseprefix" (Vstring baseprefix))
+                  in
                   loop env ep efam sl
               | None -> warning_use_has_parents_before_parent loc "mother" ()))
       | "self" :: sl -> loop env ep efam sl
@@ -5299,8 +5368,11 @@ let print_foreach conf base print_ast eval_expr =
                   in
                   match !GWPARAM_ITL.get_person conf base baseprefix ip with
                   | Some (ep, baseprefix) ->
-                      let env = ("p_link", Vbool true) :: env in
-                      let env = ("baseprefix", Vstring baseprefix) :: env in
+                      let env =
+                        Templ.Env.(
+                          env |> add "p_link" (Vbool true)
+                          |> add "baseprefix" (Vstring baseprefix))
+                      in
                       loop env ep efam sl
                   | None -> raise Not_found)
               | _ -> raise Not_found))
@@ -5444,47 +5516,47 @@ let gen_interp_templ ?(no_headers = false) menu title templ_fname conf base p =
       Vnldb db
     in
     let all_gp () = Vallgp (get_all_generations conf base p) in
-    [
-      ("p", Vind p);
-      ("p_auth", Vbool (authorized_age conf base p));
-      ("count", Vcnt (ref 0));
-      ("count1", Vcnt (ref 0));
-      ("count2", Vcnt (ref 0));
-      ("count3", Vcnt (ref 0));
-      ("vars", Vvars (ref []));
-      ("cousins", Vcousl (ref []));
-      ("v1_v2", Vcous_level (ref 0, ref 0));
-      ("list", Vslist (ref SortedList.empty));
-      ("listb", Vslist (ref SortedList.empty));
-      ("listc", Vslist (ref SortedList.empty));
-      ("listd", Vslist (ref SortedList.empty));
-      ("liste", Vslist (ref SortedList.empty));
-      ("desc_mark", Vdmark (ref @@ Gwdb.dummy_marker Gwdb.dummy_iper false));
-      ("lazy_print", Vlazyp (ref None));
-      ("sosa", Vsosa (ref []));
-      ("sosa_ref", Vsosa_ref sosa_ref);
-      ("t_sosa", Vt_sosa t_sosa);
-      ("max_anc_level", Vlazy (Lazy.from_fun mal));
-      ("static_max_anc_level", Vlazy (Lazy.from_fun smal));
-      ("sosa_ref_max_anc_level", Vlazy (Lazy.from_fun srmal));
-      ("max_cous_level", Vlazy (Lazy.from_fun mcl));
-      ("max_desc_level", Vlazy (Lazy.from_fun mdl));
-      ("static_max_desc_level", Vlazy (Lazy.from_fun smdl));
-      ("desc_level_table", Vdesclevtab desc_level_table_l);
-      ("desc_level_table_save", Vdesclevtab desc_level_table_l_save);
-      ("nldb", Vlazy (Lazy.from_fun nldb));
-      ("all_gp", Vlazy (Lazy.from_fun all_gp));
-    ]
+    Templ.Env.(
+      empty |> add "p" (Vind p)
+      |> add "p_auth" (Vbool (authorized_age conf base p))
+      |> add "count" (Vcnt (ref 0))
+      |> add "count1" (Vcnt (ref 0))
+      |> add "count2" (Vcnt (ref 0))
+      |> add "count3" (Vcnt (ref 0))
+      |> add "vars" (Vvars (ref []))
+      |> add "cousins" (Vcousl (ref []))
+      |> add "v1_v2" (Vcous_level (ref 0, ref 0))
+      |> add "list" (Vslist (ref SortedList.empty))
+      |> add "listb" (Vslist (ref SortedList.empty))
+      |> add "listc" (Vslist (ref SortedList.empty))
+      |> add "listd" (Vslist (ref SortedList.empty))
+      |> add "liste" (Vslist (ref SortedList.empty))
+      |> add "desc_mark"
+           (Vdmark (ref @@ Gwdb.dummy_marker Gwdb.dummy_iper false))
+      |> add "lazy_print" (Vlazyp (ref None))
+      |> add "sosa" (Vsosa (ref []))
+      |> add "sosa_ref" (Vsosa_ref sosa_ref)
+      |> add "t_sosa" (Vt_sosa t_sosa)
+      |> add "max_anc_level" (Vlazy (Lazy.from_fun mal))
+      |> add "static_max_anc_level" (Vlazy (Lazy.from_fun smal))
+      |> add "sosa_ref_max_anc_level" (Vlazy (Lazy.from_fun srmal))
+      |> add "max_cous_level" (Vlazy (Lazy.from_fun mcl))
+      |> add "max_desc_level" (Vlazy (Lazy.from_fun mdl))
+      |> add "static_max_desc_level" (Vlazy (Lazy.from_fun smdl))
+      |> add "desc_level_table" (Vdesclevtab desc_level_table_l)
+      |> add "desc_level_table_save" (Vdesclevtab desc_level_table_l_save)
+      |> add "nldb" (Vlazy (Lazy.from_fun nldb))
+      |> add "all_gp" (Vlazy (Lazy.from_fun all_gp)))
   in
   if no_headers then
     Hutil.interp_no_header conf templ_fname
       {
-        Templ.eval_var = eval_var conf base;
-        Templ.eval_transl = eval_transl conf base;
-        Templ.eval_predefined_apply = eval_predefined_apply conf;
-        Templ.get_vother;
-        Templ.set_vother;
-        Templ.print_foreach = print_foreach conf base;
+        eval_var = eval_var conf base;
+        eval_transl = eval_transl conf base;
+        eval_predefined_apply = eval_predefined_apply conf;
+        get_vother;
+        set_vother;
+        print_foreach = print_foreach conf base;
       }
       env ep
   else if menu then
@@ -5501,23 +5573,23 @@ let gen_interp_templ ?(no_headers = false) menu title templ_fname conf base p =
     else
       Hutil.interp_no_header conf templ_fname
         {
-          Templ.eval_var = eval_var conf base;
-          Templ.eval_transl = eval_transl conf base;
-          Templ.eval_predefined_apply = eval_predefined_apply conf;
-          Templ.get_vother;
-          Templ.set_vother;
-          Templ.print_foreach = print_foreach conf base;
+          eval_var = eval_var conf base;
+          eval_transl = eval_transl conf base;
+          eval_predefined_apply = eval_predefined_apply conf;
+          get_vother;
+          set_vother;
+          print_foreach = print_foreach conf base;
         }
         env ep
   else
     Hutil.interp conf templ_fname
       {
-        Templ.eval_var = eval_var conf base;
-        Templ.eval_transl = eval_transl conf base;
-        Templ.eval_predefined_apply = eval_predefined_apply conf;
-        Templ.get_vother;
-        Templ.set_vother;
-        Templ.print_foreach = print_foreach conf base;
+        eval_var = eval_var conf base;
+        eval_transl = eval_transl conf base;
+        eval_predefined_apply = eval_predefined_apply conf;
+        get_vother;
+        set_vother;
+        print_foreach = print_foreach conf base;
       }
       env ep
 

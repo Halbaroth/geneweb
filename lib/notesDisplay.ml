@@ -332,7 +332,7 @@ let print conf base =
                 | "gallery" -> Notes.safe_gallery conf s
                 | "album" -> Notes.safe_gallery conf s
                 | _ -> s)
-          | _ -> Templ.copy_from_templ conf [] ic)
+          | _ -> Templ.copy_from_templ conf Templ.Env.empty ic)
       | None -> (
           let title = try List.assoc "TITLE" nenv with Not_found -> "" in
           let title = Util.safe_html title in
@@ -375,7 +375,7 @@ let print_mod conf base =
           Wserver.header
             (Format.sprintf "Content-type: application/json; charset=%s" charset);
           Wserver.printf "{\"digest\":\"%s\",\"r\":%s}" digest s
-      | _ -> Templ.copy_from_templ conf [] ic)
+      | _ -> Templ.copy_from_templ conf Templ.Env.empty ic)
   | _ ->
       Wiki.print_mod_view_page conf true (Adef.encoded "NOTES") fnotes title
         nenv s
