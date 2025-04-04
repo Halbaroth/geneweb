@@ -1,5 +1,7 @@
 (* Copyright (c) 1998-2007 INRIA *)
 
+module GwdLog = Wserver.GwdLog
+
 #ifdef DEBUG
 let () = Sys.enable_runtime_warnings true
 #endif
@@ -37,7 +39,10 @@ let images_prefix = ref ""
 let etc_prefix = ref ""
 let lexicon_list = ref [ Filename.concat "lang" "lexicon.txt" ]
 let login_timeout = ref 1800
-let max_clients = ref None
+let default_n_workers = 20
+let n_workers = ref default_n_workers
+let default_max_pending_requests = 150
+let max_pending_requests = ref default_max_pending_requests
 let no_host_address = ref false
 let only_addresses = ref []
 let plugins = ref []
@@ -82,6 +87,11 @@ let print_and_cut_if_too_big oc str =
       end
   in
   loop 0
+
+let deprecated_warning_max_clients () =
+  Format.eprintf "The `-max_clients` option is deprecated and may be removed \
+    in a future release.@ It has no effect.@ Use `-n_workers` and
+    `-max_pending_requests` instead.@."
 
 type auth_report =
   { ar_ok : bool;
@@ -1804,8 +1814,8 @@ let geneweb_server () =
         else exit 0;
         File.create_dir ~parent:true ~required_perm:0o755 !GWPARAM.cnt_dir
     end;
-  Wserver.f GwdLog.syslog !selected_addr !selected_port !conn_timeout
-    (if Sys.unix then !max_clients else None) connection
+  Wserver.start ?addr:!selected_addr ~port:!selected_port ~timeout:!conn_timeout
+    ~max_pending_requests:!max_pending_requests ~n_workers:!n_workers connection
 
 let cgi_timeout conf tmout _ =
   Output.header conf "Content-type: text/html; charset=iso-8859-1";
@@ -2005,13 +2015,16 @@ let main () =
     ; ("-login_tmout", Arg.Int (fun x -> login_timeout := x), "<SEC> Login timeout for entries with passwords in CGI mode (default " ^ string_of_int !login_timeout ^ "s).")
     ; ("-redirect", Arg.String (fun x -> redirected_addr := Some x), "<ADDR> Send a message to say that this service has been redirected to <ADDR>.")
     ; ("-trace_failed_passwd", Arg.Set trace_failed_passwd, " Print the failed passwords in log (except if option -digest is set). ")
-    ; ("-debug", Arg.Unit (fun () -> debug := true ; GwdLog.debug := true ; Printexc.record_backtrace true), " Enable debug mode")
+    ; ("-debug", Arg.Unit (fun () -> debug := true ; GwdLog.debug_flag := true ; Printexc.record_backtrace true), " Enable debug mode")
     ; ("-nolock", Arg.Set Lock.no_lock_flag, " Do not lock files before writing.")
     ; (arg_plugin "-plugin" "<PLUGIN>.cmxs load a safe plugin." )
     ; (arg_plugins "-plugins" "<DIR> load all plugins in <DIR>.")
     ; ("-version", Arg.Unit print_version_commit, " Print the Geneweb version, the source repository and last commit id and message.")
 #ifdef UNIX
-    ; ("-max_clients", Arg.Int (fun x -> max_clients := Some x), "<NUM> Max number of clients treated at the same time (default: no limit) (not cgi).")
+    ; ("-max_clients", Arg.Int
+    (fun x -> deprecated_warning_max_clients ()), "<NUM> Max number of clients treated at the same time (default: no limit) (not cgi) (DEPRECATED).")
+    ; ("-n_workers", Arg.Int (fun x -> n_workers := x), "<NUM> Number of workers used by the server (default: " ^ string_of_int default_n_workers ^ ")")
+    ; ("-max_pending_requests", Arg.Int (fun x -> max_pending_requests := x), "<NUM> Maximum number of pending requests (default: " ^ string_of_int default_max_pending_requests ^ ")")
     ; ("-conn_tmout", Arg.Int (fun x -> conn_timeout := x), "<SEC> Connection timeout (only on Unix) (default " ^ string_of_int !conn_timeout ^ "s; 0 means no limit)." )
     ; ("-daemon", Arg.Set daemon, " Unix daemon mode.")
     ; ("-no-fork", Arg.Set Wserver.no_fork, " Prevent forking processes")
