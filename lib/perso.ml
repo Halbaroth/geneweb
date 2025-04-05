@@ -4540,8 +4540,7 @@ let print_foreach conf base print_ast eval_expr =
               (fun i (((p, _) as ep), baseprefix) ->
                 let env =
                   Templ.Env.(
-                    env
-                    |> add "child_link" (Vind p)
+                    env |> add "child_link" (Vind p)
                     |> add "baseprefix" (Vstring baseprefix)
                     |> add "p_link" (Vbool true)
                     |> add "last" (Vbool (i = len - 1)))
@@ -4593,8 +4592,7 @@ let print_foreach conf base print_ast eval_expr =
                     if not can_merge then
                       let env =
                         Templ.Env.(
-                          env
-                          |> add "child_link" (Vind p)
+                          env |> add "child_link" (Vind p)
                           |> add "baseprefix" (Vstring baseprefix)
                           |> add "p_link" (Vbool true))
                       in
@@ -4841,8 +4839,8 @@ let print_foreach conf base print_ast eval_expr =
             let vfam = Vfam (ifam, fam, cpl, true) in
             let env =
               Templ.Env.(
-                env |> add "fam_link" vfam
-                |> add "f_link" (Vbool true) |> add "is_link" (Vbool true)
+                env |> add "fam_link" vfam |> add "f_link" (Vbool true)
+                |> add "is_link" (Vbool true)
                 |> add "baseprefix" (Vstring baseprefix)
                 |> add "family_cnt" (Vint (i + 1)))
             in
@@ -4875,8 +4873,7 @@ let print_foreach conf base print_ast eval_expr =
              let vfam = Vfam (ifam, fam, cpl, m_auth) in
              let env =
                Templ.Env.(
-                 env |> add "fam" vfam
-                 |> add "family_cnt" (Vint (i + 1)))
+                 env |> add "fam" vfam |> add "family_cnt" (Vint (i + 1)))
              in
              let env =
                match prev with
@@ -4895,8 +4892,8 @@ let print_foreach conf base print_ast eval_expr =
               let vfam = Vfam (ifam, fam, cpl, true) in
               let env =
                 Templ.Env.(
-                  env |> add "fam_link" vfam
-                  |> add "f_link" (Vbool true) |> add "is_link" (Vbool true)
+                  env |> add "fam_link" vfam |> add "f_link" (Vbool true)
+                  |> add "is_link" (Vbool true)
                   |> add "baseprefix" (Vstring baseprefix)
                   |> add "family_cnt" (Vint (i + 1)))
               in
@@ -5616,7 +5613,7 @@ let gen_interp_templ ?(no_headers = false) menu title templ_fname conf base p =
       env ep
   else if menu then
     let size =
-      match Util.open_etc_file conf templ_fname with
+      match Templ.open_etc_file conf templ_fname with
       | Some (ic, _) ->
           let fd = Unix.descr_of_in_channel ic in
           let stats = Unix.fstat fd in

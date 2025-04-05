@@ -316,7 +316,7 @@ let print conf base =
       let templ, typ =
         if typ = "" then (None, "")
         else if typ = "album" || typ = "gallery" then
-          try (Util.open_etc_file conf "notes_gallery", typ)
+          try (Templ.open_etc_file conf "notes_gallery", typ)
           with Not_found -> (None, "")
         else (None, "")
       in
@@ -354,7 +354,7 @@ let print_mod conf base =
   let templ =
     if typ = "" then None
     else if typ = "gallery" || typ = "album" then
-      Util.open_etc_file conf ("notes_upd_" ^ typ)
+      Templ.open_etc_file conf ("notes_upd_" ^ typ)
     else None
   in
   let title _ =

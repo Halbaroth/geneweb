@@ -38,6 +38,22 @@ val eval_transl : Config.config -> bool -> string -> string -> string
 val input_templ : Config.config -> string -> TemplAst.ast list option
 val include_hed_trl : Config.config -> string -> unit
 
+val open_etc_file : Config.config -> string -> (in_channel * string) option
+(** [open_etc_file conf fname] search for template {i etc/fname.txt}
+    inside the base directory or inside one of assets directories.
+    Returns input channel and the path to given template. *)
+
+val include_begin : Config.config -> Adef.safe_string -> unit
+val include_end : Config.config -> Adef.safe_string -> unit
+
+val include_template :
+  Config.config -> Adef.encoded_string Env.t -> string -> (unit -> unit) -> unit
+(** [include_template conf env fname failure]
+    Search [fname] in templates path and interpret it with global environnement [env] provided.
+    Interpretation of template write directly its results in the socket.
+    If the file can not be found, [failure] is called.
+*)
+
 val copy_from_templ :
   Config.config -> Adef.encoded_string Env.t -> in_channel -> unit
 
