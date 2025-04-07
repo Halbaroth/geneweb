@@ -8,7 +8,8 @@ open BirthDeath
 
 let month_txt conf d cal =
   let d = DateDisplay.string_of_date conf (Dgreg ({ d with day = 0 }, cal)) in
-  (d : Adef.safe_string :> string) |> Utf8.capitalize_fst |> Adef.safe
+  (d : Geneweb_sanatize.Sanatize.safe_string :> string)
+  |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe
 
 let list_aux_1 conf d cal last_month_txt was_future =
   let month_txt = month_txt conf d cal in
@@ -57,7 +58,7 @@ let print_birth conf base =
            Output.print_sstring conf "</em>.");
          Output.print_sstring conf "</li>";
          (month_txt, future))
-       (Adef.safe "", false)
+       (Geneweb_sanatize.Sanatize.safe "", false)
        list;
   Output.print_sstring conf "</ul></li>";
   Hutil.trailer conf
@@ -122,7 +123,7 @@ let print_death conf base =
             age;
           Output.print_sstring conf "</li>";
           (month_txt, ages_sum, ages_nb))
-        (Adef.safe "", (0, 0), (0, 0))
+        (Geneweb_sanatize.Sanatize.safe "", (0, 0), (0, 0))
         list
     in
     Output.print_sstring conf "</ul></li></ul>";
@@ -156,7 +157,7 @@ let print_death conf base =
     Output.print_sstring conf conf.command;
     Output.print_sstring conf {|"><p>|};
     Util.hidden_env conf;
-    Util.hidden_input conf "m" (Adef.encoded "LD");
+    Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "LD");
     Output.print_sstring conf
     @@ Printf.sprintf
          (fcapitale (ftransl conf "the latest %t deaths"))
@@ -305,7 +306,7 @@ let print_marr_or_eng conf base title list =
            Output.print_sstring conf "</em>.");
          Output.print_sstring conf "</li>";
          (month_txt, future))
-       (Adef.safe "", false)
+       (Geneweb_sanatize.Sanatize.safe "", false)
        list;
   Output.print_sstring conf "</ul></li>";
   Hutil.trailer conf
@@ -469,7 +470,7 @@ let print_population_pyramid conf base =
     Output.print_sstring conf "<tr><td class=\"pyramid_year\">";
     Output.print_sstring conf (string_of_int @@ (at_year - (i * interval)));
     Output.print_sstring conf "</td><td>&nbsp;</td>";
-    print_image (i = 0) 0 (Adef.safe "male.png");
+    print_image (i = 0) 0 (Geneweb_sanatize.Sanatize.safe "male.png");
     Output.print_sstring conf "<td>&nbsp;</td><td align=\"right\">\n";
     Output.printf conf
       {|<table cellspacing="0" cellpadding="0"><tr><td class="pyramid_nb">|};
@@ -485,7 +486,8 @@ let print_population_pyramid conf base =
         Output.print_sstring conf {|" height="22">|})
     in
     aux_img nb_men
-      (Adef.encoded (Filename.concat (Util.images_prefix conf) "pyr_male.png"));
+      (Geneweb_sanatize.Sanatize.encoded
+         (Filename.concat (Util.images_prefix conf) "pyr_male.png"));
     Output.print_sstring conf
       {|</td></tr></table></td><td align="center" class="pyramid_center">|};
     if i = nb_intervals then Output.print_sstring conf "&nbsp;"
@@ -493,12 +495,12 @@ let print_population_pyramid conf base =
     Output.print_sstring conf
       {|</td><td align="left"><table cellspacing="0" cellpadding="0"><tr><td>|};
     aux_img nb_wom
-      (Adef.encoded
+      (Geneweb_sanatize.Sanatize.encoded
          (Filename.concat (Util.images_prefix conf) "pyr_female.png"));
     Output.print_sstring conf {|</td><td class="pyramid_nb">&nbsp;|};
     if nb_wom <> 0 then Output.print_sstring conf (string_of_int nb_wom);
     Output.print_sstring conf "</td></tr></table></td><td>&nbsp;</td>\n";
-    print_image (i = 0) 1 (Adef.safe "female.png");
+    print_image (i = 0) 1 (Geneweb_sanatize.Sanatize.safe "female.png");
     Output.print_sstring conf {|<td>&nbsp;</td><td class="pyramid_year">|};
     Output.print_sstring conf (string_of_int @@ (at_year - (i * interval)));
     Output.print_sstring conf "</td></tr>"
@@ -516,7 +518,7 @@ let print_population_pyramid conf base =
   Output.print_string conf (commd conf);
   Output.print_sstring conf {|"><div class="form-inline">|};
   hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "POP_PYR");
+  Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "POP_PYR");
   Output.print_sstring conf {|<label for="yr">|};
   transl_nth conf "year/month/day" 0
   |> Utf8.capitalize_fst |> Output.print_sstring conf;

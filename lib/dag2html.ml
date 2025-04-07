@@ -34,10 +34,10 @@ let new_ghost_id =
 type align = LeftA | CenterA | RightA
 
 type 'a table_data =
-  | TDitem of iper * 'a * Adef.safe_string
-  | TDtext of iper * Adef.safe_string
+  | TDitem of iper * 'a * Geneweb_sanatize.Sanatize.safe_string
+  | TDtext of iper * Geneweb_sanatize.Sanatize.safe_string
   | TDhr of align
-  | TDbar of Adef.escaped_string option
+  | TDbar of Geneweb_sanatize.Sanatize.escaped_string option
   | TDnothing
 
 type 'a html_table_line = (int * align * 'a table_data) array
@@ -54,7 +54,7 @@ let html_table_struct indi_ip indi_txt vbar_txt phony d t =
         TDitem
           ( indi_ip d.dag.(int_of_idag e),
             indi_txt d.dag.(int_of_idag e),
-            Adef.safe "" )
+            Geneweb_sanatize.Sanatize.safe "" )
     | Ghost _ -> TDbar None
     | Nothing -> TDnothing
   in

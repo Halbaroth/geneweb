@@ -2,6 +2,8 @@ open Geneweb
 open Config
 open Adef
 
+let ( ^<^ ) = Geneweb_sanatize.Sanatize.( ^<^ )
+let ( ^^^ ) = Geneweb_sanatize.Sanatize.( ^^^ )
 let ns = "no_index"
 
 let url_no_index conf base pwd =
@@ -17,7 +19,9 @@ let url_no_index conf base pwd =
       else
         let f = scratch (Gwdb.get_first_name p) in
         let s = scratch (Gwdb.get_surname p) in
-        let oc = string_of_int (Gwdb.get_occ p) |> Adef.encoded in
+        let oc =
+          string_of_int (Gwdb.get_occ p) |> Geneweb_sanatize.Sanatize.encoded
+        in
         Some (f, s, oc)
     with Failure _ -> None
   in
@@ -29,15 +33,18 @@ let url_no_index conf base pwd =
       let f = scratch (Gwdb.get_first_name p) in
       let s = scratch (Gwdb.get_surname p) in
       if
-        (f : Adef.encoded_string :> string) = ""
-        || (s : Adef.encoded_string :> string) = ""
+        (f : Geneweb_sanatize.Sanatize.encoded_string :> string) = ""
+        || (s : Geneweb_sanatize.Sanatize.encoded_string :> string) = ""
       then None
       else
-        let oc = string_of_int (Gwdb.get_occ p) |> Adef.encoded in
+        let oc =
+          string_of_int (Gwdb.get_occ p) |> Geneweb_sanatize.Sanatize.encoded
+        in
         let u = Util.pget conf base (Gwdb.get_father fam) in
         let n =
           let rec loop k =
-            if (Gwdb.get_family u).(k) = i then string_of_int k |> Adef.encoded
+            if (Gwdb.get_family u).(k) = i then
+              string_of_int k |> Geneweb_sanatize.Sanatize.encoded
             else loop (k + 1)
           in
           loop 0
@@ -47,8 +54,8 @@ let url_no_index conf base pwd =
   in
   let env =
     let rec loop :
-        (string * Adef.encoded_string) list ->
-        (string * Adef.encoded_string) list = function
+        (string * Geneweb_sanatize.Sanatize.encoded_string) list ->
+        (string * Geneweb_sanatize.Sanatize.encoded_string) list = function
       | [] -> []
       | ("opt", s) :: l when (s :> string) = "no_index" -> loop l
       | ("opt", s) :: l when (s :> string) = "no_index_pwd" -> loop l
@@ -58,18 +65,18 @@ let url_no_index conf base pwd =
       | (k, v) :: l when String.length k = 2 && k.[0] = 'i' ->
           let c = String.make 1 k.[1] in
           new_env k v (fun x -> x ^ c) l
-      | (k, (v : Adef.encoded_string)) :: l
+      | (k, (v : Geneweb_sanatize.Sanatize.encoded_string)) :: l
         when String.length k > 2 && k.[0] = 'e' && k.[1] = 'f' ->
           new_fam_env k v (fun x -> x ^ k) l
       | kv :: l -> kv :: loop l
-    and new_env k (v : Adef.encoded_string) c l :
-        (string * Adef.encoded_string) list =
+    and new_env k (v : Geneweb_sanatize.Sanatize.encoded_string) c l :
+        (string * Geneweb_sanatize.Sanatize.encoded_string) list =
       match get_a_person v with
       | Some (f, s, oc) ->
           if (oc :> string) = "0" then (c "p", f) :: (c "n", s) :: loop l
           else (c "p", f) :: (c "n", s) :: (c "oc", oc) :: loop l
       | None -> (k, v) :: loop l
-    and new_fam_env k (v : Adef.encoded_string) c l =
+    and new_fam_env k (v : Geneweb_sanatize.Sanatize.encoded_string) c l =
       match get_a_family v with
       | Some (f, s, oc, n) ->
           let l = loop l in
@@ -96,16 +103,18 @@ let url_no_index conf base pwd =
     in
     Util.get_server_string conf ^ pref
   in
-  let suff : Adef.encoded_string =
+  let suff : Geneweb_sanatize.Sanatize.encoded_string =
     List.fold_right
       (fun (x, v) s ->
-        if (v : Adef.encoded_string :> string) <> "" then
+        if (v : Geneweb_sanatize.Sanatize.encoded_string :> string) <> "" then
           x ^<^ "=" ^<^ v
-          ^^^ (if (s : Adef.encoded_string :> string) = "" then "" else "&")
+          ^^^ (if (s : Geneweb_sanatize.Sanatize.encoded_string :> string) = ""
+              then ""
+              else "&")
           ^<^ s
         else s)
       (("lang", Mutil.encode conf.lang) :: env)
-      (Adef.encoded "")
+      (Geneweb_sanatize.Sanatize.encoded "")
   in
   if conf.cgi then addr ^<^ "?b=" ^<^ conf.bname ^<^ "&" ^<^ suff
   else addr ^<^ "?" ^<^ suff

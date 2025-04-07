@@ -1,7 +1,7 @@
 type 'a vother =
   | Vdef of (string * TemplAst.ast option) list * TemplAst.ast list
   | Vval of 'a TemplAst.expr_val
-  | Vbind of string * Adef.encoded_string
+  | Vbind of string * Geneweb_sanatize.Sanatize.encoded_string
 
 module Env : sig
   type 'a t
@@ -43,11 +43,17 @@ val open_etc_file : Config.config -> string -> (in_channel * string) option
     inside the base directory or inside one of assets directories.
     Returns input channel and the path to given template. *)
 
-val include_begin : Config.config -> Adef.safe_string -> unit
-val include_end : Config.config -> Adef.safe_string -> unit
+val include_begin :
+  Config.config -> Geneweb_sanatize.Sanatize.safe_string -> unit
+
+val include_end : Config.config -> Geneweb_sanatize.Sanatize.safe_string -> unit
 
 val include_template :
-  Config.config -> Adef.encoded_string Env.t -> string -> (unit -> unit) -> unit
+  Config.config ->
+  Geneweb_sanatize.Sanatize.encoded_string Env.t ->
+  string ->
+  (unit -> unit) ->
+  unit
 (** [include_template conf env fname failure]
     Search [fname] in templates path and interpret it with global environnement [env] provided.
     Interpretation of template write directly its results in the socket.
@@ -55,7 +61,10 @@ val include_template :
 *)
 
 val copy_from_templ :
-  Config.config -> Adef.encoded_string Env.t -> in_channel -> unit
+  Config.config ->
+  Geneweb_sanatize.Sanatize.encoded_string Env.t ->
+  in_channel ->
+  unit
 
 val interp_ast :
   Config.config ->

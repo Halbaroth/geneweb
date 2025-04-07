@@ -16,7 +16,9 @@ val header : Config.config -> ('a, unit, string, unit) format4 -> 'a
 (** Formatter printing of the HTTP header (header line) to the output channel. *)
 
 val print_string :
-  Config.config -> [< `encoded | `escaped | `safe ] Adef.astring -> unit
+  Config.config ->
+  [< `encoded | `escaped | `safe ] Geneweb_sanatize.Sanatize.astring ->
+  unit
 (** Printing the part of HTTP response body on the output channel. *)
 
 val print_sstring : Config.config -> string -> unit

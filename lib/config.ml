@@ -39,7 +39,7 @@ type output_conf = {
   flush : unit -> unit;
 }
 
-type env = (string * Adef.encoded_string) list
+type env = (string * Geneweb_sanatize.Sanatize.encoded_string) list
 
 type config = {
   from : string;

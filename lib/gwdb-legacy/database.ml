@@ -1104,7 +1104,7 @@ let with_database ?(read_only = false) bname k =
       let tmp_fname = Filename.concat bname "1patches" in
       let fname = Filename.concat bname "patches" in
       let tm_oc = Secure.open_out_bin tm_fname in
-      output_string tm_oc (tm : Adef.safe_string :> string);
+      output_string tm_oc (tm : Geneweb_sanatize.Sanatize.safe_string :> string);
       close_out tm_oc;
       let oc_tmp = Secure.open_out_bin tmp_fname in
       output_string oc_tmp magic_patch;

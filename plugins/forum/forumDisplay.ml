@@ -62,8 +62,9 @@ let print_foreach conf _base print_ast eval_expr =
 
 let str_val x = VVstring x
 
-let safe_val (x : [< `encoded | `escaped | `safe ] Adef.astring) =
-  VVstring ((x :> Adef.safe_string) :> string)
+let safe_val
+    (x : [< `encoded | `escaped | `safe ] Geneweb_sanatize.Sanatize.astring) =
+  VVstring ((x :> Geneweb_sanatize.Sanatize.safe_string) :> string)
 
 let rec eval_var conf base env _xx _loc = function
   | [ "can_post" ] -> VVbool (can_post conf)
@@ -234,8 +235,9 @@ and eval_message_string_var conf str so = function
         match so with
         | Some h ->
             let case_sens = p_getenv conf.env "c" = Some "on" in
-            html_highlight case_sens h (s : Adef.escaped_string :> string)
-            |> Adef.escaped
+            html_highlight case_sens h
+              (s : Geneweb_sanatize.Sanatize.escaped_string :> string)
+            |> Geneweb_sanatize.Sanatize.escaped
         | None -> s
       in
       safe_val s

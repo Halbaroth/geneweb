@@ -222,11 +222,11 @@ let print_places_list conf base t t_equiv list =
     give_access_title_aux conf
       ("&t=" ^<^ Mutil.encode t ^^^ "&p=" ^<^ Mutil.encode p
       ^>^ if absolute then "&a=A" else "")
-      (if p = "" then Adef.safe "..."
+      (if p = "" then Geneweb_sanatize.Sanatize.safe "..."
       else
         ((escape_html @@ surname_without_particle base p)
          ^^^ escape_html @@ surname_particle base p
-          :> Adef.safe_string))
+          :> Geneweb_sanatize.Sanatize.safe_string))
   in
   Hutil.header conf title;
   wprint_in_columns conf order wprint_elem list;

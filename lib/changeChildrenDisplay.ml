@@ -7,7 +7,9 @@ open Util
 open ChangeChildren
 
 let print_child_person conf base p =
-  let var = Adef.encoded ("c" ^ string_of_iper (get_iper p)) in
+  let var =
+    Geneweb_sanatize.Sanatize.encoded ("c" ^ string_of_iper (get_iper p))
+  in
   let first_name =
     match p_getenv conf.env ((var :> string) ^ "_first_name") with
     | Some v -> v
@@ -99,8 +101,12 @@ let print_change conf base p =
   Output.print_sstring conf
     (Format.sprintf {|<h2>%s %s</h2>
 <form method="post" action="%s">|}
-       (let s : Adef.safe_string = gen_person_text conf base p in
-        let r : Adef.safe_string = reference conf base p s in
+       (let s : Geneweb_sanatize.Sanatize.safe_string =
+          gen_person_text conf base p
+        in
+        let r : Geneweb_sanatize.Sanatize.safe_string =
+          reference conf base p s
+        in
         Util.transl_a_of_b conf "" (r :> string) (s :> string))
        (DateDisplay.short_dates_text conf base p :> string)
        (conf.command :> string));
@@ -167,7 +173,9 @@ let error_person conf err =
   Hutil.trailer conf;
   raise
   @@ Update.ModErr
-       (Update.UERR (__FILE__ ^ " " ^ string_of_int __LINE__ |> Adef.safe))
+       (Update.UERR
+          (__FILE__ ^ " " ^ string_of_int __LINE__
+          |> Geneweb_sanatize.Sanatize.safe))
 
 let print_update_child conf base =
   match p_getenv conf.env "m" with

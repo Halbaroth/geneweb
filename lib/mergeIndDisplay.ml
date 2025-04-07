@@ -7,11 +7,11 @@ open Util
 open MergeInd
 
 let print_differences conf base branches p1 p2 =
-  let gen_string_field chk1 chk2 (title : Adef.safe_string)
-      (name : Adef.encoded_string) proj =
+  let gen_string_field chk1 chk2 (title : Geneweb_sanatize.Sanatize.safe_string)
+      (name : Geneweb_sanatize.Sanatize.encoded_string) proj =
     let name = (name :> string) in
-    let x1 : Adef.safe_string = proj p1 in
-    let x2 : Adef.safe_string = proj p2 in
+    let x1 : Geneweb_sanatize.Sanatize.safe_string = proj p1 in
+    let x2 : Geneweb_sanatize.Sanatize.safe_string = proj p2 in
     if
       (x1 :> string) <> ""
       && (x1 :> string) <> "?"
@@ -41,7 +41,8 @@ let print_differences conf base branches p1 p2 =
         Output.print_sstring conf {|</label></div>|}
       in
       Output.print_sstring conf "<h4>";
-      Output.print_string conf (Adef.safe_fn Utf8.capitalize_fst title);
+      Output.print_string conf
+        (Geneweb_sanatize.Sanatize.safe_fn Utf8.capitalize_fst title);
       Output.print_sstring conf {|</h4>|};
       aux 1 x1 chk1;
       aux 2 x2 chk2)
@@ -52,7 +53,7 @@ let print_differences conf base branches p1 p2 =
   Output.print_sstring conf {|">|};
   Output.print_sstring conf "<p>\n";
   Util.hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "MRG_IND_OK");
+  Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "MRG_IND_OK");
   Util.hidden_input conf "i1" (get_iper p1 |> string_of_iper |> Mutil.encode);
   Util.hidden_input conf "i2" (get_iper p2 |> string_of_iper |> Mutil.encode);
   let rec loop = function
@@ -65,7 +66,8 @@ let print_differences conf base branches p1 p2 =
   loop branches;
   (match (p_getenv conf.env "m", p_getint conf.env "ip") with
   | Some "MRG_DUP_IND_Y_N", Some ip ->
-      Util.hidden_input conf "ip" (ip |> string_of_int |> Adef.encoded);
+      Util.hidden_input conf "ip"
+        (ip |> string_of_int |> Geneweb_sanatize.Sanatize.encoded);
       List.iter
         (fun excl ->
           match p_getenv conf.env excl with
@@ -75,29 +77,33 @@ let print_differences conf base branches p1 p2 =
   | _ -> ());
   Output.print_sstring conf "</p><p>";
   string_field
-    (transl_nth conf "first name/first names" 0 |> Adef.safe)
-    ("first_name" |> Adef.encoded)
-    (fun p -> (p_first_name base p |> escape_html :> Adef.safe_string));
+    (transl_nth conf "first name/first names" 0
+    |> Geneweb_sanatize.Sanatize.safe)
+    ("first_name" |> Geneweb_sanatize.Sanatize.encoded)
+    (fun p ->
+      (p_first_name base p |> escape_html
+        :> Geneweb_sanatize.Sanatize.safe_string));
   string_field
-    (transl_nth conf "surname/surnames" 0 |> Adef.safe)
-    ("surname" |> Adef.encoded)
-    (fun p -> (p_surname base p |> escape_html :> Adef.safe_string));
+    (transl_nth conf "surname/surnames" 0 |> Geneweb_sanatize.Sanatize.safe)
+    ("surname" |> Geneweb_sanatize.Sanatize.encoded)
+    (fun p ->
+      (p_surname base p |> escape_html :> Geneweb_sanatize.Sanatize.safe_string));
   let select_smallest_num = p_first_name base p1 = p_first_name base p2 in
   gen_string_field
     (get_occ p1 < get_occ p2 || not select_smallest_num)
     (get_occ p1 > get_occ p2 && select_smallest_num)
-    (transl conf "number" |> Adef.safe)
-    ("number" |> Adef.encoded)
-    (fun p -> get_occ p |> string_of_int |> Adef.safe);
+    (transl conf "number" |> Geneweb_sanatize.Sanatize.safe)
+    ("number" |> Geneweb_sanatize.Sanatize.encoded)
+    (fun p -> get_occ p |> string_of_int |> Geneweb_sanatize.Sanatize.safe);
   string_field
-    (transl_nth conf "image/images" 0 |> Adef.safe)
-    ("image" |> Adef.encoded)
+    (transl_nth conf "image/images" 0 |> Geneweb_sanatize.Sanatize.safe)
+    ("image" |> Geneweb_sanatize.Sanatize.encoded)
     (fun p ->
       match Image.get_portrait conf base p with
       | Some (`Url url) ->
           ({|<img src="|} ^<^ escape_html url
            ^>^ {|" style="max-width:75px;max-height:100px">|} ^ url
-            :> Adef.safe_string)
+            :> Geneweb_sanatize.Sanatize.safe_string)
       | Some (`Path path) ->
           let k = Image.default_portrait_filename base p in
           let s = Unix.stat path in
@@ -107,52 +113,63 @@ let print_differences conf base branches p1 p2 =
             (commd conf :> string)
             (string_of_int
             @@ int_of_float (mod_float s.Unix.st_mtime (float_of_int max_int)))
-            (acces conf base p : Adef.escaped_string :> string)
+            (acces conf base p
+              : Geneweb_sanatize.Sanatize.escaped_string
+              :> string)
             k path
-          |> Adef.safe
-      | None -> Adef.safe "");
+          |> Geneweb_sanatize.Sanatize.safe
+      | None -> Geneweb_sanatize.Sanatize.safe "");
   string_field
-    (transl conf "public name" |> Adef.safe)
-    ("public_name" |> Adef.encoded)
+    (transl conf "public name" |> Geneweb_sanatize.Sanatize.safe)
+    ("public_name" |> Geneweb_sanatize.Sanatize.encoded)
     (fun p ->
-      (get_public_name p |> sou base |> escape_html :> Adef.safe_string));
+      (get_public_name p |> sou base |> escape_html
+        :> Geneweb_sanatize.Sanatize.safe_string));
   string_field
-    (transl_nth conf "occupation/occupations" 0 |> Adef.safe)
-    ("occupation" |> Adef.encoded)
-    (fun p -> (get_occupation p |> sou base |> escape_html :> Adef.safe_string));
-  string_field
-    (transl conf "sex" |> Adef.safe)
-    ("sex" |> Adef.encoded)
+    (transl_nth conf "occupation/occupations" 0
+    |> Geneweb_sanatize.Sanatize.safe)
+    ("occupation" |> Geneweb_sanatize.Sanatize.encoded)
     (fun p ->
-      Adef.safe
+      (get_occupation p |> sou base |> escape_html
+        :> Geneweb_sanatize.Sanatize.safe_string));
+  string_field
+    (transl conf "sex" |> Geneweb_sanatize.Sanatize.safe)
+    ("sex" |> Geneweb_sanatize.Sanatize.encoded)
+    (fun p ->
+      Geneweb_sanatize.Sanatize.safe
       @@ match get_sex p with Male -> "M" | Female -> "F" | Neuter -> "");
   let date_field trans name get =
     string_field
-      (transl conf trans |> Adef.safe)
+      (transl conf trans |> Geneweb_sanatize.Sanatize.safe)
       name
       (fun p ->
         match Date.od_of_cdate (get p) with
-        | None -> Adef.safe ""
+        | None -> Geneweb_sanatize.Sanatize.safe ""
         | Some d -> DateDisplay.string_of_ondate conf d)
   in
   let place_field trans name get =
     string_field
-      (transl conf trans ^<^ Adef.safe " / "
+      (transl conf trans
+      ^<^ Geneweb_sanatize.Sanatize.safe " / "
       ^>^ transl_nth conf "place/places" 0)
       name
       (fun p -> get p |> sou base |> safe_html)
   in
-  date_field "birth" (Adef.encoded "birth") get_birth;
-  place_field "birth" (Adef.encoded "birth_place") get_birth_place;
-  date_field "baptism" (Adef.encoded "baptism") get_baptism;
-  place_field "baptism" (Adef.encoded "baptism_place") get_baptism_place;
+  date_field "birth" (Geneweb_sanatize.Sanatize.encoded "birth") get_birth;
+  place_field "birth"
+    (Geneweb_sanatize.Sanatize.encoded "birth_place")
+    get_birth_place;
+  date_field "baptism" (Geneweb_sanatize.Sanatize.encoded "baptism") get_baptism;
+  place_field "baptism"
+    (Geneweb_sanatize.Sanatize.encoded "baptism_place")
+    get_baptism_place;
   string_field
-    (transl conf "death" |> Adef.safe)
-    (Adef.encoded "death")
+    (transl conf "death" |> Geneweb_sanatize.Sanatize.safe)
+    (Geneweb_sanatize.Sanatize.encoded "death")
     (fun p ->
       let is = 2 in
       match get_death p with
-      | NotDead -> transl_nth conf "alive" is |> Adef.safe
+      | NotDead -> transl_nth conf "alive" is |> Geneweb_sanatize.Sanatize.safe
       | Death (dr, cd) ->
           let s =
             match dr with
@@ -164,31 +181,37 @@ let print_differences conf base branches p1 p2 =
           in
           s ^<^ " "
           ^<^ DateDisplay.string_of_ondate conf (Date.date_of_cdate cd)
-      | DeadYoung -> transl_nth conf "died young" is |> Adef.safe
-      | DeadDontKnowWhen -> transl_nth conf "died" is |> Adef.safe
-      | DontKnowIfDead | OfCourseDead -> Adef.safe "");
-  place_field "death" (Adef.encoded "death_place") get_death_place;
+      | DeadYoung ->
+          transl_nth conf "died young" is |> Geneweb_sanatize.Sanatize.safe
+      | DeadDontKnowWhen ->
+          transl_nth conf "died" is |> Geneweb_sanatize.Sanatize.safe
+      | DontKnowIfDead | OfCourseDead -> Geneweb_sanatize.Sanatize.safe "");
+  place_field "death"
+    (Geneweb_sanatize.Sanatize.encoded "death_place")
+    get_death_place;
   string_field
-    (transl conf "burial" |> Adef.safe)
-    (Adef.encoded "burial")
+    (transl conf "burial" |> Geneweb_sanatize.Sanatize.safe)
+    (Geneweb_sanatize.Sanatize.encoded "burial")
     (fun p ->
       let is = 2 in
       (* TODO burial_to_string *)
       match get_burial p with
-      | UnknownBurial -> Adef.safe ""
+      | UnknownBurial -> Geneweb_sanatize.Sanatize.safe ""
       | Buried cod -> (
           transl_nth conf "buried" is
           ^<^
           match Date.od_of_cdate cod with
-          | None -> Adef.safe ""
+          | None -> Geneweb_sanatize.Sanatize.safe ""
           | Some d -> " " ^<^ DateDisplay.string_of_ondate conf d)
       | Cremated cod -> (
           transl_nth conf "cremated" is
           ^<^
           match Date.od_of_cdate cod with
-          | None -> Adef.safe ""
+          | None -> Geneweb_sanatize.Sanatize.safe ""
           | Some d -> " " ^<^ DateDisplay.string_of_ondate conf d));
-  place_field "burial" (Adef.encoded "burial_place") get_burial_place;
+  place_field "burial"
+    (Geneweb_sanatize.Sanatize.encoded "burial_place")
+    get_burial_place;
   Output.print_sstring conf
     {|</p><p><button type="submit" class="btn btn-primary btn-lg">|};
   Output.print_sstring conf
@@ -346,12 +369,12 @@ let print_merged conf base wl p =
       let ip = iper_of_string ip in
       let s1 =
         match p_getenv conf.env "iexcl" with
-        | Some "" | None -> Adef.encoded ""
+        | Some "" | None -> Geneweb_sanatize.Sanatize.encoded ""
         | Some s -> "&iexcl=" ^<^ Mutil.encode s
       in
       let s2 =
         match p_getenv conf.env "fexcl" with
-        | Some "" | None -> Adef.encoded ""
+        | Some "" | None -> Geneweb_sanatize.Sanatize.encoded ""
         | Some s -> "&fexcl=" ^<^ Mutil.encode s
       in
       Output.print_sstring conf "<p>";

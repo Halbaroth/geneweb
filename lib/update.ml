@@ -6,7 +6,7 @@ open Gwdb
 open Util
 
 type update_error =
-  | UERR of Adef.safe_string
+  | UERR of Geneweb_sanatize.Sanatize.safe_string
   | UERR_sex_married of person
   | UERR_sex_incoherent of base * person
   | UERR_sex_undefined of string * string * int
@@ -15,10 +15,10 @@ type update_error =
   | UERR_own_ancestor of base * person
   | UERR_digest
   | UERR_bad_date of Def.dmy
-  | UERR_missing_field of Adef.safe_string
+  | UERR_missing_field of Geneweb_sanatize.Sanatize.safe_string
   | UERR_already_has_parents of base * person
-  | UERR_missing_surname of Adef.safe_string
-  | UERR_missing_first_name of Adef.safe_string
+  | UERR_missing_surname of Geneweb_sanatize.Sanatize.safe_string
+  | UERR_missing_first_name of Geneweb_sanatize.Sanatize.safe_string
   | UERR_locked_base
 
 exception ModErr of update_error
@@ -229,8 +229,8 @@ let is_label_note lbl =
   in
   loop 0
 
-let print_aux conf param (value : Adef.encoded_string)
-    (submit : Adef.encoded_string) =
+let print_aux conf param (value : Geneweb_sanatize.Sanatize.encoded_string)
+    (submit : Geneweb_sanatize.Sanatize.encoded_string) =
   Output.printf conf {|<p><form method="post" action="%s">|} conf.command;
   List.iter (fun (x, v) -> Util.hidden_textarea conf x v) conf.henv;
   List.iter (fun (x, v) -> Util.hidden_textarea conf x v) conf.env;
@@ -240,12 +240,15 @@ let print_aux conf param (value : Adef.encoded_string)
   Output.print_sstring conf {|"></form></p>|}
 
 let print_return conf =
-  print_aux conf "return" (Adef.encoded "ok")
-    (Adef.encoded @@ Utf8.capitalize_fst @@ transl conf "back")
+  print_aux conf "return"
+    (Geneweb_sanatize.Sanatize.encoded "ok")
+    (Geneweb_sanatize.Sanatize.encoded @@ Utf8.capitalize_fst
+   @@ transl conf "back")
 
 let print_continue conf
-    ?(continue = Adef.encoded @@ Utf8.capitalize_fst @@ transl conf "continue")
-    param value =
+    ?(continue =
+      Geneweb_sanatize.Sanatize.encoded @@ Utf8.capitalize_fst
+      @@ transl conf "continue") param value =
   print_aux conf param value continue
 
 let prerr conf _err fn =
@@ -260,7 +263,7 @@ let prerr conf _err fn =
   raise @@ ModErr _err
 
 let string_of_error conf =
-  let fso f s o : Adef.escaped_string =
+  let fso f s o : Geneweb_sanatize.Sanatize.escaped_string =
     Util.escape_html f ^^^ "." ^<^ string_of_int o ^<^ " "
     ^<^ Util.escape_html s
   in
@@ -270,24 +273,26 @@ let string_of_error conf =
     let o = get_occ p in
     fso f s o
   in
-  let strong s = ("<strong>" ^<^ s ^>^ "</strong>" :> Adef.safe_string) in
+  let strong s =
+    ("<strong>" ^<^ s ^>^ "</strong>" :> Geneweb_sanatize.Sanatize.safe_string)
+  in
   function
   | UERR s -> s
   | UERR_sex_married _ ->
       Utf8.capitalize_fst (transl conf "cannot change sex of a married person")
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | UERR_sex_incoherent (base, p) ->
       (Utf8.capitalize_fst (fso_p base p :> string)
       ^ " "
       ^
       if get_sex p = Female then transl conf "should be male"
       else transl conf "should be female")
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | UERR_sex_undefined (f, s, o) ->
       Printf.sprintf
         (fcapitale (ftransl conf "undefined sex for %t"))
         (fun _ -> (fso f s o :> string))
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | UERR_unknow_person (f, s, o) ->
       Utf8.capitalize_fst (transl conf "unknown person")
       ^<^ transl conf ":" ^<^ " "
@@ -298,16 +303,20 @@ let string_of_error conf =
          ("\"" ^ (fso_p base p :> string) ^ "\"")
          (fun _ ->
            Printf.sprintf "<a href=\"%s%s\">"
-             (commd conf : Adef.escaped_string :> string)
-             (acces conf base p : Adef.escaped_string :> string))
+             (commd conf : Geneweb_sanatize.Sanatize.escaped_string :> string)
+             (acces conf base p
+               : Geneweb_sanatize.Sanatize.escaped_string
+               :> string))
          (fun _ -> "</a>")
       ^
       if var = "" then "."
       else
         "<span class=\"UERR_already_defined_var\">("
-        ^ (Util.escape_html var : Adef.escaped_string :> string)
+        ^ (Util.escape_html var
+            : Geneweb_sanatize.Sanatize.escaped_string
+            :> string)
         ^ ")</span>.")
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | UERR_own_ancestor (base, p) ->
       strong (fso_p base p)
       ^>^ " "
@@ -315,7 +324,7 @@ let string_of_error conf =
   | UERR_digest ->
       transl conf
         {|the base has changed; do "back", "reload", and refill the form|}
-      |> Utf8.capitalize_fst |> Adef.safe
+      |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe
   | UERR_bad_date d ->
       (Utf8.capitalize_fst (transl conf "incorrect date")
       ^ transl conf ":" ^ " "
@@ -324,27 +333,30 @@ let string_of_error conf =
       | { day = 0; month = 0; year = a; _ } -> Printf.sprintf "%d" a
       | { day = 0; month = m; year = a; _ } -> Printf.sprintf "%d/%d" m a
       | { day = j; month = m; year = a; _ } -> Printf.sprintf "%d/%d/%d" j m a)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | UERR_missing_field s -> "missing field: " ^<^ s
   | UERR_already_has_parents (base, p) ->
       Printf.sprintf
         (fcapitale (ftransl conf "%t already has parents"))
         (fun _ ->
-          (Util.referenced_person_text conf base p : Adef.safe_string :> string))
-      |> Adef.safe
-  | UERR_missing_first_name s when s = Adef.safe "" ->
-      transl conf "first name missing" |> Utf8.capitalize_fst |> Adef.safe
+          (Util.referenced_person_text conf base p
+            : Geneweb_sanatize.Sanatize.safe_string
+            :> string))
+      |> Geneweb_sanatize.Sanatize.safe
+  | UERR_missing_first_name s when s = Geneweb_sanatize.Sanatize.safe "" ->
+      transl conf "first name missing"
+      |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe
   | UERR_missing_first_name x ->
       (transl conf "first name missing" |> Utf8.capitalize_fst)
       ^<^ transl conf ":" ^<^ " "
-      ^<^ (x :> Adef.safe_string)
+      ^<^ (x :> Geneweb_sanatize.Sanatize.safe_string)
   | UERR_missing_surname x ->
       (transl conf "surname missing" |> Utf8.capitalize_fst)
       ^<^ transl conf ":" ^<^ " "
-      ^<^ (x :> Adef.safe_string)
+      ^<^ (x :> Geneweb_sanatize.Sanatize.safe_string)
   | UERR_locked_base ->
       transl conf "the file is temporarily locked: please try again"
-      |> Utf8.capitalize_fst |> Adef.safe
+      |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe
 
 let print_err_unknown conf (f, s, o) =
   let err = UERR_unknow_person (f, s, o) in
@@ -379,8 +391,8 @@ let print_first_name conf base p =
 let someone_strong base p =
   "<strong>"
   ^<^ escape_html (p_first_name base p)
-  ^^^ (if get_occ p = 0 then Adef.escaped ""
-      else Adef.escaped @@ "." ^ string_of_int (get_occ p))
+  ^^^ (if get_occ p = 0 then Geneweb_sanatize.Sanatize.escaped ""
+      else Geneweb_sanatize.Sanatize.escaped @@ "." ^ string_of_int (get_occ p))
   ^^^ " "
   ^<^ escape_html (p_surname base p)
   ^>^ "</strong>"
@@ -421,7 +433,7 @@ let print_order_changed conf print_list before after =
   Output.print_sstring conf {|</ul></td></tr></table>|}
 
 let someone_strong_n_short_dates conf base p =
-  (someone_strong base p :> Adef.safe_string)
+  (someone_strong base p :> Geneweb_sanatize.Sanatize.safe_string)
   ^^^ DateDisplay.short_dates_text conf base p
 
 let print_warning conf base = function
@@ -689,11 +701,11 @@ let print_warning conf base = function
            ^^^ "</strong> <em>"
            ^<^ (match Date.od_of_cdate t.t_date_start with
                | Some d -> DateDisplay.string_of_date conf d
-               | None -> Adef.safe "")
+               | None -> Geneweb_sanatize.Sanatize.safe "")
            ^^^ "-"
            ^<^ (match Date.od_of_cdate t.t_date_end with
                | Some d -> DateDisplay.string_of_date conf d
-               | None -> Adef.safe "")
+               | None -> Geneweb_sanatize.Sanatize.safe "")
            ^>^ "</em>"
             :> string))
   | UndefinedSex p ->
@@ -956,7 +968,9 @@ let reconstitute_date_dmy2 conf var =
                 let d = Date.dmy_of_dmy2 dmy2 in
                 bad_date conf d)
       | None -> { day2 = 0; month2 = 0; year2 = y; delta2 = 0 })
-  | None -> raise @@ ModErr (UERR_missing_field (Adef.safe "oryear"))
+  | None ->
+      raise
+      @@ ModErr (UERR_missing_field (Geneweb_sanatize.Sanatize.safe "oryear"))
 
 let reconstitute_date_dmy conf var =
   let prec, y =
@@ -1039,9 +1053,9 @@ let check_missing_name base p =
     && poi base p.key_index |> g |> sou base |> ( <> ) "?"
   in
   if p.first_name = "" || quest p.first_name get_first_name then
-    Some (UERR_missing_first_name (Adef.safe ""))
+    Some (UERR_missing_first_name (Geneweb_sanatize.Sanatize.safe ""))
   else if p.surname = "" || quest p.surname get_surname then
-    Some (UERR_missing_surname (Adef.safe ""))
+    Some (UERR_missing_surname (Geneweb_sanatize.Sanatize.safe ""))
   else None
 
 let check_missing_witnesses_names conf get list =
@@ -1055,11 +1069,13 @@ let check_missing_witnesses_names conf get list =
         else if fn = "" || fn = "?" then
           Some
             (UERR_missing_first_name
-               (transl_nth conf "witness/witnesses" 0 |> Adef.safe))
+               (transl_nth conf "witness/witnesses" 0
+               |> Geneweb_sanatize.Sanatize.safe))
         else if sn = "" || sn = "?" then
           Some
             (UERR_missing_surname
-               (transl_nth conf "witness/witnesses" 0 |> Adef.safe))
+               (transl_nth conf "witness/witnesses" 0
+               |> Geneweb_sanatize.Sanatize.safe))
         else loop (i + 1)
     in
     loop 0
@@ -1144,9 +1160,10 @@ let print_create_conflict conf base p var =
   Output.print_sstring conf " ";
   Output.print_sstring conf (transl conf {|use "link" instead of "create"|});
   Output.print_sstring conf ".</li></ul>";
-  transl conf "create" |> Utf8.capitalize_fst |> Adef.encoded
+  transl conf "create" |> Utf8.capitalize_fst
+  |> Geneweb_sanatize.Sanatize.encoded
   |> Util.submit_input conf "create";
-  transl conf "back" |> Utf8.capitalize_fst |> Adef.encoded
+  transl conf "back" |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.encoded
   |> Util.submit_input conf "return";
   Output.print_sstring conf {|</form>|};
   print_same_name conf base p
@@ -1267,8 +1284,8 @@ let insert_person conf base src new_persons (f, s, o, create, var) =
         | Some ip -> ip
         | None -> print_err_unknown conf (f, s, o))
 
-let rec update_conf_env field (p : Adef.encoded_string)
-    (occ : Adef.encoded_string) o_env n_env =
+let rec update_conf_env field (p : Geneweb_sanatize.Sanatize.encoded_string)
+    (occ : Geneweb_sanatize.Sanatize.encoded_string) o_env n_env =
   match o_env with
   | [] -> n_env
   | ((name, _) as head) :: rest ->
@@ -1289,12 +1306,15 @@ let update_conf_aux _create _occ conf =
   let occ =
     match p_getenv conf.env _occ with
     | Some occ -> Mutil.encode occ
-    | None -> Adef.encoded ""
+    | None -> Geneweb_sanatize.Sanatize.encoded ""
   in
   { conf with env = update_conf_env field _create occ conf.env [] }
 
-let update_conf_create = update_conf_aux (Adef.encoded "create") "free_occ"
-let update_conf_link = update_conf_aux (Adef.encoded "link") "link_occ"
+let update_conf_create =
+  update_conf_aux (Geneweb_sanatize.Sanatize.encoded "create") "free_occ"
+
+let update_conf_link =
+  update_conf_aux (Geneweb_sanatize.Sanatize.encoded "link") "link_occ"
 
 let update_conf conf =
   match p_getenv conf.env "link" with

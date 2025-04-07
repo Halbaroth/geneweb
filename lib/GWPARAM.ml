@@ -151,10 +151,12 @@ module Legacy = struct
         close_in ic
       with _ -> ( try close_in ic with _ -> ())
     in
-    fun ?(headers = []) ?(content : Adef.safe_string option) conf code ->
+    fun ?(headers = [])
+        ?(content : Geneweb_sanatize.Sanatize.safe_string option) conf code ->
       Output.status conf code;
       List.iter (Output.header conf "%s") headers;
-      Output.print_string conf (Adef.encoded "<h1>Incorrect request</h1>");
+      Output.print_string conf
+        (Geneweb_sanatize.Sanatize.encoded "<h1>Incorrect request</h1>");
       match content with
       | Some content -> Output.print_string conf content
       | None -> (
@@ -254,11 +256,11 @@ module Legacy = struct
       | `LOG_DEBUG -> "DEBUG"
     in
     Printf.eprintf "[%s]: %s %s\n"
-      (Mutil.sprintf_date tm : Adef.safe_string :> string)
+      (Mutil.sprintf_date tm : Geneweb_sanatize.Sanatize.safe_string :> string)
       level msg
 
-  let wrap_output (conf : Config.config) (title : Adef.safe_string)
-      (content : unit -> unit) =
+  let wrap_output (conf : Config.config)
+      (title : Geneweb_sanatize.Sanatize.safe_string) (content : unit -> unit) =
     let robot = List.assoc_opt "robot_index" conf.base_env = Some "yes" in
     Output.print_sstring conf {|<!DOCTYPE html><head><title>|};
     Output.print_string conf title;

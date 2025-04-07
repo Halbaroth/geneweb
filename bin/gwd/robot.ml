@@ -33,8 +33,8 @@ let robot_error conf cnt sec =
   let env =
     Templ.Env.(
       empty
-      |> add "cnt" (Adef.encoded @@ string_of_int cnt)
-      |> add "sec" (Adef.encoded @@ string_of_int sec))
+      |> add "cnt" (Geneweb_sanatize.Sanatize.encoded @@ string_of_int cnt)
+      |> add "sec" (Geneweb_sanatize.Sanatize.encoded @@ string_of_int sec))
   in
   Templ.include_template conf env "robot" (fun () ->
       let title _ = Output.print_sstring conf "Access refused" in

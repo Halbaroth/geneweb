@@ -461,6 +461,6 @@ module NLDB = struct
     oc1 = oc2 && String.equal fn1 fn2 && String.equal sn1 sn2
 end
 
-let ( ^^^ ) = Adef.( ^^^ )
-let ( ^>^ ) = Adef.( ^>^ )
-let ( ^<^ ) = Adef.( ^<^ )
+let ( ^^^ ) = Geneweb_sanatize.Sanatize.( ^^^ )
+let ( ^>^ ) = Geneweb_sanatize.Sanatize.( ^>^ )
+let ( ^<^ ) = Geneweb_sanatize.Sanatize.( ^<^ )

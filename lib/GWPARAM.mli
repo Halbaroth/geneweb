@@ -50,7 +50,7 @@ type syslog_level =
 
 val output_error :
   (?headers:string list ->
-  ?content:Adef.safe_string ->
+  ?content:Geneweb_sanatize.Sanatize.safe_string ->
   Config.config ->
   Def.httpStatus ->
   unit)
@@ -66,7 +66,11 @@ val syslog : (syslog_level -> string -> unit) ref
 (** [!syslog level log] log message [log] with gravity level [level] on stderr. *)
 
 val wrap_output :
-  (Config.config -> Adef.safe_string -> (unit -> unit) -> unit) ref
+  (Config.config ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  (unit -> unit) ->
+  unit)
+  ref
 (** [wrap_output conf title content]
     Wrap the display of [title] and [content] in a defined template.
 *)
@@ -119,7 +123,7 @@ module Legacy : sig
 
   val output_error :
     ?headers:string list ->
-    ?content:Adef.safe_string ->
+    ?content:Geneweb_sanatize.Sanatize.safe_string ->
     Config.config ->
     Def.httpStatus ->
     unit
@@ -149,6 +153,10 @@ module Legacy : sig
   val syslog : syslog_level -> string -> unit
   (** Prints on stderr using `"[date]: level message"` format. *)
 
-  val wrap_output : Config.config -> Adef.safe_string -> (unit -> unit) -> unit
+  val wrap_output :
+    Config.config ->
+    Geneweb_sanatize.Sanatize.safe_string ->
+    (unit -> unit) ->
+    unit
   (** Display in a very basic HTML doc, with no CSS or JavaScript. *)
 end

@@ -72,7 +72,7 @@ val print_sub_part :
 val print_mod_view_page :
   config (* conf *) ->
   bool (* can_edit *) ->
-  Adef.encoded_string (* mode *) ->
+  Geneweb_sanatize.Sanatize.encoded_string (* mode *) ->
   string (* fname *) ->
   (bool -> unit) ->
   (* title *)

@@ -1,6 +1,6 @@
 type gen_record = {
-  date : Adef.safe_string;
-  wizard : Adef.safe_string;
+  date : Geneweb_sanatize.Sanatize.safe_string;
+  wizard : Geneweb_sanatize.Sanatize.safe_string;
   gen_p : (Gwdb.iper, Gwdb.iper, string) Def.gen_person;
   gen_f : (Gwdb.iper, Gwdb.ifam, string) Def.gen_family list;
   gen_c : Gwdb.iper array list;

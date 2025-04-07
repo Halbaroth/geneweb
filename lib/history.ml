@@ -365,7 +365,8 @@ let possibly_highlight env s =
       if in_text case_sens h s then html_highlight case_sens h s else s
   | _ -> s
 
-let safe_val (s : Adef.safe_string) = VVstring (s :> string)
+let safe_val (s : Geneweb_sanatize.Sanatize.safe_string) =
+  VVstring (s :> string)
 
 let rec eval_var conf base env _ _ = function
   | [ "count" ] -> (
@@ -459,7 +460,8 @@ and eval_string s = function
   | _ -> raise Not_found
 
 and eval_person_field_var conf base env p = function
-  | [ "access" ] -> safe_val (Util.acces conf base p :> Adef.safe_string)
+  | [ "access" ] ->
+      safe_val (Util.acces conf base p :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "dates" ] -> safe_val (DateDisplay.short_dates_text conf base p)
   | [ "has_history" ] ->
       let fn = sou base (get_first_name p) in
@@ -479,7 +481,9 @@ and eval_person_field_var conf base env p = function
   | [] ->
       VVstring
         (possibly_highlight env
-           (simple_person_text conf base p : Adef.safe_string :> string))
+           (simple_person_text conf base p
+             : Geneweb_sanatize.Sanatize.safe_string
+             :> string))
   | _ -> VVstring "person..."
 
 and simple_person_text conf base p =

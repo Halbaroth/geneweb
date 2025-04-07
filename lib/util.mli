@@ -23,7 +23,7 @@ val search_in_assets : string -> string
 (** Checks that the file in argument belong to one of the asserts dir
     (defined in the Secure module) *)
 
-val escache_value : base -> Adef.encoded_string
+val escache_value : base -> Geneweb_sanatize.Sanatize.encoded_string
 (** Returns the date of the base directory last update *)
 
 val commit_patches : config -> base -> unit
@@ -31,7 +31,7 @@ val commit_patches : config -> base -> unit
 
 val update_wf_trace : config -> string -> unit
 
-val get_referer : config -> Adef.escaped_string
+val get_referer : config -> Geneweb_sanatize.Sanatize.escaped_string
 (** Get referer (the page you came from to the current page) page from HTTP request *)
 
 val clean_html_tags : string -> string
@@ -54,16 +54,17 @@ val commd :
   ?henv:bool ->
   ?senv:bool ->
   config ->
-  Adef.escaped_string
+  Geneweb_sanatize.Sanatize.escaped_string
 (** Returns link to the current command (database name after domain name and port in url) with query string
     that containts bindings from [conf.henv] and [conf.senv]. Doesn't add binding [(k,v)] when:
     - k = "oc" or "ocz" and v = "0"
     - v = "" *)
 
-val prefix_base : config -> Adef.escaped_string
-val prefix_base_password : config -> Adef.escaped_string
+val prefix_base : config -> Geneweb_sanatize.Sanatize.escaped_string
+val prefix_base_password : config -> Geneweb_sanatize.Sanatize.escaped_string
 
-val hidden_env_aux : config -> (string * Adef.encoded_string) list -> unit
+val hidden_env_aux :
+  config -> (string * Geneweb_sanatize.Sanatize.encoded_string) list -> unit
 (** [hidden_env_aux env]
     Creates a hidden HTML input for every key and value in [env].
 *)
@@ -72,15 +73,18 @@ val hidden_env : config -> unit
 (** Creates a hidden HTML input for every key and value in [conf.henv] and [conf.senv].
     Used to include immutable environement bindings in the HTML form. *)
 
-val hidden_textarea : config -> string -> Adef.encoded_string -> unit
+val hidden_textarea :
+  config -> string -> Geneweb_sanatize.Sanatize.encoded_string -> unit
 
-val hidden_input : config -> string -> Adef.encoded_string -> unit
+val hidden_input :
+  config -> string -> Geneweb_sanatize.Sanatize.encoded_string -> unit
 (** [hidden_input conf k v] *)
 
 val hidden_input_s : config -> string -> string -> unit
 (** [hidden_input_s conf k v] *)
 
-val submit_input : config -> string -> Adef.encoded_string -> unit
+val submit_input :
+  config -> string -> Geneweb_sanatize.Sanatize.encoded_string -> unit
 (** [submit_input conf k v] *)
 
 val nobtit : config -> base -> person -> title list
@@ -97,11 +101,15 @@ val is_old_person : config -> (iper, iper, istr) gen_person -> bool
 val start_with_vowel : config -> string -> bool
 
 val acces_n :
-  config -> base -> Adef.escaped_string -> person -> Adef.escaped_string
+  config ->
+  base ->
+  Geneweb_sanatize.Sanatize.escaped_string ->
+  person ->
+  Geneweb_sanatize.Sanatize.escaped_string
 (** Returns URL query string to access nth person
     (e.g. for person 2 in url: p2=foo&n2=bar&oc2=1 *)
 
-val acces : config -> base -> person -> Adef.escaped_string
+val acces : config -> base -> person -> Geneweb_sanatize.Sanatize.escaped_string
 
 val accessible_by_key : config -> base -> person -> string -> string -> bool
 (** [accessible_by_key conf base p fn sn]
@@ -112,12 +120,18 @@ val accessible_by_key : config -> base -> person -> string -> string -> bool
 *)
 
 val geneweb_link :
-  config -> Adef.escaped_string -> Adef.safe_string -> Adef.safe_string
+  config ->
+  Geneweb_sanatize.Sanatize.escaped_string ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [geneweb_link conf href s] Returns HTML link to actual geneweb's command (database name) with additional (to those defind by [commd])
     argument [href] and [s] as textual content of the link. *)
 
 val wprint_geneweb_link :
-  config -> Adef.escaped_string -> Adef.safe_string -> unit
+  config ->
+  Geneweb_sanatize.Sanatize.escaped_string ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  unit
 (** Prints on the socket link created by [geneweb_link]. *)
 
 val is_restricted : config -> base -> iper -> bool
@@ -166,7 +180,7 @@ val gen_person_text :
   config ->
   base ->
   person ->
-  Adef.safe_string
+  Geneweb_sanatize.Sanatize.safe_string
 (** Returns person's first name and surname HTML description depending on :
     - his public name
     - his qualifiers
@@ -179,73 +193,105 @@ val gen_person_text :
 *)
 
 val gen_person_title_text :
-  (config -> base -> person -> Adef.safe_string -> Adef.safe_string) ->
+  (config ->
+  base ->
+  person ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string) ->
   config ->
   base ->
   person ->
-  Adef.safe_string
+  Geneweb_sanatize.Sanatize.safe_string
 (** [gen_person_title_text reference paccess conf base p] returns HTML structure
     of person that describes person's first name surname and main title. [reference]
     is used to either encapsulate structure in the link (or other type
     of maniplations). *)
 
-val person_text_without_title : config -> base -> person -> Adef.safe_string
+val person_text_without_title :
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 (** Makes call to [gen_person_text_without_title] with [std_access] *)
 
 val main_title : config -> base -> person -> title option
 (** Returns main person's title. If person doesn't have it, then returns first title
     from the list. *)
 
-val titled_person_text : config -> base -> person -> title -> Adef.safe_string
+val titled_person_text :
+  config -> base -> person -> title -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns person's first name and surname text description depending on
     person's title *)
 
-val one_title_text : base -> title -> Adef.safe_string
+val one_title_text : base -> title -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns HTML representation of title's identifier with its place (if exists) *)
 
-val person_title_text : config -> base -> person -> Adef.safe_string
+val person_title_text :
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns HTML structure of person that describes person's first name surname
     and main title. Calls [gen_person_title_text] with [no_reference]. *)
 
-val person_title : config -> base -> person -> Adef.safe_string
+val person_title :
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns HTML representation of person's main title (or first title if
     main doesn't exists). If person doesn't have a title or if access to
     person isn't granted returns empty string *)
 
-val child_of_parent : config -> base -> person -> Adef.safe_string
+val child_of_parent :
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 
-val mod_ind_link : config -> person -> Adef.safe_string -> Adef.safe_string
+val mod_ind_link :
+  config ->
+  person ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [mod_ind_link conf base p s] creates a hyperlink with the URL "?m=MOD_IND&i=\{iper\}"
     where '\{iper\}' is the index of the person [p], and the text [s]. If [s] is empty,
     it defaults to print a wrench icon. *)
 
-val reference : config -> base -> person -> Adef.safe_string -> Adef.safe_string
+val reference :
+  config ->
+  base ->
+  person ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [reference conf base p desc] returns HTML link to the person
     where [desc] is content of the link (generaly his first name and
     surname description). If person is hidden returns [desc] (do not
     create link). *)
 
 val reference_noid :
-  config -> base -> person -> Adef.safe_string -> Adef.safe_string
+  config ->
+  base ->
+  person ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** Same as [reference] but link doesn't has "id" field *)
 
 val no_reference :
-  config -> base -> person -> Adef.safe_string -> Adef.safe_string
+  config ->
+  base ->
+  person ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [reference conf base p desc] returns [desc] without creating a link *)
 
-val referenced_person_title_text : config -> base -> person -> Adef.safe_string
+val referenced_person_title_text :
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 (** Retruns HTML link to the person that contains its first name, surname and person's
     nobility title. Calls [gen_person_title_text] with [reference]. *)
 
-val referenced_person_text : config -> base -> person -> Adef.safe_string
+val referenced_person_text :
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns HTML link to the person that contains its first name and surname. *)
 
 val referenced_person_text_without_surname :
-  config -> base -> person -> Adef.safe_string
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns HTML link to the person that contains its first name. *)
 
 val update_family_loop :
-  config -> base -> person -> Adef.safe_string -> Adef.safe_string
+  config ->
+  base ->
+  person ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string
 
 val p_getenv : Config.env -> string -> string option
 (** Returns value associated to the label in environnement *)
@@ -253,12 +299,14 @@ val p_getenv : Config.env -> string -> string option
 val p_getint : Config.env -> string -> int option
 (** Returns integer value associated to the label in environnement *)
 
-val create_env : Adef.encoded_string -> Config.env
+val create_env : Geneweb_sanatize.Sanatize.encoded_string -> Config.env
 (** Create association list from the query part of a URL.
     (i.e. a list of key-value separated by `&` or `;`)
 *)
 
-val string_of_place : config -> string -> Adef.escaped_string
+val string_of_place :
+  config -> string -> Geneweb_sanatize.Sanatize.escaped_string
+
 val raw_string_of_place : config -> string -> string
 val place_of_string : config -> string -> place option
 val allowed_tags_file : string ref
@@ -287,10 +335,16 @@ val surname_without_particle : base -> string -> string
 val specify_homonymous : config -> base -> person -> bool -> unit
 
 val get_approx_birth_date_place :
-  config -> base -> person -> date option * Adef.safe_string
+  config ->
+  base ->
+  person ->
+  date option * Geneweb_sanatize.Sanatize.safe_string
 
 val get_approx_death_date_place :
-  config -> base -> person -> date option * Adef.safe_string
+  config ->
+  base ->
+  person ->
+  date option * Geneweb_sanatize.Sanatize.safe_string
 
 type ('a, 'b) format2 = ('a, unit, string, 'b) format4
 
@@ -331,7 +385,10 @@ val transl_a_of_b : config -> string -> string -> string -> string
 
 val transl_a_of_gr_eq_gen_lev : config -> string -> string -> string -> string
 
-val std_color : config -> Adef.safe_string -> Adef.safe_string
+val std_color :
+  config ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** Colorise HTML element with [conf.highlight] color
     (wrap text in <span> with inline style). *)
 
@@ -339,19 +396,27 @@ val index_of_sex : sex -> int
 (** Sex index used in translations (0 for male, 1 for female, 2 for neuter) *)
 
 val string_of_pevent_name :
-  config -> base -> istr gen_pers_event_name -> Adef.safe_string
+  config ->
+  base ->
+  istr gen_pers_event_name ->
+  Geneweb_sanatize.Sanatize.safe_string
 
 val string_of_fevent_name :
-  config -> base -> istr gen_fam_event_name -> Adef.safe_string
+  config ->
+  base ->
+  istr gen_fam_event_name ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [string_of_fevent_name conf base fevent_name]
 *)
 
-val string_of_witness_kind : config -> sex -> witness_kind -> Adef.safe_string
+val string_of_witness_kind :
+  config -> sex -> witness_kind -> Geneweb_sanatize.Sanatize.safe_string
 (** [string_of_witness_kind conf sex wk]
     Return the string corresponding to wk according to [sex] and [conf].
 *)
 
-val string_of_witness_kind_raw : witness_kind -> Adef.safe_string
+val string_of_witness_kind_raw :
+  witness_kind -> Geneweb_sanatize.Sanatize.safe_string
 (** [string_of_witness_kind_raw conf wk]
     Return the string corresponding to generic coding of wk .
 *)
@@ -362,7 +427,8 @@ val string_of_decimal_num : config -> float -> string
 val person_exists :
   config -> base -> string * string * int -> bool * string * string
 
-val husband_wife : config -> base -> person -> bool -> Adef.safe_string
+val husband_wife :
+  config -> base -> person -> bool -> Geneweb_sanatize.Sanatize.safe_string
 
 val find_person_in_env : config -> base -> string -> person option
 (** [find_person_in_env conf base suff]
@@ -420,11 +486,15 @@ val only_printable : string -> string
 val only_printable_or_nl : string -> string
 (** Same as [only_printable] but also accepts '\n'. *)
 
-val relation_type_text : config -> relation_type -> int -> Adef.safe_string
-val rchild_type_text : config -> relation_type -> int -> Adef.safe_string
+val relation_type_text :
+  config -> relation_type -> int -> Geneweb_sanatize.Sanatize.safe_string
+
+val rchild_type_text :
+  config -> relation_type -> int -> Geneweb_sanatize.Sanatize.safe_string
+
 val has_nephews_or_nieces : config -> base -> person -> bool
 val browser_doesnt_have_tables : config -> bool
-val doctype : Adef.safe_string
+val doctype : Geneweb_sanatize.Sanatize.safe_string
 
 val begin_centered : config -> unit
 (** Prints on the socket beginning of the <table> tag untill first opened <td> where the text is centred *)
@@ -464,7 +534,7 @@ val is_hide_names : config -> person -> bool
 val reduce_list : int -> 'a list -> 'a list
 (** [reduce_list n l] takes [n] first elements from the list [l] *)
 
-val gen_print_tips : config -> Adef.safe_string -> unit
+val gen_print_tips : config -> Geneweb_sanatize.Sanatize.safe_string -> unit
 (** Print a tip with the specified text *)
 
 val print_tips_relationship : config -> unit
@@ -476,7 +546,7 @@ val images_prefix : config -> string
 val get_opt : config -> string -> bool -> bool
 (** get option value for evar "im", "sp", "ma". Default value is defined by third param *)
 
-val display_options : config -> Adef.escaped_string
+val display_options : config -> Geneweb_sanatize.Sanatize.escaped_string
 
 type cache_visited_t = (string, (iper * string) list) Hashtbl.t
 
@@ -489,7 +559,7 @@ val array_mem_witn :
   Gwdb.base ->
   iper ->
   (iper * Def.witness_kind) array ->
-  Adef.safe_string option
+  Geneweb_sanatize.Sanatize.safe_string option
 (** [array_mem_witn conf base ip array] checks if [ip] is in [array]
     and returns corresponding [string_of_witness_kind] if so.
 *)
@@ -506,11 +576,11 @@ val name_key : Gwdb.base -> string -> string
 val nb_char_occ : char -> string -> int
 (** [nb_char_occ c s] return the number of times [c] appears in [s]. *)
 
-val escape_html : string -> Adef.escaped_string
+val escape_html : string -> Geneweb_sanatize.Sanatize.escaped_string
 (** [escape_html str] replaces '&', '"', '\'', '<' and '>'
     with their corresponding character entities (using entity number) *)
 
-val safe_html : string -> Adef.safe_string
+val safe_html : string -> Geneweb_sanatize.Sanatize.safe_string
 (**
    [safe_html s] sanitizes [s] element in order to fix ill-formed
    HTML input and to prevent XSS injection
@@ -567,7 +637,7 @@ val select_mascdesc :
     {!val:select_desc}
  *)
 
-val sprintf_today : Config.config -> Adef.safe_string
+val sprintf_today : Config.config -> Geneweb_sanatize.Sanatize.safe_string
 (** [sprintf_today confo]
     Uses {!val:Mutil.sprintf_date} in order to print datetime defined in [conf]. *)
 
@@ -587,7 +657,7 @@ val cut_words : string -> string list
     [String.split_on_char ' ' s |> List.map String.trim |> List.filter ((<>) "")]
 *)
 
-val designation : base -> person -> Adef.escaped_string
+val designation : base -> person -> Geneweb_sanatize.Sanatize.escaped_string
 (** [designation base p] is [Gutil.designation base p |> escape_html] *)
 
 val has_children : base -> person -> bool

@@ -8,7 +8,7 @@ open Util
 (* Printing for browsers without tables *)
 
 let pre_text_size txt =
-  let txt = (txt : Adef.safe_string :> string) in
+  let txt = (txt : Geneweb_sanatize.Sanatize.safe_string :> string) in
   let rec normal len i =
     if i = String.length txt then len
     else if txt.[i] = '<' then in_tag len (i + 1)
@@ -78,7 +78,7 @@ type info = {
   sp1 : person option;
   sp2 : person option;
   bd : int;
-  td_prop : Adef.safe_string;
+  td_prop : Geneweb_sanatize.Sanatize.safe_string;
 }
 
 type dist = { mutable dmin : int; mutable dmax : int; mark : bool }
@@ -247,13 +247,24 @@ let spouse_text conf base end_sp ip ipl =
               (pget conf base (get_mother fam))
           in
           (someone_text conf base sp, d, Some sp)
-      | _ -> (Adef.safe "", Adef.safe "", None))
+      | _ ->
+          ( Geneweb_sanatize.Sanatize.safe "",
+            Geneweb_sanatize.Sanatize.safe "",
+            None ))
   | [], _ -> (
       match end_sp with
       | Some p ->
-          (someone_text conf base (get_iper p), Adef.safe "", Some (get_iper p))
-      | _ -> (Adef.safe "", Adef.safe "", None))
-  | _ -> (Adef.safe "", Adef.safe "", None)
+          ( someone_text conf base (get_iper p),
+            Geneweb_sanatize.Sanatize.safe "",
+            Some (get_iper p) )
+      | _ ->
+          ( Geneweb_sanatize.Sanatize.safe "",
+            Geneweb_sanatize.Sanatize.safe "",
+            None ))
+  | _ ->
+      ( Geneweb_sanatize.Sanatize.safe "",
+        Geneweb_sanatize.Sanatize.safe "",
+        None )
 
 let print_someone_and_spouse conf base info in_tab ip n ipl =
   let s, d, spo = spouse_text conf base n ip ipl in
@@ -319,66 +330,78 @@ let rec print_both_branches_pre conf base info sz pl1 pl2 =
     in
     let s1 = if p1 <> None then "|" else " " in
     let s2 = if p2 <> None then "|" else " " in
-    print_pre_center conf sz (Adef.safe @@ s1 ^ String.make (sz / 2) ' ' ^ s2);
+    print_pre_center conf sz
+      (Geneweb_sanatize.Sanatize.safe @@ s1 ^ String.make (sz / 2) ' ' ^ s2);
     (match p1 with
     | Some p1 ->
         print_pre_left conf sz (someone_text conf base p1);
         let s, d, _ = spouse_text conf base info.sp1 p1 pl1 in
-        if (s : Adef.safe_string :> string) <> "" then
+        if (s : Geneweb_sanatize.Sanatize.safe_string :> string) <> "" then
           print_pre_left conf sz ("&amp;" ^<^ d ^^^ " " ^<^ s)
     | None -> Output.print_sstring conf "\n");
     (match p2 with
     | Some p2 ->
         print_pre_right conf sz (someone_text conf base p2);
         let s, d, _ = spouse_text conf base info.sp2 p2 pl2 in
-        if (s : Adef.safe_string :> string) <> "" then
+        if (s : Geneweb_sanatize.Sanatize.safe_string :> string) <> "" then
           print_pre_right conf sz ("&amp;" ^<^ d ^^^ " " ^<^ s)
     | None -> Output.print_sstring conf "\n");
     print_both_branches_pre conf base info sz pl1 pl2
 
-let include_marr conf base (n : Adef.escaped_string) =
+let include_marr conf base (n : Geneweb_sanatize.Sanatize.escaped_string) =
   match find_person_in_env conf base (n :> string) with
   | Some p -> "&" ^<^ acces_n conf base n p
-  | None -> Adef.escaped ""
+  | None -> Geneweb_sanatize.Sanatize.escaped ""
 
 let sign_text conf base sign info b1 b2 c1 c2 =
   let sps = Util.get_opt conf "sp" true in
   let img = Util.get_opt conf "im" true in
   let href =
     commd conf ^^^ "m=RL&"
-    ^<^ acces_n conf base (Adef.escaped "1") (pget conf base info.ip1)
+    ^<^ acces_n conf base
+          (Geneweb_sanatize.Sanatize.escaped "1")
+          (pget conf base info.ip1)
     ^^^ "&"
-    ^<^ acces_n conf base (Adef.escaped "2") (pget conf base info.ip2)
+    ^<^ acces_n conf base
+          (Geneweb_sanatize.Sanatize.escaped "2")
+          (pget conf base info.ip2)
     ^^^ "&b1="
     ^<^ Sosa.to_string (old_sosa_of_branch conf base ((info.ip, info.sp) :: b1))
     ^<^ "&b2="
     ^<^ Sosa.to_string (old_sosa_of_branch conf base ((info.ip, info.sp) :: b2))
     ^<^ "&c1=" ^<^ string_of_int c1 ^<^ "&c2=" ^<^ string_of_int c2
-    ^<^ Adef.escaped (if sps then "" else "&sp=0")
-    ^^^ Adef.escaped (if img then "" else "&im=0")
+    ^<^ Geneweb_sanatize.Sanatize.escaped (if sps then "" else "&sp=0")
+    ^^^ Geneweb_sanatize.Sanatize.escaped (if img then "" else "&im=0")
     ^^^ (match p_getenv conf.env "bd" with
-        | None | Some ("0" | "") -> Adef.escaped ""
-        | Some x -> "&bd=" ^<^ (Mutil.encode x :> Adef.escaped_string))
+        | None | Some ("0" | "") -> Geneweb_sanatize.Sanatize.escaped ""
+        | Some x ->
+            "&bd="
+            ^<^ (Mutil.encode x :> Geneweb_sanatize.Sanatize.escaped_string))
     ^^^ (match p_getenv conf.env "color" with
-        | None | Some "" -> Adef.escaped ""
-        | Some x -> "&color=" ^<^ (Mutil.encode x :> Adef.escaped_string))
-    ^^^ include_marr conf base (Adef.escaped "3")
-    ^^^ include_marr conf base (Adef.escaped "4")
+        | None | Some "" -> Geneweb_sanatize.Sanatize.escaped ""
+        | Some x ->
+            "&color="
+            ^<^ (Mutil.encode x :> Geneweb_sanatize.Sanatize.escaped_string))
+    ^^^ include_marr conf base (Geneweb_sanatize.Sanatize.escaped "3")
+    ^^^ include_marr conf base (Geneweb_sanatize.Sanatize.escaped "4")
   in
   "<a href=\""
-  ^<^ (href : Adef.escaped_string :> Adef.safe_string)
+  ^<^ (href
+        : Geneweb_sanatize.Sanatize.escaped_string
+        :> Geneweb_sanatize.Sanatize.safe_string)
   ^^^ "\">"
-  ^<^ (sign : Adef.safe_string)
+  ^<^ (sign : Geneweb_sanatize.Sanatize.safe_string)
   ^>^ "</a>"
 
 let prev_next_1_text conf base info pb nb =
   let s =
     match pb with
     | Some b1 ->
-        sign_text conf base (Adef.safe "&lt;&lt;") info b1 info.b2 (info.c1 - 1)
-          info.c2
+        sign_text conf base
+          (Geneweb_sanatize.Sanatize.safe "&lt;&lt;")
+          info b1 info.b2 (info.c1 - 1) info.c2
         ^>^ "\n"
-    | _ -> Adef.safe ""
+    | _ -> Geneweb_sanatize.Sanatize.safe ""
   in
   let s =
     match (pb, nb) with
@@ -390,18 +413,20 @@ let prev_next_1_text conf base info pb nb =
   match nb with
   | Some b1 ->
       s ^^^ "\n"
-      ^<^ sign_text conf base (Adef.safe "&gt;&gt;") info b1 info.b2
-            (info.c1 + 1) info.c2
+      ^<^ sign_text conf base
+            (Geneweb_sanatize.Sanatize.safe "&gt;&gt;")
+            info b1 info.b2 (info.c1 + 1) info.c2
   | _ -> s
 
 let prev_next_2_text conf base info pb nb =
   let s =
     match pb with
     | Some b2 ->
-        sign_text conf base (Adef.safe "&lt;&lt;") info info.b1 b2 info.c1
-          (info.c2 - 1)
+        sign_text conf base
+          (Geneweb_sanatize.Sanatize.safe "&lt;&lt;")
+          info info.b1 b2 info.c1 (info.c2 - 1)
         ^>^ "\n"
-    | _ -> Adef.safe ""
+    | _ -> Geneweb_sanatize.Sanatize.safe ""
   in
   let s =
     match (pb, nb) with
@@ -413,8 +438,9 @@ let prev_next_2_text conf base info pb nb =
   match nb with
   | Some b2 ->
       s ^^^ "\n"
-      ^<^ sign_text conf base (Adef.safe "&gt;&gt;") info info.b1 b2 info.c1
-            (info.c2 + 1)
+      ^<^ sign_text conf base
+            (Geneweb_sanatize.Sanatize.safe "&gt;&gt;")
+            info info.b1 b2 info.c1 (info.c2 + 1)
   | _ -> s
 
 let print_prev_next_1 conf base info pb nb =
@@ -529,8 +555,9 @@ let print_two_branches_with_pre conf base info =
   (match other_parent_text_if_same conf base info with
   | Some (s, _) -> print_pre_center conf sz s
   | None -> ());
-  print_pre_center conf sz (Adef.safe "|");
-  print_pre_center conf sz (Adef.safe @@ String.make (sz / 2) '_');
+  print_pre_center conf sz (Geneweb_sanatize.Sanatize.safe "|");
+  print_pre_center conf sz
+    (Geneweb_sanatize.Sanatize.safe @@ String.make (sz / 2) '_');
   print_both_branches_pre conf base info sz info.b1 info.b2;
   if
     info.pb1 <> None || info.nb1 <> None || info.pb2 <> None || info.nb2 <> None
@@ -691,9 +718,10 @@ let print_relation_no_dag conf base po ip1 ip2 =
       let bd = match p_getint conf.env "bd" with Some x -> x | None -> 0 in
       let td_prop =
         match Util.p_getenv conf.env "color" with
-        | None | Some "" -> Adef.safe ""
+        | None | Some "" -> Geneweb_sanatize.Sanatize.safe ""
         | Some x ->
-            (" class=\"" ^<^ Mutil.encode x ^>^ "\"" :> Adef.safe_string)
+            (" class=\"" ^<^ Mutil.encode x ^>^ "\""
+              :> Geneweb_sanatize.Sanatize.safe_string)
       in
       let info =
         {
@@ -760,18 +788,20 @@ let print_relation_dag conf base a ip1 ip2 l1 l2 =
         [ (ip1, "3"); (ip2, "4") ]
         []
     in
-    let elem_txt p = DagDisplay.Item (p, Adef.safe "") in
-    let vbar_txt _ = Adef.escaped "" in
+    let elem_txt p = DagDisplay.Item (p, Geneweb_sanatize.Sanatize.safe "") in
+    let vbar_txt _ = Geneweb_sanatize.Sanatize.escaped "" in
     let invert =
       match Util.p_getenv conf.env "invert" with
       | Some "on" -> true
       | _ -> false
     in
     let page_title =
-      Util.transl conf "tree" |> Utf8.capitalize_fst |> Adef.safe
+      Util.transl conf "tree" |> Utf8.capitalize_fst
+      |> Geneweb_sanatize.Sanatize.safe
     in
     DagDisplay.make_and_print_dag conf base elem_txt vbar_txt invert set spl
-      page_title (Adef.escaped "")
+      page_title
+      (Geneweb_sanatize.Sanatize.escaped "")
   with Exit ->
     Hutil.incorrect_request conf
       ~comment:"relationLink: print_relation_dag failed"

@@ -139,7 +139,7 @@ let get_request_and_content strm =
     | "" -> ""
     | x -> String.init (int_of_string x) (fun _ -> Stream.next strm)
   in
-  (request, Adef.encoded content)
+  (request, Geneweb_sanatize.Sanatize.encoded content)
 
 let string_of_sockaddr = function
   | Unix.ADDR_UNIX s -> s
@@ -203,8 +203,8 @@ let treat_connection callback addr fd =
           | Some i ->
               ( String.sub str 0 i,
                 String.sub str (i + 1) (String.length str - i - 1)
-                |> Adef.encoded )
-          | None -> (str, "" |> Adef.encoded))
+                |> Geneweb_sanatize.Sanatize.encoded )
+          | None -> (str, "" |> Geneweb_sanatize.Sanatize.encoded))
     in
     (request, path, query)
   in

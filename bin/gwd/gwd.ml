@@ -695,11 +695,11 @@ let allowed_denied_titles key extra_line env base_env () =
 let allowed_titles env =
   let extra_line =
     try List.assoc "extra_title" env
-    with Not_found -> Adef.encoded ""
+    with Not_found -> Geneweb_sanatize.Sanatize.encoded ""
   in
   allowed_denied_titles "allowed_titles_file" extra_line env
 
-let denied_titles = allowed_denied_titles "denied_titles_file" (Adef.encoded "")
+let denied_titles = allowed_denied_titles "denied_titles_file" (Geneweb_sanatize.Sanatize.encoded "")
 
 let parse_digest s =
   let rec parse_main (strm__ : _ Stream.t) =
@@ -1404,7 +1404,7 @@ let conf_and_connection =
     ^<^ (if conf.wizard then "_w?" else if conf.friend then "_f?" else "?")
     ^<^ contents
   in
-  fun from request script_name (contents: Adef.encoded_string) env ->
+  fun from request script_name (contents: Geneweb_sanatize.Sanatize.encoded_string) env ->
   let (conf, passwd_err) = make_conf from request script_name env in
   match !redirected_addr with
     Some addr -> print_redirected conf from request addr
@@ -1417,7 +1417,7 @@ let conf_and_connection =
       let mode = Util.p_getenv conf.env "m" in
       if mode <> Some "IM" then begin
           let contents =
-            if List.mem_assoc "log_pwd" env then Adef.encoded "..." else contents
+            if List.mem_assoc "log_pwd" env then Geneweb_sanatize.Sanatize.encoded "..." else contents
           in
           log_and_robot_check conf auth from request script_name (contents :> string)
         end;
@@ -1460,7 +1460,7 @@ let conf_and_connection =
             GwdLog.syslog
               `LOG_WARNING
               (Printf.sprintf "%s slow query (%.3f)"
-                 (context conf contents : Adef.encoded_string :> string) (t2 -. t1))
+                 (context conf contents : Geneweb_sanatize.Sanatize.encoded_string :> string) (t2 -. t1))
         with
         | Exit -> ()
         | (Def.HttpExn (code, _)) as exn ->
@@ -1654,7 +1654,7 @@ let strip_quotes s =
   String.sub s i0 (i1 - i0)
 
 let extract_multipart boundary str =
-  let str = (str : Adef.encoded_string :> string) in
+  let str = (str : Geneweb_sanatize.Sanatize.encoded_string :> string) in
   let rec skip_nl i =
     if i < String.length str && str.[i] = '\r' then skip_nl (i + 1)
     else if i < String.length str && str.[i] = '\n' then i + 1
@@ -1675,7 +1675,7 @@ let extract_multipart boundary str =
       let (s, i) = next_line i in
       if s = boundary then
         let (s, i) = next_line i in
-        let s = String.lowercase_ascii s |> Adef.encoded in
+        let s = String.lowercase_ascii s |> Geneweb_sanatize.Sanatize.encoded in
         let env = Util.create_env s in
         match Util.p_getenv env "name", Util.p_getenv env "filename" with
           Some var, Some filename ->
@@ -1698,14 +1698,14 @@ let extract_multipart boundary str =
             in
             let v = String.sub str i (i1 - i) in
             (var ^ "_name", Mutil.encode filename)
-            :: (var, Adef.encoded v)
+            :: (var, Geneweb_sanatize.Sanatize.encoded v)
             :: loop i1
         | Some var, None ->
             let var = strip_quotes var in
             let (s, i) = next_line i in
             if s = "" then
               let (s, i) = next_line i in
-              (var, Adef.encoded s) :: loop i
+              (var, Geneweb_sanatize.Sanatize.encoded s) :: loop i
             else loop i
         | _ -> loop i
       else if s = boundary ^ "--" then []
@@ -1716,15 +1716,15 @@ let extract_multipart boundary str =
     List.fold_left
       (fun (str, sep) (v, x) ->
          if v = "file" then str, sep else str ^^^ sep ^<^ v ^<^ "=" ^<^ x, "&")
-      (Adef.encoded "", "") env
+      (Geneweb_sanatize.Sanatize.encoded "", "") env
   in
   str, env
 
-let build_env request (contents : Adef.encoded_string)
-  : Adef.encoded_string * (string * Adef.encoded_string) list =
+let build_env request (contents : Geneweb_sanatize.Sanatize.encoded_string)
+  : Geneweb_sanatize.Sanatize.encoded_string * (string * Geneweb_sanatize.Sanatize.encoded_string) list =
   let content_type = Mutil.extract_param "content-type: " '\n' request in
   if is_multipart_form content_type then
-    let boundary = (extract_boundary (Adef.encoded content_type) : Adef.encoded_string :> string) in
+    let boundary = (extract_boundary (Geneweb_sanatize.Sanatize.encoded content_type) : Geneweb_sanatize.Sanatize.encoded_string :> string) in
     extract_multipart boundary contents
   else contents, Util.create_env contents
 
@@ -2081,8 +2081,8 @@ let main () =
   Wserver.stop_server :=
     List.fold_left Filename.concat !GWPARAM.cnt_dir ["STOP_SERVER"];
   let (query, cgi) =
-    try Sys.getenv "QUERY_STRING" |> Adef.encoded, true
-    with Not_found -> "" |> Adef.encoded, !force_cgi
+    try Sys.getenv "QUERY_STRING" |> Geneweb_sanatize.Sanatize.encoded, true
+    with Not_found -> "" |> Geneweb_sanatize.Sanatize.encoded, !force_cgi
   in
   if not !debug then Sys.enable_runtime_warnings false;
   Util.is_welcome := false;
@@ -2096,7 +2096,7 @@ let main () =
             with Not_found -> -1
           in
           set_binary_mode_in stdin true;
-          read_input len |> Adef.encoded
+          read_input len |> Geneweb_sanatize.Sanatize.encoded
         else query
       in
       let addr =

@@ -115,8 +115,11 @@ type wiki_info = {
   wi_always_show_link : bool;
 }
 
-let escape (s : string) = (Util.escape_html s : Adef.escaped_string :> string)
-let encode (s : string) = (Mutil.encode s : Adef.encoded_string :> string)
+let escape (s : string) =
+  (Util.escape_html s : Geneweb_sanatize.Sanatize.escaped_string :> string)
+
+let encode (s : string) =
+  (Mutil.encode s : Geneweb_sanatize.Sanatize.encoded_string :> string)
 
 let syntax_links conf wi s =
   let slen = String.length s in
@@ -203,7 +206,7 @@ let syntax_links conf wi s =
           let anchor = if anchor = "" then "" else "#" ^ encode anchor in
           let t =
             Printf.sprintf {|<a href="%sm=%s&f=%s%s"%s>%s</a>|}
-              (commd conf : Adef.escaped_string :> string)
+              (commd conf : Geneweb_sanatize.Sanatize.escaped_string :> string)
               (encode wi.wi_mode) (encode fname) anchor c text
           in
           loop quot_lev pos j (Buff.mstore len t)
@@ -695,7 +698,8 @@ let print_sub_part_text conf wi edit_opt cnt0 lines =
 let print_sub_part conf wi can_edit edit_mode sub_fname cnt0 lines =
   let edit_opt = Some (can_edit, edit_mode, sub_fname) in
   let sfn =
-    if sub_fname = "" then Adef.encoded "" else "&f=" ^<^ Mutil.encode sub_fname
+    if sub_fname = "" then Geneweb_sanatize.Sanatize.encoded ""
+    else "&f=" ^<^ Mutil.encode sub_fname
   in
   print_sub_part_links conf (Mutil.encode edit_mode) sfn cnt0 (lines = []);
   print_sub_part_text conf wi edit_opt cnt0 lines
@@ -711,7 +715,8 @@ let print_mod_view_page conf can_edit mode fname title env s =
   in
   let is_empty = sub_part = "" in
   let sfn =
-    if fname = "" then Adef.encoded "" else "&f=" ^<^ Mutil.encode fname
+    if fname = "" then Geneweb_sanatize.Sanatize.encoded ""
+    else "&f=" ^<^ Mutil.encode fname
   in
   Hutil.header_without_title conf;
   Output.print_sstring conf "<div class=\"d-flex mb-3\">";
@@ -737,13 +742,17 @@ let print_mod_view_page conf can_edit mode fname title env s =
   Output.print_sstring conf {|">|};
   Util.hidden_env conf;
   if can_edit then Util.hidden_input conf "m" ("MOD_" ^<^ mode ^>^ "_OK");
-  if has_v then Util.hidden_input conf "v" (Adef.encoded @@ string_of_int v);
+  if has_v then
+    Util.hidden_input conf "v"
+      (Geneweb_sanatize.Sanatize.encoded @@ string_of_int v);
   if fname <> "" then Util.hidden_input conf "f" (Mutil.encode fname);
   if can_edit then
     Util.hidden_input conf "digest" (Mutil.digest s |> Mutil.encode);
   Output.print_sstring conf
     {|<div class="d-flex flex-column"><div class="pt-1">|};
-  let env = Templ.Env.(add "name" (Adef.encoded "notes") empty) in
+  let env =
+    Templ.Env.(add "name" (Geneweb_sanatize.Sanatize.encoded "notes") empty)
+  in
   Templ.include_template conf env "toolbar" ignore;
   Output.print_sstring conf {|</div><div class="row editor-container">|};
   Output.print_sstring conf
@@ -760,7 +769,9 @@ let print_mod_view_page conf can_edit mode fname title env s =
       (Utf8.capitalize_fst (transl_nth conf "validate/delete" 0));
     Output.print_sstring conf "</button>");
   Output.print_sstring conf "</div><div class=\"col mx-2 p-2\"";
-  let env = Templ.Env.(add "name" (Adef.encoded "notes") empty) in
+  let env =
+    Templ.Env.(add "name" (Geneweb_sanatize.Sanatize.encoded "notes") empty)
+  in
   Templ.include_template conf env "characters" ignore;
   Output.print_sstring conf "</div></div>";
   Output.print_sstring conf "</div></form>";

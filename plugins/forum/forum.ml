@@ -32,7 +32,7 @@ module type MF = sig
   val not_a_pos : pos
   val prev_pos : pos -> pos
   val next_pos : pos -> pos
-  val string_of_pos : pos -> Adef.safe_string
+  val string_of_pos : pos -> Geneweb_sanatize.Sanatize.safe_string
   val pos_of_string : string -> pos
   val input_char : in_chan -> char
   val input_line : in_chan -> string
@@ -63,9 +63,12 @@ module MF : MF = struct
   let next_pos pos = { pos with p_pos = pos.p_pos + 1 }
 
   let string_of_pos pos =
-    if pos = not_a_pos then Adef.safe ""
-    else if pos.p_ext = 0 then Adef.safe (string_of_int pos.p_pos)
-    else Adef.safe (string_of_int pos.p_ext ^ "-" ^ string_of_int pos.p_pos)
+    if pos = not_a_pos then Geneweb_sanatize.Sanatize.safe ""
+    else if pos.p_ext = 0 then
+      Geneweb_sanatize.Sanatize.safe (string_of_int pos.p_pos)
+    else
+      Geneweb_sanatize.Sanatize.safe
+        (string_of_int pos.p_ext ^ "-" ^ string_of_int pos.p_pos)
 
   let pos_of_string s =
     try

@@ -180,7 +180,8 @@ let print_elem conf base is_surname (p, xl) =
         Output.print_string conf (escape_html @@ surname_particle base p))
       else
         Output.print_string conf
-          (if p = "" then Adef.escaped "?" else escape_html p);
+          (if p = "" then Geneweb_sanatize.Sanatize.escaped "?"
+          else escape_html p);
       Output.print_sstring conf "</a>";
       Output.print_string conf (DateDisplay.short_dates_text conf base x);
       Output.print_sstring conf "<em>";
@@ -344,20 +345,24 @@ let has_children_with_that_name conf base des name =
 
 (* List selection bullets *)
 
-let bullet_sel_txt = Adef.safe "o"
-let bullet_unsel_txt = Adef.safe "+"
-let bullet_nosel_txt = Adef.safe "o"
+let bullet_sel_txt = Geneweb_sanatize.Sanatize.safe "o"
+let bullet_unsel_txt = Geneweb_sanatize.Sanatize.safe "+"
+let bullet_nosel_txt = Geneweb_sanatize.Sanatize.safe "o"
 
 let print_selection_bullet conf = function
   | Some (txt, sel) ->
-      let req : Adef.encoded_string =
+      let req : Geneweb_sanatize.Sanatize.encoded_string =
         List.fold_left
-          (fun (req : Adef.encoded_string) (k, (v : Adef.encoded_string)) ->
+          (fun (req : Geneweb_sanatize.Sanatize.encoded_string)
+               (k, (v : Geneweb_sanatize.Sanatize.encoded_string)) ->
             if (not sel) && k = "u" && v = txt then req
             else
-              let s : Adef.encoded_string = Adef.encoded k ^^^ "=" ^<^ v in
+              let s : Geneweb_sanatize.Sanatize.encoded_string =
+                Geneweb_sanatize.Sanatize.encoded k ^^^ "=" ^<^ v
+              in
               if (req :> string) = "" then s else req ^^^ "&" ^<^ s)
-          (Adef.encoded "") conf.env
+          (Geneweb_sanatize.Sanatize.encoded "")
+          conf.env
       in
       Output.print_sstring conf {|<a id="if|};
       Output.print_string conf txt;
@@ -425,7 +430,7 @@ let print_branch conf base psn name =
       Output.print_string conf
         (render p
            (if is_hide_names conf p && not (authorized_age conf base p) then
-            Adef.safe "x"
+            Geneweb_sanatize.Sanatize.safe "x"
            else if (not psn) && (not with_sn) && p_surname base p = name then
              gen_person_text ~sn:false conf base p
            else gen_person_text conf base p));
@@ -481,7 +486,8 @@ let print_one_branch conf base bh psn =
     Output.print_sstring conf "<li>";
     if is_hidden p then Output.print_sstring conf "&lt;&lt;"
     else
-      wprint_geneweb_link conf (Util.acces conf base p) (Adef.safe "&lt;&lt;");
+      wprint_geneweb_link conf (Util.acces conf base p)
+        (Geneweb_sanatize.Sanatize.safe "&lt;&lt;");
     Output.print_sstring conf "<ul>";
     List.iter
       (fun p ->
@@ -591,8 +597,9 @@ let print_several_possible_surnames x conf base (_, homonymes) =
   let list = List.sort compare list in
   let access txt sn =
     geneweb_link conf
-      ("m=N&v=" ^<^ Mutil.encode sn ^>^ "&t=N" :> Adef.escaped_string)
-      (escape_html txt :> Adef.safe_string)
+      ("m=N&v=" ^<^ Mutil.encode sn ^>^ "&t=N"
+        :> Geneweb_sanatize.Sanatize.escaped_string)
+      (escape_html txt :> Geneweb_sanatize.Sanatize.safe_string)
   in
   Util.wprint_in_columns conf
     (fun (ord, _, _) -> ord)
@@ -655,12 +662,12 @@ let print_family_alphabetic x conf base liste =
       let title h =
         let access x =
           if h || List.length homonymes = 1 then
-            (Util.escape_html x :> Adef.safe_string)
+            (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
           else
             geneweb_link conf
               ("m=N&o=i&v=" ^<^ Mutil.encode x ^>^ "&t=A"
-                :> Adef.escaped_string)
-              (escape_html x :> Adef.safe_string)
+                :> Geneweb_sanatize.Sanatize.escaped_string)
+              (escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
         in
         Mutil.list_iter_first
           (fun first x ->

@@ -486,9 +486,10 @@ let searching_fields conf base =
   in
   let sex = match gets "sex" with "M" -> 0 | "F" -> 1 | _ -> 2 in
   (* Fonction pour tester un simple champ texte (e.g: first_name). *)
-  let string_field x (search : Adef.safe_string) =
+  let string_field x (search : Geneweb_sanatize.Sanatize.safe_string) =
     if test_string x then
-      search ^^^ " " ^<^ (escape_html (gets x) :> Adef.safe_string)
+      search ^^^ " "
+      ^<^ (escape_html (gets x) :> Geneweb_sanatize.Sanatize.safe_string)
     else search
   in
   (* Returns the place and date request. (e.g.: ...in Paris between 1800 and 1900) *)
@@ -515,17 +516,19 @@ let searching_fields conf base =
     in
     if test_string place_prefix_field_name then
       search ^^^ " " ^<^ transl conf "in (place)" ^<^ " "
-      ^<^ (escape_html (gets place_prefix_field_name) :> Adef.safe_string)
+      ^<^ (escape_html (gets place_prefix_field_name)
+            :> Geneweb_sanatize.Sanatize.safe_string)
     else search
   in
   (* Returns the event request. (e.g.: born in...) *)
   let get_event_field_request place_prefix_field_name date_prefix_field_name
       event_name search search_type =
     (* Separator character depends on search type operator, a comma for AND search, a slash for OR search. *)
-    let sep : Adef.safe_string =
-      if (search : Adef.safe_string :> string) <> "" then
-        if search_type <> "OR" then Adef.safe ", " else Adef.safe " / "
-      else Adef.safe ""
+    let sep : Geneweb_sanatize.Sanatize.safe_string =
+      if (search : Geneweb_sanatize.Sanatize.safe_string :> string) <> "" then
+        if search_type <> "OR" then Geneweb_sanatize.Sanatize.safe ", "
+        else Geneweb_sanatize.Sanatize.safe " / "
+      else Geneweb_sanatize.Sanatize.safe ""
     in
     let search =
       if test_string place_prefix_field_name || test_date date_prefix_field_name
@@ -543,12 +546,15 @@ let searching_fields conf base =
       match Util.find_sosa_ref conf base with
       | Some p ->
           let s =
-            Adef.safe
+            Geneweb_sanatize.Sanatize.safe
             @@ Printf.sprintf
                  (ftransl conf "direct ancestor of %s")
-                 (Util.gen_person_text conf base p : Adef.safe_string :> string)
+                 (Util.gen_person_text conf base p
+                   : Geneweb_sanatize.Sanatize.safe_string
+                   :> string)
           in
-          if (search : Adef.safe_string :> string) = "" then s
+          if (search : Geneweb_sanatize.Sanatize.safe_string :> string) = ""
+          then s
           else if (s :> string) = "" then search
           else search ^^^ ", " ^<^ s
       | None -> search
@@ -586,11 +592,11 @@ let searching_fields conf base =
   let marriage_place_field_name =
     get_event_field_name gets "place" "marriage" search_type
   in
-  let search = Adef.safe "" in
+  let search = Geneweb_sanatize.Sanatize.safe "" in
   let search = string_field "first_name" search in
   let search = string_field "surname" search in
   let search = sosa_field search in
-  let event_search = Adef.safe "" in
+  let event_search = Geneweb_sanatize.Sanatize.safe "" in
   let event_search =
     get_event_field_request birth_place_field_name birth_date_field_name "born"
       event_search search_type
@@ -645,5 +651,7 @@ let searching_fields conf base =
       else search
     else search
   in
-  let sep = Adef.safe (if test_string "occu" then ", " else "") in
+  let sep =
+    Geneweb_sanatize.Sanatize.safe (if test_string "occu" then ", " else "")
+  in
   string_field "occu" (search ^^^ sep)

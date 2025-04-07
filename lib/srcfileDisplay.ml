@@ -174,61 +174,62 @@ let string_of_start_date conf =
 
 let string_of_int_sep_aux conf n =
   Mutil.string_of_int_sep (Util.transl conf "(thousand separator)") n
-  |> Adef.safe
+  |> Geneweb_sanatize.Sanatize.safe
 
 let macro conf base = function
   | 'a' -> (
       match Util.find_sosa_ref conf base with
       | Some p -> referenced_person_title_text conf base p
-      | None -> Adef.safe "")
+      | None -> Geneweb_sanatize.Sanatize.safe "")
   | 'b' ->
       let s =
         try " dir=\"" ^ Hashtbl.find conf.lexicon "!dir" ^ "\""
         with Not_found -> ""
       in
-      Adef.safe (s ^ body_prop conf)
+      Geneweb_sanatize.Sanatize.safe (s ^ body_prop conf)
   | 'c' -> string_of_int_sep_aux conf (count conf).welcome_cnt
   | 'd' -> string_of_start_date conf
-  | 'D' -> Adef.safe (count conf).start_date
-  | 'e' -> Adef.safe conf.charset
-  | 'f' -> Adef.safe conf.command
-  | 'g' -> (Util.prefix_base conf :> Adef.safe_string)
-  | 'G' -> (Util.prefix_base_password conf :> Adef.safe_string)
-  | 'i' -> Adef.safe conf.highlight
-  | 'k' -> Adef.safe conf.indep_command
-  | 'l' -> Adef.safe conf.lang
-  | 'L' -> Adef.safe conf.left
+  | 'D' -> Geneweb_sanatize.Sanatize.safe (count conf).start_date
+  | 'e' -> Geneweb_sanatize.Sanatize.safe conf.charset
+  | 'f' -> Geneweb_sanatize.Sanatize.safe conf.command
+  | 'g' -> (Util.prefix_base conf :> Geneweb_sanatize.Sanatize.safe_string)
+  | 'G' ->
+      (Util.prefix_base_password conf :> Geneweb_sanatize.Sanatize.safe_string)
+  | 'i' -> Geneweb_sanatize.Sanatize.safe conf.highlight
+  | 'k' -> Geneweb_sanatize.Sanatize.safe conf.indep_command
+  | 'l' -> Geneweb_sanatize.Sanatize.safe conf.lang
+  | 'L' -> Geneweb_sanatize.Sanatize.safe conf.left
   | 'm' -> (
       try
         let s = List.assoc "latest_event" conf.base_env in
-        if s = "" then Adef.safe "20"
-        else (Util.escape_html s :> Adef.safe_string)
-      with Not_found -> Adef.safe "20")
+        if s = "" then Geneweb_sanatize.Sanatize.safe "20"
+        else (Util.escape_html s :> Geneweb_sanatize.Sanatize.safe_string)
+      with Not_found -> Geneweb_sanatize.Sanatize.safe "20")
   | 'n' -> string_of_int_sep_aux conf (nb_of_persons base)
   | 'N' -> (
       try
         (List.assoc "base_notes_title" conf.base_env |> Util.escape_html
-          :> Adef.safe_string)
-      with Not_found -> Adef.safe "")
-  | 'o' -> Adef.safe (Util.images_prefix conf)
+          :> Geneweb_sanatize.Sanatize.safe_string)
+      with Not_found -> Geneweb_sanatize.Sanatize.safe "")
+  | 'o' -> Geneweb_sanatize.Sanatize.safe (Util.images_prefix conf)
   | 'q' ->
       let r = count conf in
       string_of_int_sep_aux conf (r.welcome_cnt + r.request_cnt)
-  | 'R' -> Adef.safe conf.right
-  | 's' -> (commd conf :> Adef.safe_string)
-  | 't' -> Adef.safe conf.bname
+  | 'R' -> Geneweb_sanatize.Sanatize.safe conf.right
+  | 's' -> (commd conf :> Geneweb_sanatize.Sanatize.safe_string)
+  | 't' -> Geneweb_sanatize.Sanatize.safe conf.bname
   | 'T' -> Util.doctype
   | 'U' ->
       if (conf.wizard || conf.just_friend_wizard) && conf.user <> "" then
-        Adef.safe (": " ^ conf.user)
-      else Adef.safe ""
-  | 'v' -> Adef.safe Version.ver
+        Geneweb_sanatize.Sanatize.safe (": " ^ conf.user)
+      else Geneweb_sanatize.Sanatize.safe ""
+  | 'v' -> Geneweb_sanatize.Sanatize.safe Version.ver
   | 'w' ->
       let s = Hutil.link_to_referer conf in
-      if (s :> string) = "" then Adef.safe "&nbsp;" else s
-  | 'W' -> (Util.get_referer conf :> Adef.safe_string)
-  | '/' -> Adef.safe ""
-  | c -> Adef.safe ("%" ^ String.make 1 c)
+      if (s :> string) = "" then Geneweb_sanatize.Sanatize.safe "&nbsp;" else s
+  | 'W' -> (Util.get_referer conf :> Geneweb_sanatize.Sanatize.safe_string)
+  | '/' -> Geneweb_sanatize.Sanatize.safe ""
+  | c -> Geneweb_sanatize.Sanatize.safe ("%" ^ String.make 1 c)
 
 module Lbuff = Buff.Make ()
 
@@ -265,7 +266,9 @@ let rec lexicon_translate conf base nomin strm first_c =
                   if c = '%' then
                     let c = Stream.next strm in
                     Lbuff.mstore len
-                      (macro conf base c : Adef.safe_string :> string)
+                      (macro conf base c
+                        : Geneweb_sanatize.Sanatize.safe_string
+                        :> string)
                   else Lbuff.store len c
                 in
                 loop len
@@ -418,7 +421,9 @@ and src_translate conf base nomin strm echo mode =
     in
     let s, _ =
       Translate.inline conf.lang '%'
-        (macro conf base : char -> Adef.safe_string :> char -> string)
+        (macro conf base
+          : char -> Geneweb_sanatize.Sanatize.safe_string
+          :> char -> string)
         s
     in
     if not !echo then ()
@@ -528,12 +533,15 @@ let eval_var conf base env () _loc = function
           | Some p ->
               VVstring
                 (referenced_person_title_text conf base p
-                  : Adef.safe_string
+                  : Geneweb_sanatize.Sanatize.safe_string
                   :> string)
           | None -> raise Not_found)
       | _ -> raise Not_found)
   | [ "start_date" ] ->
-      VVstring (string_of_start_date conf : Adef.safe_string :> string)
+      VVstring
+        (string_of_start_date conf
+          : Geneweb_sanatize.Sanatize.safe_string
+          :> string)
   | [ "wiznotes_dir_exists" ] ->
       VVbool (Sys.file_exists (WiznotesDisplay.dir conf base))
   | _ -> raise Not_found

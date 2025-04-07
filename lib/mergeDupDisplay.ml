@@ -36,10 +36,11 @@ let print_no_candidate conf base p =
 
 let input_excl string_of_i excl =
   List.fold_left
-    (fun (s : Adef.encoded_string) (i1, i2) ->
+    (fun (s : Geneweb_sanatize.Sanatize.encoded_string) (i1, i2) ->
       let t = string_of_i i1 ^^^ "," ^<^ string_of_i i2 in
       if (s :> string) = "" then t else s ^^^ "," ^<^ t)
-    (Adef.encoded "") excl
+    (Geneweb_sanatize.Sanatize.encoded "")
+    excl
 
 let print_input_excl conf string_of_i excl excl_name =
   let s = input_excl string_of_i excl in
@@ -69,7 +70,8 @@ let print_cand_ind conf base (ip, _p) (iexcl, fexcl) ip1 ip2 =
   Output.print_sstring conf conf.command;
   Output.print_sstring conf {|">|};
   Util.hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "MRG_DUP_IND_Y_N");
+  Util.hidden_input conf "m"
+    (Geneweb_sanatize.Sanatize.encoded "MRG_DUP_IND_Y_N");
   Util.hidden_input conf "ip" (string_of_iper ip |> Mutil.encode);
   print_input_excl conf
     (fun x -> string_of_iper x |> Mutil.encode)
@@ -110,7 +112,8 @@ let print_cand_fam conf base (ip, _p) (iexcl, fexcl) ifam1 ifam2 =
   Output.print_sstring conf conf.command;
   Output.print_sstring conf {|">|};
   Util.hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "MRG_DUP_FAM_Y_N");
+  Util.hidden_input conf "m"
+    (Geneweb_sanatize.Sanatize.encoded "MRG_DUP_FAM_Y_N");
   Util.hidden_input conf "ip" (string_of_iper ip |> Mutil.encode);
   print_input_excl conf
     (fun x -> string_of_iper x |> Mutil.encode)

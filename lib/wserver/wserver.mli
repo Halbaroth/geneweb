@@ -17,7 +17,10 @@ val f :
   int ->
   int ->
   int option ->
-  (Unix.sockaddr * string list -> string -> Adef.encoded_string -> unit) ->
+  (Unix.sockaddr * string list ->
+  string ->
+  Geneweb_sanatize.Sanatize.encoded_string ->
+  unit) ->
   unit
 (** [ Wserver.f syslog addr port tmout maxc g ]
     Starts an elementary httpd server at port [port] in the current
@@ -65,7 +68,8 @@ val http_redirect_temporarily : string -> unit
 (** [Output.status conf_redirect url] sends the http header where [url]
     represents the Location where the request needs to be redirected. *)
 
-val get_request_and_content : char Stream.t -> string list * Adef.encoded_string
+val get_request_and_content :
+  char Stream.t -> string list * Geneweb_sanatize.Sanatize.encoded_string
 (** Returns the request from a stream read from a socket. *)
 
 val wsocket : unit -> Unix.file_descr

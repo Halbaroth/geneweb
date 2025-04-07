@@ -15,7 +15,7 @@ let string_of_marriage_text conf base fam =
   let s =
     match marriage with
     | Some d -> " " ^<^ DateDisplay.string_of_ondate conf d
-    | None -> Adef.safe ""
+    | None -> Geneweb_sanatize.Sanatize.safe ""
   in
   match marriage_place with
   | "" -> s
@@ -25,9 +25,14 @@ let string_of_marriage_text conf base fam =
       ^>^ ","
 
 let string_of_title ?(safe = false) ?(link = true) conf base
-    (and_txt : Adef.safe_string) p (nth, name, title, places, dates) =
-  let safe_html = if not safe then Util.safe_html else Adef.safe in
-  let escape_html = if not safe then Util.escape_html else Adef.escaped in
+    (and_txt : Geneweb_sanatize.Sanatize.safe_string) p
+    (nth, name, title, places, dates) =
+  let safe_html =
+    if not safe then Util.safe_html else Geneweb_sanatize.Sanatize.safe
+  in
+  let escape_html =
+    if not safe then Util.escape_html else Geneweb_sanatize.Sanatize.escaped
+  in
   let place, places_tl =
     match places with
     | [] -> (Gwdb.empty_string, [])
@@ -42,7 +47,11 @@ let string_of_title ?(safe = false) ?(link = true) conf base
         ^^^ "&p="
         ^<^ Mutil.encode (sou base place)
       in
-      geneweb_link conf (href : Adef.encoded_string :> Adef.escaped_string) s
+      geneweb_link conf
+        (href
+          : Geneweb_sanatize.Sanatize.encoded_string
+          :> Geneweb_sanatize.Sanatize.escaped_string)
+        s
     else s
   in
   let acc = href place acc in
@@ -50,7 +59,7 @@ let string_of_title ?(safe = false) ?(link = true) conf base
     let acc =
       match places with
       | [] -> acc
-      | [ _ ] -> acc ^^^ " " ^<^ and_txt ^^^ Adef.safe " "
+      | [ _ ] -> acc ^^^ " " ^<^ and_txt ^^^ Geneweb_sanatize.Sanatize.safe " "
       | _ -> acc ^>^ ", "
     in
     match places with
@@ -79,7 +88,10 @@ let string_of_title ?(safe = false) ?(link = true) conf base
     match name with
     | Tname n ->
         let acc = if not first then acc ^>^ " ," else acc in
-        (acc ^^^ (sou base n |> escape_html :> Adef.safe_string), false)
+        ( acc
+          ^^^ (sou base n |> escape_html
+                :> Geneweb_sanatize.Sanatize.safe_string),
+          false )
     | _ -> (acc, first)
   in
   let acc =
@@ -186,16 +198,26 @@ let get_death_text conf p p_auth =
       match get_death p with
       | Death (dr, _) -> (
           match dr with
-          | Unspecified -> transl_nth conf "died" is |> Adef.safe
-          | Murdered -> transl_nth conf "murdered" is |> Adef.safe
-          | Killed -> transl_nth conf "killed (in action)" is |> Adef.safe
+          | Unspecified ->
+              transl_nth conf "died" is |> Geneweb_sanatize.Sanatize.safe
+          | Murdered ->
+              transl_nth conf "murdered" is |> Geneweb_sanatize.Sanatize.safe
+          | Killed ->
+              transl_nth conf "killed (in action)" is
+              |> Geneweb_sanatize.Sanatize.safe
           | Executed ->
-              transl_nth conf "executed (legally killed)" is |> Adef.safe
-          | Disappeared -> transl_nth conf "disappeared" is |> Adef.safe)
-      | DeadYoung -> transl_nth conf "died young" is |> Adef.safe
-      | DeadDontKnowWhen -> transl_nth conf "died" is |> Adef.safe
-      | NotDead | DontKnowIfDead | OfCourseDead -> "" |> Adef.safe
-    else "" |> Adef.safe
+              transl_nth conf "executed (legally killed)" is
+              |> Geneweb_sanatize.Sanatize.safe
+          | Disappeared ->
+              transl_nth conf "disappeared" is |> Geneweb_sanatize.Sanatize.safe
+          )
+      | DeadYoung ->
+          transl_nth conf "died young" is |> Geneweb_sanatize.Sanatize.safe
+      | DeadDontKnowWhen ->
+          transl_nth conf "died" is |> Geneweb_sanatize.Sanatize.safe
+      | NotDead | DontKnowIfDead | OfCourseDead ->
+          "" |> Geneweb_sanatize.Sanatize.safe
+    else "" |> Geneweb_sanatize.Sanatize.safe
   in
   let on_death_date =
     match (p_auth, get_death p) with
@@ -206,15 +228,16 @@ let get_death_text conf p p_auth =
             DateDisplay.string_of_ondate ~link:false conf d
             ^>^ DateDisplay.get_wday conf d
         | Some _ | None -> DateDisplay.string_of_ondate ~link:false conf d)
-    | _ -> "" |> Adef.safe
+    | _ -> "" |> Geneweb_sanatize.Sanatize.safe
   in
   died ^^^ " " ^<^ on_death_date
 
 let get_baptism_text conf p p_auth =
   let baptized =
     if p_auth then
-      get_sex p |> index_of_sex |> transl_nth conf "baptized" |> Adef.safe
-    else "" |> Adef.safe
+      get_sex p |> index_of_sex |> transl_nth conf "baptized"
+      |> Geneweb_sanatize.Sanatize.safe
+    else "" |> Geneweb_sanatize.Sanatize.safe
   in
   let on_baptism_date =
     match (p_auth, Date.od_of_cdate (get_baptism p)) with
@@ -224,15 +247,16 @@ let get_baptism_text conf p p_auth =
             DateDisplay.string_of_ondate ~link:false conf d
             ^>^ DateDisplay.get_wday conf d
         | Some _ | None -> DateDisplay.string_of_ondate ~link:false conf d)
-    | _ -> "" |> Adef.safe
+    | _ -> "" |> Geneweb_sanatize.Sanatize.safe
   in
   baptized ^^^ " " ^<^ on_baptism_date
 
 let get_birth_text conf p p_auth =
   let born =
     if p_auth then
-      get_sex p |> index_of_sex |> transl_nth conf "born" |> Adef.safe
-    else "" |> Adef.safe
+      get_sex p |> index_of_sex |> transl_nth conf "born"
+      |> Geneweb_sanatize.Sanatize.safe
+    else "" |> Geneweb_sanatize.Sanatize.safe
   in
   let on_birth_date =
     match (p_auth, Date.od_of_cdate (get_birth p)) with
@@ -242,7 +266,7 @@ let get_birth_text conf p p_auth =
             DateDisplay.string_of_ondate ~link:false conf d
             ^>^ DateDisplay.get_wday conf d
         | Some _ | None -> DateDisplay.string_of_ondate ~link:false conf d)
-    | _ -> "" |> Adef.safe
+    | _ -> "" |> Geneweb_sanatize.Sanatize.safe
   in
   born ^^^ " " ^<^ on_birth_date
 
@@ -254,13 +278,14 @@ let get_marriage_date_text conf fam p_auth =
           DateDisplay.string_of_ondate ~link:false conf d
           ^>^ DateDisplay.get_wday conf d
       | Some _ | None -> DateDisplay.string_of_ondate ~link:false conf d)
-  | _ -> "" |> Adef.safe
+  | _ -> "" |> Geneweb_sanatize.Sanatize.safe
 
 let get_burial_text conf p p_auth =
   let buried =
     if p_auth then
-      get_sex p |> index_of_sex |> transl_nth conf "buried" |> Adef.safe
-    else "" |> Adef.safe
+      get_sex p |> index_of_sex |> transl_nth conf "buried"
+      |> Geneweb_sanatize.Sanatize.safe
+    else "" |> Geneweb_sanatize.Sanatize.safe
   in
   let on_burial_date =
     match get_burial p with
@@ -272,16 +297,17 @@ let get_burial_text conf p p_auth =
                 DateDisplay.string_of_ondate ~link:false conf d
                 ^>^ DateDisplay.get_wday conf d
             | Some _ | None -> DateDisplay.string_of_ondate ~link:false conf d)
-        | _ -> "" |> Adef.safe)
-    | UnknownBurial | Cremated _ -> "" |> Adef.safe
+        | _ -> "" |> Geneweb_sanatize.Sanatize.safe)
+    | UnknownBurial | Cremated _ -> "" |> Geneweb_sanatize.Sanatize.safe
   in
   buried ^^^ " " ^<^ on_burial_date
 
 let get_cremation_text conf p p_auth =
   let cremated =
     if p_auth then
-      get_sex p |> index_of_sex |> transl_nth conf "cremated" |> Adef.safe
-    else "" |> Adef.safe
+      get_sex p |> index_of_sex |> transl_nth conf "cremated"
+      |> Geneweb_sanatize.Sanatize.safe
+    else "" |> Geneweb_sanatize.Sanatize.safe
   in
   let on_cremation_date =
     match get_burial p with
@@ -293,8 +319,8 @@ let get_cremation_text conf p p_auth =
                 DateDisplay.string_of_ondate ~link:false conf d
                 ^>^ DateDisplay.get_wday conf d
             | Some _ | None -> DateDisplay.string_of_ondate ~link:false conf d)
-        | _ -> "" |> Adef.safe)
-    | UnknownBurial | Buried _ -> "" |> Adef.safe
+        | _ -> "" |> Geneweb_sanatize.Sanatize.safe)
+    | UnknownBurial | Buried _ -> "" |> Geneweb_sanatize.Sanatize.safe
   in
   cremated ^^^ " " ^<^ on_cremation_date
 
@@ -1060,19 +1086,20 @@ let build_list_eclair conf base v p =
           with
           | 0 ->
               Gutil.alphabetic_order
-                (pl1 : Adef.escaped_string :> string)
-                (pl2 : Adef.escaped_string :> string)
+                (pl1 : Geneweb_sanatize.Sanatize.escaped_string :> string)
+                (pl2 : Geneweb_sanatize.Sanatize.escaped_string :> string)
           | x -> x)
       | x -> x)
     !l
 
-let linked_page_text conf base p s key (str : Adef.safe_string) (pg, (_, il)) :
-    Adef.safe_string =
+let linked_page_text conf base p s key
+    (str : Geneweb_sanatize.Sanatize.safe_string) (pg, (_, il)) :
+    Geneweb_sanatize.Sanatize.safe_string =
   match pg with
   | Def.NLDB.PgMisc pg ->
       let l = List.map snd (List.filter (fun (k, _) -> k = key) il) in
       List.fold_right
-        (fun text (str : Adef.safe_string) ->
+        (fun text (str : Geneweb_sanatize.Sanatize.safe_string) ->
           try
             let nenv, _ = Notes.read_notes base pg in
             let v =
@@ -1108,16 +1135,19 @@ let linked_page_text conf base p s key (str : Adef.safe_string) (pg, (_, il)) :
                         b |> Util.safe_html,
                         c |> Util.safe_html )
                     with Not_found ->
-                      (Adef.safe "", Util.safe_html v, Adef.safe "")
+                      ( Geneweb_sanatize.Sanatize.safe "",
+                        Util.safe_html v,
+                        Geneweb_sanatize.Sanatize.safe "" )
                   in
-                  (a : Adef.safe_string)
+                  (a : Geneweb_sanatize.Sanatize.safe_string)
                   ^^^ {|<a href="|}
                   ^<^ (commd conf ^^^ {|m=NOTES&f=|}
-                       ^<^ (Mutil.encode pg :> Adef.escaped_string)
+                       ^<^ (Mutil.encode pg
+                             :> Geneweb_sanatize.Sanatize.escaped_string)
                        ^>^ {|#p_|}
                        ^ string_of_int text.Def.NLDB.lnPos
-                        : Adef.escaped_string
-                        :> Adef.safe_string)
+                        : Geneweb_sanatize.Sanatize.escaped_string
+                        :> Geneweb_sanatize.Sanatize.safe_string)
                   ^^^ {|">|} ^<^ b ^^^ {|</a>|} ^<^ c
                 in
                 if (str :> string) = "" then str1 else str ^^^ ", " ^<^ str1
@@ -1163,7 +1193,7 @@ type ancestor_surname_info =
       (string * date option * date option * string * person * Sosa.t list * loc)
   | Eclair of
       (string
-      * Adef.safe_string
+      * Geneweb_sanatize.Sanatize.safe_string
       * date option
       * date option
       * person
@@ -1255,8 +1285,9 @@ let bool_val x = VVbool x
 let str_val x = VVstring x
 let null_val = VVstring ""
 
-let safe_val (x : [< `encoded | `escaped | `safe ] Adef.astring) =
-  VVstring ((x :> Adef.safe_string) :> string)
+let safe_val
+    (x : [< `encoded | `escaped | `safe ] Geneweb_sanatize.Sanatize.astring) =
+  VVstring ((x :> Geneweb_sanatize.Sanatize.safe_string) :> string)
 
 let gen_string_of_img_sz max_w max_h conf base (p, p_auth) =
   if p_auth then
@@ -1307,7 +1338,10 @@ let get_linked_page conf base p s =
     let sn = Name.lower (sou base (get_surname p)) in
     (fn, sn, get_occ p)
   in
-  List.fold_left (linked_page_text conf base p s key) (Adef.safe "") db
+  List.fold_left
+    (linked_page_text conf base p s key)
+    (Geneweb_sanatize.Sanatize.safe "")
+    db
 
 let make_ep conf base ip =
   let p = pget conf base ip in
@@ -1339,7 +1373,7 @@ let get_note_source conf base ?p auth no_note note_source =
       | Some p -> [ ('i', fun () -> Image.default_portrait_filename base p) ]
     in
     Notes.source_note_with_env conf base env (sou base note_source)
-  else Adef.safe ""
+  else Geneweb_sanatize.Sanatize.safe ""
 
 let date_aux conf p_auth date =
   match (p_auth, Date.od_of_cdate date) with
@@ -1738,7 +1772,7 @@ and eval_simple_str_var conf base env (p, p_auth) = function
           match !r with
           | Some s ->
               r := None;
-              safe_val (Adef.safe s)
+              safe_val (Geneweb_sanatize.Sanatize.safe s)
           | None -> null_val)
       | _ -> raise Not_found)
   | "level" -> (
@@ -1845,7 +1879,9 @@ and eval_simple_str_var conf base env (p, p_auth) = function
       match get_env "nobility_title" env with
       | Vtitle (p, t) ->
           if p_auth then
-            string_of_title conf base (transl_nth conf "and" 0 |> Adef.safe) p t
+            string_of_title conf base
+              (transl_nth conf "and" 0 |> Geneweb_sanatize.Sanatize.safe)
+              p t
             |> safe_val
           else null_val
       | _ -> raise Not_found)
@@ -2671,14 +2707,16 @@ and eval_anc_by_surnl_field_var conf base env ep info =
                   ^<^ (Sosa.to_string sosa |> Mutil.encode),
                   n + 1 ))
               sosa_list
-              (Adef.encoded "", 1)
+              (Geneweb_sanatize.Sanatize.encoded "", 1)
           in
           let p, _ = ep in
           safe_val
-            ((acces_n conf base (Adef.escaped "1") p
-               : Adef.escaped_string
-               :> Adef.safe_string)
-            ^^^ (str : Adef.encoded_string :> Adef.safe_string))
+            ((acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") p
+               : Geneweb_sanatize.Sanatize.escaped_string
+               :> Geneweb_sanatize.Sanatize.safe_string)
+            ^^^ (str
+                  : Geneweb_sanatize.Sanatize.encoded_string
+                  :> Geneweb_sanatize.Sanatize.safe_string))
       | sl ->
           let ep = make_ep conf base (get_iper p) in
           eval_person_field_var conf base env ep loc sl)
@@ -2939,7 +2977,10 @@ and eval_person_field_var conf base env ((p, p_auth) as ep) loc = function
             let sn = Name.lower (sou base (get_surname p)) in
             (fn, sn, get_occ p)
           in
-          List.fold_left (linked_page_text conf base p s key) (Adef.safe "") db
+          List.fold_left
+            (linked_page_text conf base p s key)
+            (Geneweb_sanatize.Sanatize.safe "")
+            db
           |> safe_val
       | _ -> raise Not_found)
   | "marriage_date" :: sl -> (
@@ -3080,7 +3121,8 @@ and eval_date_field_var conf d = function
       | _ -> null_val)
   | [] ->
       DateDisplay.string_of_date_aux ~link:false conf
-        ~sep:(Adef.safe "&#010;  ") d
+        ~sep:(Geneweb_sanatize.Sanatize.safe "&#010;  ")
+        d
       |> safe_val
   | _ -> raise Not_found
 
@@ -3828,8 +3870,10 @@ and eval_str_person_field conf base env ((p, p_auth) as ep) = function
           "<ul>"
           ^<^ List.fold_left
                 (fun s n -> s ^^^ "<li>" ^<^ n ^>^ "</li>")
-                (Adef.safe "")
-                (l : Adef.escaped_string list :> Adef.safe_string list)
+                (Geneweb_sanatize.Sanatize.safe "")
+                (l
+                  : Geneweb_sanatize.Sanatize.escaped_string list
+                  :> Geneweb_sanatize.Sanatize.safe_string list)
           ^>^ "</ul>"
           |> safe_val
         else null_val
@@ -4101,16 +4145,17 @@ and eval_str_family_field env (ifam, _, _, _) = function
       | _ -> raise Not_found)
   | _ -> raise Not_found
 
-and simple_person_text conf base p p_auth : Adef.safe_string =
+and simple_person_text conf base p p_auth :
+    Geneweb_sanatize.Sanatize.safe_string =
   if p_auth then
     match main_title conf base p with
     | Some t -> titled_person_text conf base p t
     | None -> gen_person_text conf base p
-  else if is_hide_names conf p then Adef.safe "x x"
+  else if is_hide_names conf p then Geneweb_sanatize.Sanatize.safe "x x"
   else gen_person_text conf base p
 
 and string_of_died conf p p_auth =
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   if p_auth then
     let is = index_of_sex (get_sex p) in
@@ -4127,7 +4172,8 @@ and string_of_died conf p p_auth =
     | NotDead | DontKnowIfDead | OfCourseDead -> ""
   else ""
 
-and string_of_image_url conf base (p, p_auth) html : Adef.escaped_string =
+and string_of_image_url conf base (p, p_auth) html :
+    Geneweb_sanatize.Sanatize.escaped_string =
   if p_auth then
     match Image.get_portrait conf base p with
     | Some (`Path fname) ->
@@ -4140,12 +4186,13 @@ and string_of_image_url conf base (p, p_auth) html : Adef.escaped_string =
           (int_of_float (mod_float s.Unix.st_mtime (float_of_int max_int)))
           (b :> string)
           k
-        |> Adef.escaped
-    | Some (`Url url) -> Adef.escaped url (* FIXME *)
-    | None -> Adef.escaped ""
-  else Adef.escaped ""
+        |> Geneweb_sanatize.Sanatize.escaped
+    | Some (`Url url) -> Geneweb_sanatize.Sanatize.escaped url (* FIXME *)
+    | None -> Geneweb_sanatize.Sanatize.escaped ""
+  else Geneweb_sanatize.Sanatize.escaped ""
 
-and string_of_parent_age conf base (p, p_auth) parent : Adef.safe_string =
+and string_of_parent_age conf base (p, p_auth) parent :
+    Geneweb_sanatize.Sanatize.safe_string =
   match get_parents p with
   | Some ifam ->
       let cpl = foi base ifam in
@@ -4157,8 +4204,8 @@ and string_of_parent_age conf base (p, p_auth) parent : Adef.safe_string =
         with
         | Some d1, Some d2 ->
             Date.time_elapsed d1 d2 |> DateDisplay.string_of_age conf
-        | _ -> Adef.safe ""
-      else Adef.safe ""
+        | _ -> Geneweb_sanatize.Sanatize.safe ""
+      else Geneweb_sanatize.Sanatize.safe ""
   | None -> raise Not_found
 
 and string_of_int_env var env =
@@ -4412,7 +4459,11 @@ let print_foreach conf base print_ast eval_expr =
         let l = build_list_eclair conf base max_level p in
         List.iter
           (fun (a, b, c, d, e, f) ->
-            let b = (b : Adef.escaped_string :> Adef.safe_string) in
+            let b =
+              (b
+                : Geneweb_sanatize.Sanatize.escaped_string
+                :> Geneweb_sanatize.Sanatize.safe_string)
+            in
             let env =
               Templ.Env.add "ancestor"
                 (Vanc_surn (Eclair (a, b, c, d, e, f, loc)))
@@ -4699,7 +4750,8 @@ let print_foreach conf base print_ast eval_expr =
               env
               |> add "event_witness_relation" (Vevent (p, evt))
               |> add "event_witness_relation_kind"
-                   (Vstring (wk : Adef.safe_string :> string)))
+                   (Vstring
+                      (wk : Geneweb_sanatize.Sanatize.safe_string :> string)))
           in
           List.iter (print_ast env ep) al)
       events_witnesses

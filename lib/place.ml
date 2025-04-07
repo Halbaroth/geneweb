@@ -754,7 +754,7 @@ let print_all_places_surnames conf base =
       {
         conf with
         env =
-          ("display", Adef.encoded "short")
+          ("display", Geneweb_sanatize.Sanatize.encoded "short")
           :: List.remove_assoc "display" conf.env;
       }
     in

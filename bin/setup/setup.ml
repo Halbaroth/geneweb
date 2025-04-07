@@ -30,7 +30,7 @@ let slashify_linux_dos s =
   String.map (function '/' -> '\\' | c -> c) s
 #endif
 
-let decode s = Mutil.decode (Adef.encoded s)
+let decode s = Mutil.decode (Geneweb_sanatize.Sanatize.encoded s)
 let encode s = (Mutil.encode s :> string)
 
 let rec list_remove_assoc x =
@@ -131,7 +131,7 @@ let rec skip_spaces s i =
   if i < String.length s && s.[i] = ' ' then skip_spaces s (i + 1) else i
 
 let create_env s =
-  let s = (s : Adef.encoded_string :> string) in
+  let s = (s : Geneweb_sanatize.Sanatize.encoded_string :> string) in
   let rec get_assoc beg i =
     if i = String.length s then
       if i = beg then [] else [String.sub s beg (i - beg)]
@@ -1043,7 +1043,7 @@ let gwfixbase ok_file conf =
   else
     print_file conf ok_file
 
-let cache_files_check conf = 
+let cache_files_check conf =
   let in_base =
     match p_getenv conf.env "anon" with
       Some f -> strip_spaces f
@@ -1552,8 +1552,8 @@ let gwf_1 conf =
     benv;
   close_out oc;
   let trl = strip_spaces (strip_control_m (s_getenv conf.env "trailer")) in
-  
-  
+
+
   let trl_dir = !GWPARAM.etc_d in_base in
   let trl_file = Filename.concat trl_dir ("trl.txt") in
   try Unix.mkdir trl_dir  0o755 with Unix.Unix_error (_, _, _) -> ();
@@ -1851,7 +1851,7 @@ let input_lexicon lang =
     with e -> close_in ic; raise e
   with Sys_error _ -> t
 
-let setup (addr, req) comm (env_str : Adef.encoded_string) =
+let setup (addr, req) comm (env_str : Geneweb_sanatize.Sanatize.encoded_string) =
   let conf =
     let env = create_env env_str in
     if env = [] && (comm = "" || String.length comm = 2) then
@@ -1879,7 +1879,7 @@ let setup (addr, req) comm (env_str : Adef.encoded_string) =
   else if conf.comm = "" then print_file conf "welcome.htm"
   else setup_comm conf comm
 
-let wrap_setup a b (c : Adef.encoded_string) =
+let wrap_setup a b (c : Geneweb_sanatize.Sanatize.encoded_string) =
 #ifdef WINDOWS
   (* another process have been launched, therefore we lost variables;
      and we cannot parse the arg list again, because of possible spaces

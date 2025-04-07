@@ -21,7 +21,7 @@ type info = {
   sp1 : person option;
   sp2 : person option;
   bd : int;
-  td_prop : Adef.safe_string;
+  td_prop : Geneweb_sanatize.Sanatize.safe_string;
 }
 
 val threshold : int ref

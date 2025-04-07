@@ -525,7 +525,9 @@ let strip_array_persons pl =
 
 let error_family conf err =
   Update.prerr conf err @@ fun () ->
-  (err |> Update.string_of_error conf : Adef.safe_string :> string)
+  (err |> Update.string_of_error conf
+    : Geneweb_sanatize.Sanatize.safe_string
+    :> string)
   |> Utf8.capitalize_fst |> Output.print_sstring conf;
   Output.print_sstring conf "\n";
   Update.print_return conf
@@ -537,12 +539,13 @@ let check_parents conf cpl =
       if sn <> "" then
         Some
           (Update.UERR_missing_first_name
-             (transl_nth conf "father/mother" i |> Adef.safe))
+             (transl_nth conf "father/mother" i
+             |> Geneweb_sanatize.Sanatize.safe))
       else None
     else if sn = "" then
       Some
         (Update.UERR_missing_surname
-           (transl_nth conf "father/mother" i |> Adef.safe))
+           (transl_nth conf "father/mother" i |> Geneweb_sanatize.Sanatize.safe))
     else None
   in
   match check Gutil.father 0 with
@@ -592,14 +595,17 @@ let print_err_sex conf base p =
 
 let print_err conf =
   let err =
-    Update.UERR (transl conf "error" |> Utf8.capitalize_fst |> Adef.safe)
+    Update.UERR
+      (transl conf "error" |> Utf8.capitalize_fst
+     |> Geneweb_sanatize.Sanatize.safe)
   in
   Update.prerr conf err @@ fun () -> Update.print_return conf
 
 let print_error_disconnected conf =
   let err =
     Update.UERR
-      (transl conf "msg error disconnected" |> Utf8.capitalize_fst |> Adef.safe)
+      (transl conf "msg error disconnected"
+      |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe)
   in
   Update.prerr conf err @@ fun () ->
   Output.print_string conf (Update.string_of_error conf err)
@@ -960,7 +966,9 @@ let effective_inv conf base ip u ifam =
         Hutil.incorrect_request conf;
         raise
         @@ Update.ModErr
-             (Update.UERR (__FILE__ ^ " " ^ string_of_int __LINE__ |> Adef.safe))
+             (Update.UERR
+                (__FILE__ ^ " " ^ string_of_int __LINE__
+                |> Geneweb_sanatize.Sanatize.safe))
   in
   let u = { family = Array.of_list (loop (Array.to_list (get_family u))) } in
   patch_union base ip u

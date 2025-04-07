@@ -14,10 +14,10 @@ let image_normal_txt conf base p fname width height =
     Format.sprintf
       {|<img src="%sm=IM&d=%s&%s&k=%s"%s%s alt="%s" title="%s"
         style="%s %s">|}
-      (commd conf : Adef.escaped_string :> string)
+      (commd conf : Geneweb_sanatize.Sanatize.escaped_string :> string)
       (string_of_int
       @@ int_of_float (mod_float s.Unix.st_mtime (float_of_int max_int)))
-      (acces conf base p : Adef.escaped_string :> string)
+      (acces conf base p : Geneweb_sanatize.Sanatize.escaped_string :> string)
       k
       (if width = 0 then "" else " width=" ^ string_of_int width)
       (if height = 0 then "" else " height=" ^ string_of_int height)
@@ -28,10 +28,10 @@ let image_normal_txt conf base p fname width height =
   (if p_getenv conf.env "cgl" = Some "on" then r
   else
     Format.sprintf {|<a href="%sm=IM&%s&k=%s">%s</a>|}
-      (commd conf : Adef.escaped_string :> string)
-      (acces conf base p : Adef.escaped_string :> string)
+      (commd conf : Geneweb_sanatize.Sanatize.escaped_string :> string)
+      (acces conf base p : Geneweb_sanatize.Sanatize.escaped_string :> string)
       k r)
-  |> Adef.safe
+  |> Geneweb_sanatize.Sanatize.safe
 
 let image_url_txt conf url_p url ~width ~height =
   let width = Option.value ~default:0 width in
@@ -48,20 +48,20 @@ let image_url_txt conf url_p url ~width ~height =
   in
   let s =
     Format.sprintf {|<img src="%s" alt="%s" title="%s" %s style="%s">|}
-      (url : Adef.escaped_string :> string)
+      (url : Geneweb_sanatize.Sanatize.escaped_string :> string)
       image_txt image_txt size style
   in
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   if p_getenv conf.env "cgl" = Some "on" then s
   else
     Format.sprintf {|<a href="%s">%s</a>|}
-      (url_p : Adef.escaped_string :> string)
+      (url_p : Geneweb_sanatize.Sanatize.escaped_string :> string)
       s
 
 let image_txt conf base p =
   let img = Util.get_opt conf "im" true in
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   if img then
     match Image.get_portrait_with_size conf base p with
@@ -81,7 +81,8 @@ let image_txt conf base p =
                 <tr align="left"><td>%s</td></tr>
               </table>
             </center>|}
-          (image_normal_txt conf base p s w h |> Adef.as_string)
+          (image_normal_txt conf base p s w h
+          |> Geneweb_sanatize.Sanatize.as_string)
     | Some (`Url url, Some (width, height)) ->
         let url_p = commd conf ^^^ acces conf base p in
         Printf.sprintf
@@ -94,7 +95,7 @@ let image_txt conf base p =
             </center>|}
           (image_url_txt conf url_p (Util.escape_html url) ~width:(Some width)
              ~height
-          |> Adef.as_string)
+          |> Geneweb_sanatize.Sanatize.as_string)
     | Some (`Url url, None) ->
         let url_p = commd conf ^^^ acces conf base p in
         let height = 75 in
@@ -109,23 +110,28 @@ let image_txt conf base p =
             </center>|}
           (string_of_int height)
           (image_url_txt conf url_p (Util.escape_html url) ~width:None ~height
-          |> Adef.as_string)
+          |> Geneweb_sanatize.Sanatize.as_string)
   else ""
 
-type item = Item of person * Adef.safe_string
+type item = Item of person * Geneweb_sanatize.Sanatize.safe_string
 
 let string_of_item conf base = function
   | Item (p, s) ->
       Util.referenced_person_title_text conf base p
       ^^^ DateDisplay.short_dates_text conf base p
-      ^^^ if (s :> string) = "" then Adef.safe "" else " " ^<^ s
+      ^^^
+      if (s :> string) = "" then Geneweb_sanatize.Sanatize.safe ""
+      else " " ^<^ s
 
 (* Print with HTML table tags: <table> <tr> <td> *)
 
 let print_table conf
     (hts :
-      (int * Dag2html.align * Adef.safe_string Dag2html.table_data) array array)
-    =
+      (int
+      * Dag2html.align
+      * Geneweb_sanatize.Sanatize.safe_string Dag2html.table_data)
+      array
+      array) =
   begin_centered conf;
   Output.print_sstring conf {|<table border="|};
   Output.print_sstring conf (string_of_int conf.border);
@@ -157,7 +163,7 @@ let print_table conf
       | TDtext (_ip, s) -> Output.print_string conf s
       | TDnothing -> Output.print_sstring conf "&nbsp;"
       | TDbar None -> Output.print_sstring conf "|"
-      | TDbar (Some (s : Adef.escaped_string)) ->
+      | TDbar (Some (s : Geneweb_sanatize.Sanatize.escaped_string)) ->
           if p_getenv conf.env "cgl" = Some "on" then Output.print_string conf s
           else (
             Output.print_sstring conf {|<a style="text-decoration:none" href="|};
@@ -268,7 +274,7 @@ let strip_empty_tags s =
   loop 0 None 0
 
 let displayed_length s =
-  let s = (s : Adef.safe_string :> string) in
+  let s = (s : Geneweb_sanatize.Sanatize.safe_string :> string) in
   let rec loop len i =
     match displayed_next_char s i with
     | Some (_i, j) -> loop (len + 1) j
@@ -293,7 +299,7 @@ let displayed_sub s ibeg ilen =
   loop 0 0 0 0
 
 let longuest_word_length s =
-  let s = (s : Adef.safe_string :> string) in
+  let s = (s : Geneweb_sanatize.Sanatize.safe_string :> string) in
   let rec loop maxlen len i =
     match displayed_next_char s i with
     | Some (j, k) ->
@@ -314,8 +320,10 @@ let displayed_end_word s di i =
 (* Strip 'displayed text' s by subtexts of limited size sz *)
 
 let displayed_strip s sz =
-  let s = (s : Adef.safe_string :> string) in
-  let displayed_sub s b e = displayed_sub s b e |> Adef.safe in
+  let s = (s : Geneweb_sanatize.Sanatize.safe_string :> string) in
+  let displayed_sub s b e =
+    displayed_sub s b e |> Geneweb_sanatize.Sanatize.safe
+  in
   let rec loop strl dibeg di i =
     let i =
       let rec loop i =
@@ -412,7 +420,7 @@ let compute_columns_minimum_sizes =
    preceded/followed by a |; not obligatory but nicer *)
 
 let try_add_vbar stra_row stra_row_max hts i col =
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   if stra_row < 0 then
     if i = 0 then ""
@@ -439,9 +447,9 @@ let try_add_vbar stra_row stra_row_max hts i col =
   else ""
 
 let strip_troublemakers s =
-  let s = (s : Adef.safe_string :> string) in
+  let s = (s : Geneweb_sanatize.Sanatize.safe_string :> string) in
   let rec loop last_space len i =
-    if i = String.length s then Adef.safe (Buff.get len)
+    if i = String.length s then Geneweb_sanatize.Sanatize.safe (Buff.get len)
     else
       match s.[i] with
       | '<' ->
@@ -480,7 +488,11 @@ let table_strip_troublemakers hts =
       match hts.(i).(j) with
       | colspan, align, TDitem (ip, s, _t) ->
           hts.(i).(j) <-
-            (colspan, align, TDitem (ip, strip_troublemakers s, Adef.safe ""))
+            ( colspan,
+              align,
+              TDitem
+                (ip, strip_troublemakers s, Geneweb_sanatize.Sanatize.safe "")
+            )
       | _ -> ()
     done
   done
@@ -564,7 +576,8 @@ let print_next_pos conf pos1 pos2 tcol =
 let print_table_pre conf hts =
   let cgl = p_getenv conf.env "cgl" = Some "on" in
   let displayed_sub s b e =
-    displayed_sub (s : Adef.safe_string :> string) b e |> Adef.safe
+    displayed_sub (s : Geneweb_sanatize.Sanatize.safe_string :> string) b e
+    |> Geneweb_sanatize.Sanatize.safe
   in
   let tmincol, tcol, colminsz, colsz, ncol = table_pre_dim hts in
   let dcol =
@@ -635,27 +648,31 @@ let print_table_pre conf hts =
                   in
                   if k >= 0 && k < Array.length stra.(j) then
                     let s = stra.(j).(k) in
-                    if (s :> string) = "&nbsp;" then Adef.safe " " else s
+                    if (s :> string) = "&nbsp;" then
+                      Geneweb_sanatize.Sanatize.safe " "
+                    else s
                   else try_add_vbar k (Array.length stra.(j)) hts i col
                 in
                 let len = displayed_length s in
                 String.make ((sz - len) / 2) ' '
-                ^<^ (s : Adef.safe_string)
+                ^<^ (s : Geneweb_sanatize.Sanatize.safe_string)
                 ^>^ String.make (sz - ((sz + len) / 2)) ' '
             | TDnothing ->
-                Adef.safe
+                Geneweb_sanatize.Sanatize.safe
                 @@ String.make ((sz - 1) / 2) ' '
                 ^ "&nbsp;"
                 ^ String.make (sz - ((sz + 1) / 2)) ' '
             | TDbar s ->
                 let s =
                   match s with
-                  | None -> Adef.safe "|"
+                  | None -> Geneweb_sanatize.Sanatize.safe "|"
                   | Some s ->
-                      let s = (s : Adef.escaped_string :> string) in
-                      if s = "" || cgl then Adef.safe "|"
+                      let s =
+                        (s : Geneweb_sanatize.Sanatize.escaped_string :> string)
+                      in
+                      if s = "" || cgl then Geneweb_sanatize.Sanatize.safe "|"
                       else
-                        Adef.safe
+                        Geneweb_sanatize.Sanatize.safe
                         @@ Printf.sprintf
                              "<a style=\"text-decoration:none\" \
                               href=\"%s\">|</a>"
@@ -667,12 +684,14 @@ let print_table_pre conf hts =
                 ^>^ String.make (sz - ((sz + len) / 2)) ' '
             | TDhr LeftA ->
                 let len = (sz + 1) / 2 in
-                Adef.safe (String.make len '-' ^ String.make (sz - len) ' ')
+                Geneweb_sanatize.Sanatize.safe
+                  (String.make len '-' ^ String.make (sz - len) ' ')
             | TDhr RightA ->
                 let len = sz / 2 in
-                Adef.safe
+                Geneweb_sanatize.Sanatize.safe
                   (String.make (sz - len - 1) ' ' ^ String.make (len + 1) '-')
-            | TDhr CenterA -> Adef.safe (String.make sz '-')
+            | TDhr CenterA ->
+                Geneweb_sanatize.Sanatize.safe (String.make sz '-')
           in
           let clipped_outs =
             if pos1 = None && pos2 = None then outs
@@ -681,8 +700,8 @@ let print_table_pre conf hts =
               let pos2 =
                 match pos2 with Some pos2 -> pos2 | None -> pos + sz
               in
-              if pos + sz <= pos1 then Adef.safe ""
-              else if pos > pos2 then Adef.safe ""
+              if pos + sz <= pos1 then Geneweb_sanatize.Sanatize.safe ""
+              else if pos > pos2 then Geneweb_sanatize.Sanatize.safe ""
               else if pos2 >= pos + sz then
                 displayed_sub outs (pos1 - pos) (pos + sz - pos1)
               else if pos1 < pos then displayed_sub outs 0 (pos2 - pos)
@@ -777,15 +796,15 @@ let make_tree_hts conf base elem_txt vbar_txt invert set spl d =
                 | Some ifam when auth ->
                     DateDisplay.short_marriage_date_text conf base
                       (foi base ifam) p ps
-                | _ -> Adef.safe ""
+                | _ -> Geneweb_sanatize.Sanatize.safe ""
               in
               txt ^^^ "<br>&amp;" ^<^ d ^^^ " "
               ^<^ string_of_item conf base (elem_txt ps)
               ^^^ image_txt conf base ps)
           txt spouses
-    | Right _ -> Adef.safe "&nbsp;"
+    | Right _ -> Geneweb_sanatize.Sanatize.safe "&nbsp;"
   in
-  let indi_txt n : Adef.safe_string =
+  let indi_txt n : Geneweb_sanatize.Sanatize.safe_string =
     let bd = match n.valu with Left _ -> bd | _ -> 0 in
     if bd > 0 then
       {|<table border="|} ^<^ string_of_int bd
@@ -794,7 +813,9 @@ let make_tree_hts conf base elem_txt vbar_txt invert set spl d =
     else indi_txt n
   in
   let vbar_txt n =
-    match n.valu with Left ip -> vbar_txt ip | _ -> Adef.escaped ""
+    match n.valu with
+    | Left ip -> vbar_txt ip
+    | _ -> Geneweb_sanatize.Sanatize.escaped ""
   in
   let phony n = match n.valu with Left _ -> false | Right _ -> true in
   let t = Dag2html.table_of_dag phony false invert no_group d in
@@ -851,7 +872,7 @@ let print_dag_page conf page_title hts next_txt =
   (* page <h1> title is handled by buttons_rel!! *)
   if cgl then () else Hutil.interp_no_env conf "buttons_rel";
   print_html_table conf hts;
-  if (next_txt : Adef.escaped_string :> string) <> "" then
+  if (next_txt : Geneweb_sanatize.Sanatize.escaped_string :> string) <> "" then
     if cgl then Output.print_sstring conf {|">&gt;&gt;</p>|}
     else (
       Output.print_sstring conf {|<p><a href="|};
@@ -866,14 +887,21 @@ type 'a env =
   | Vbool of bool
   | Vcnt of int ref
   | Vdag of (int * int * int array * int array * int)
-  | Vdcell of (int * Dag2html.align * Adef.safe_string Dag2html.table_data)
+  | Vdcell of
+      (int
+      * Dag2html.align
+      * Geneweb_sanatize.Sanatize.safe_string Dag2html.table_data)
   | Vdcellp of string
   | Vdline of int
   | Vdlinep of
-      (int * Adef.safe_string array array * int * int option * int option)
+      (int
+      * Geneweb_sanatize.Sanatize.safe_string array array
+      * int
+      * int option
+      * int option)
   | Vint of int
-  | Vsstring of Adef.safe_string
-  | Vestring of Adef.escaped_string
+  | Vsstring of Geneweb_sanatize.Sanatize.safe_string
+  | Vestring of Geneweb_sanatize.Sanatize.escaped_string
   | Vind of person
   | Vlazy of 'a env Lazy.t
   | Vother of 'a
@@ -1064,7 +1092,8 @@ and eval_dag_cell_var conf base env (colspan, align, td) = function
   | [ "bar_link" ] ->
       VVstring
         (match td with
-        | TDbar (Some s) -> (s : Adef.escaped_string :> string)
+        | TDbar (Some s) ->
+            (s : Geneweb_sanatize.Sanatize.escaped_string :> string)
         | _ -> "")
   | [ "colspan" ] -> VVstring (string_of_int colspan)
   | [ "father"; "access" ] -> parents_access_aux conf base td get_father
@@ -1094,14 +1123,16 @@ and eval_dag_cell_var conf base env (colspan, align, td) = function
   | [ "is_nothing" ] -> VVbool (td = TDnothing)
   | [ "item" ] -> (
       match td with
-      | TDitem (_ip, s, _t) -> VVstring (s : Adef.safe_string :> string)
+      | TDitem (_ip, s, _t) ->
+          VVstring (s : Geneweb_sanatize.Sanatize.safe_string :> string)
       | _ -> VVstring "")
   | [ "mother"; "access" ] -> parents_access_aux conf base td get_mother
   | [ "next_sibling"; "access" ] -> sibling_access_aux conf base td true
   | [ "prev_sibling"; "access" ] -> sibling_access_aux conf base td false
   | [ "text" ] -> (
       match td with
-      | TDtext (_ip, s) -> VVstring (s : Adef.safe_string :> string)
+      | TDtext (_ip, s) ->
+          VVstring (s : Geneweb_sanatize.Sanatize.safe_string :> string)
       | _ -> VVstring "")
   | [ "get_var"; name ] -> (
       match get_env "vars" env with
@@ -1172,8 +1203,10 @@ and print_foreach_dag_cell_pre conf hts print_ast env al =
               in
               if k >= 0 && k < Array.length stra.(j) then
                 let s = stra.(j).(k) in
-                if (s : Adef.safe_string :> string) = "&nbsp;" then
-                  Adef.safe " "
+                if
+                  (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+                  = "&nbsp;"
+                then Geneweb_sanatize.Sanatize.safe " "
                 else s
               else try_add_vbar k (Array.length stra.(j)) hts i col
             in
@@ -1184,14 +1217,18 @@ and print_foreach_dag_cell_pre conf hts print_ast env al =
         | TDnothing -> String.make sz ' '
         | TDbar s ->
             let s =
-              match (s : Adef.escaped_string option :> string option) with
+              match
+                (s
+                  : Geneweb_sanatize.Sanatize.escaped_string option
+                  :> string option)
+              with
               | None | Some "" -> "|"
               | Some s ->
                   if p_getenv conf.env "cgl" = Some "on" then s
                   else
                     {|<a style="text-decoration:none" href="|} ^ s ^ {|">|</a>|}
             in
-            let len = displayed_length (Adef.safe s) in
+            let len = displayed_length (Geneweb_sanatize.Sanatize.safe s) in
             String.make ((sz - len) / 2) ' '
             ^ s
             ^ String.make (sz - ((sz + len) / 2)) ' '
@@ -1275,7 +1312,8 @@ and print_foreach_dag_line_pre conf hts print_ast env al =
               Array.of_list (displayed_strip s sz)
             in
             match td with
-            | TDitem (_ip, s, _t) -> aux (s :> Adef.safe_string)
+            | TDitem (_ip, s, _t) ->
+                aux (s :> Geneweb_sanatize.Sanatize.safe_string)
             | TDtext (_ip, s) -> aux s
             | _ -> [||]
           in
@@ -1361,11 +1399,12 @@ let make_and_print_dag conf base elem_txt vbar_txt invert set spl page_title
 
 let print conf base =
   let set = get_dag_elems conf base in
-  let elem_txt p = Item (p, Adef.safe "") in
-  let vbar_txt _ = Adef.escaped "" in
+  let elem_txt p = Item (p, Geneweb_sanatize.Sanatize.safe "") in
+  let vbar_txt _ = Geneweb_sanatize.Sanatize.escaped "" in
   let invert = Util.p_getenv conf.env "invert" = Some "on" in
   let page_title =
-    Util.transl conf "tree" |> Utf8.capitalize_fst |> Adef.safe
+    Util.transl conf "tree" |> Utf8.capitalize_fst
+    |> Geneweb_sanatize.Sanatize.safe
   in
   make_and_print_dag conf base elem_txt vbar_txt invert set [] page_title
-    (Adef.escaped "")
+    (Geneweb_sanatize.Sanatize.escaped "")

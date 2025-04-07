@@ -5,6 +5,9 @@ open Config
 open Gwdb
 open Util
 
+let ( ^<^ ) = Geneweb_sanatize.Sanatize.( ^<^ )
+let ( <^> ) = Geneweb_sanatize.Sanatize.( <^> )
+
 let print_someone conf base p =
   Output.printf conf "%s%s %s" (p_first_name base p)
     (if get_occ p = 0 then "" else "." ^ string_of_int (get_occ p))
@@ -35,7 +38,7 @@ let print conf base p =
        (transl conf ":")
        (conf.command :> string));
   Util.hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "MRG_IND");
+  Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "MRG_IND");
   Util.hidden_input conf "i" (get_iper p |> string_of_iper |> Mutil.encode);
   Output.print_sstring conf
     "<span class=\"form-row align-items-center\"><span \
@@ -123,15 +126,18 @@ let print_possible_continue_merging conf base =
           let ip = iper_of_string ip in
           let s1 =
             match p_getenv conf.env "iexcl" with
-            | Some "" | None -> Adef.encoded ""
+            | Some "" | None -> Geneweb_sanatize.Sanatize.encoded ""
             | Some s -> "&iexcl=" ^<^ Mutil.encode s
           in
           let s2 =
             match p_getenv conf.env "fexcl" with
-            | Some "" | None -> Adef.encoded ""
+            | Some "" | None -> Geneweb_sanatize.Sanatize.encoded ""
             | Some s -> "&fexcl=" ^<^ Mutil.encode s
           in
-          if s1 <^> Adef.encoded "" || s2 <^> Adef.encoded "" then (
+          if
+            s1 <^> Geneweb_sanatize.Sanatize.encoded ""
+            || s2 <^> Geneweb_sanatize.Sanatize.encoded ""
+          then (
             let p = poi base ip in
             let s = gen_person_text conf base p in
             Output.print_sstring conf {|<p><a href="|};

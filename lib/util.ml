@@ -158,7 +158,7 @@ let escape_aux count blit str =
 
 (** [escape_html str] replaces '&', '"', '<' and '>'
     with their corresponding character entities (using entity number) *)
-let escape_html s : Adef.escaped_string =
+let escape_html s : Geneweb_sanatize.Sanatize.escaped_string =
   escape_aux
     (function '&' | '"' | '\'' | '<' | '>' -> 5 (* "&#xx;" *) | _ -> 1)
     (fun buf ibuf istr loop -> function
@@ -181,9 +181,9 @@ let escape_html s : Adef.escaped_string =
           Bytes.unsafe_set buf ibuf c;
           loop (istr + 1) (ibuf + 1))
     s
-  |> Adef.escaped
+  |> Geneweb_sanatize.Sanatize.escaped
 
-let esc x = (escape_html x :> Adef.safe_string)
+let esc x = (escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
 
 (** [escape_attribute str] only escapes double quote and ampersand.
     Since we will return normalized HTML, ['"' and '\''] should be the only
@@ -486,9 +486,9 @@ let unauthorized conf auth_type =
   Output.print_sstring conf "</body>\n</html>\n"
 
 let commd ?(excl = []) ?(trim = true) ?(pwd = true) ?(henv = true)
-    ?(senv = true) conf : Adef.escaped_string =
+    ?(senv = true) conf : Geneweb_sanatize.Sanatize.escaped_string =
   let aux =
-    List.fold_left (fun c (k, (v : Adef.encoded_string)) ->
+    List.fold_left (fun c (k, (v : Geneweb_sanatize.Sanatize.encoded_string)) ->
         if
           List.mem k excl
           || (trim && (k = "oc" || k = "ocz") && (v :> string) = "0")
@@ -496,7 +496,10 @@ let commd ?(excl = []) ?(trim = true) ?(pwd = true) ?(henv = true)
           || k = "b"
           || (k = "lang" && conf.default_lang = (v :> string))
         then c
-        else c ^^^ k ^<^ "=" ^<^ (v :> Adef.escaped_string) ^>^ "&")
+        else
+          c ^^^ k ^<^ "="
+          ^<^ (v :> Geneweb_sanatize.Sanatize.escaped_string)
+          ^>^ "&")
   in
   let commd = conf.command in
   (* in CGI mode, b=bname is part of env *)
@@ -512,7 +515,7 @@ let commd ?(excl = []) ?(trim = true) ?(pwd = true) ?(henv = true)
           commd
   in
   let s =
-    Adef.escaped
+    Geneweb_sanatize.Sanatize.escaped
     @@
     if conf.cgi then
       if conf.cgi_passwd = "" then commd ^ "?b=" ^ conf.bname ^ "&"
@@ -525,7 +528,7 @@ let commd ?(excl = []) ?(trim = true) ?(pwd = true) ?(henv = true)
 
 let prefix_base conf =
   let cmmd = conf.command in
-  Adef.escaped
+  Geneweb_sanatize.Sanatize.escaped
   @@
   if conf.cgi then cmmd ^ "?b=" ^ conf.bname ^ "&"
   else
@@ -537,7 +540,7 @@ let prefix_base conf =
     cmmd ^ "?"
 
 let prefix_base_password conf =
-  Adef.escaped
+  Geneweb_sanatize.Sanatize.escaped
   @@
   if conf.cgi then
     if conf.cgi_passwd = "" then conf.command ^ "?b=" ^ conf.bname ^ "&"
@@ -686,7 +689,7 @@ let safe_html_aux escape_text escape_attribute s =
   |> to_string
 
 let safe_html s =
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
     (safe_html_aux (fun s -> (escape_html s :> string)) escape_attribute s)
 
 (* Clean HTML tags from a string. Block tags are replaced by a space,
@@ -723,7 +726,9 @@ let aux_input_s conf t k v =
   Output.print_string conf (escape_html v);
   Output.print_sstring conf "\">\n"
 
-let hidden_input_s conf k v = aux_input_s conf (Adef.encoded "hidden") k v
+let hidden_input_s conf k v =
+  aux_input_s conf (Geneweb_sanatize.Sanatize.encoded "hidden") k v
+
 let hidden_input conf k v = hidden_input_s conf k (Mutil.decode v)
 let hidden_env_aux conf = List.iter (fun (k, v) -> hidden_input conf k v)
 
@@ -732,7 +737,9 @@ let hidden_env conf =
   hidden_env_aux conf conf.senv
 
 let submit_input conf k v =
-  aux_input_s conf (Adef.encoded "submit") k (Mutil.decode v)
+  aux_input_s conf
+    (Geneweb_sanatize.Sanatize.encoded "submit")
+    k (Mutil.decode v)
 
 let p_getenv env label = Option.map Mutil.decode (List.assoc_opt label env)
 
@@ -839,25 +846,27 @@ let accessible_by_key conf base p fn sn =
     - p    : person
       [Retour] : string
       [Rem] : Exporté en clair hors de ce module.                           *)
-let acces_n conf base n x : Adef.escaped_string =
+let acces_n conf base n x : Geneweb_sanatize.Sanatize.escaped_string =
   let first_name = p_first_name base x in
   let surname = p_surname base x in
-  if surname = "" then Adef.escaped ""
+  if surname = "" then Geneweb_sanatize.Sanatize.escaped ""
   else if accessible_by_key conf base x first_name surname then
     "p" ^<^ n ^^^ "="
-    ^<^ (Mutil.encode (Name.lower first_name) :> Adef.escaped_string)
+    ^<^ (Mutil.encode (Name.lower first_name)
+          :> Geneweb_sanatize.Sanatize.escaped_string)
     ^^^ "&n" ^<^ n ^^^ "="
-    ^<^ (Mutil.encode (Name.lower surname) :> Adef.escaped_string)
+    ^<^ (Mutil.encode (Name.lower surname)
+          :> Geneweb_sanatize.Sanatize.escaped_string)
     ^^^
     if get_occ x <> 0 then "&oc" ^<^ n ^>^ "=" ^ string_of_int (get_occ x)
-    else Adef.escaped ""
+    else Geneweb_sanatize.Sanatize.escaped ""
   else
     "i" ^<^ n ^^^ "="
     ^<^ string_of_iper (get_iper x)
     ^<^
     if conf.wizard && get_occ x <> 0 then
       "&oc" ^<^ n ^>^ "=" ^ string_of_int (get_occ x)
-    else Adef.escaped ""
+    else Geneweb_sanatize.Sanatize.escaped ""
 
 (* ********************************************************************** *)
 (*  [Fonc] acces : config -> base -> person -> string                     *)
@@ -871,16 +880,17 @@ let acces_n conf base n x : Adef.escaped_string =
       - p    : person
     [Retour] : string
     [Rem] : Exporté en clair hors de ce module.                           *)
-let acces conf base x = acces_n conf base (Adef.escaped "") x
+let acces conf base x =
+  acces_n conf base (Geneweb_sanatize.Sanatize.escaped "") x
 
 (**/**)
 
-let restricted_txt = Adef.safe "....."
-let x_x_txt = Adef.safe "x x"
+let restricted_txt = Geneweb_sanatize.Sanatize.safe "....."
+let x_x_txt = Geneweb_sanatize.Sanatize.safe "x x"
 
 let gen_person_text ?(escape = true) ?(html = true) ?(sn = true) ?(chk = true)
     ?(p_first_name = p_first_name) ?(p_surname = p_surname) conf base p =
-  let esc = if escape then esc else Adef.safe in
+  let esc = if escape then esc else Geneweb_sanatize.Sanatize.safe in
   if is_hidden p then restricted_txt
   else if chk && is_hide_names conf p && not (authorized_age conf base p) then
     x_x_txt
@@ -906,7 +916,7 @@ let main_title conf base p =
   | None -> ( match titles with x :: _ -> Some x | _ -> None)
   | x -> x
 
-let titled_person_text conf base p t : Adef.safe_string =
+let titled_person_text conf base p t : Geneweb_sanatize.Sanatize.safe_string =
   if List.assoc_opt "print_advanced_title" conf.base_env = Some "yes" then
     let estate = sou base t.t_place in
     let surname = p_surname base p in
@@ -917,11 +927,12 @@ let titled_person_text conf base p t : Adef.safe_string =
     (*     fonction du nom public et sobriquet                           *)
     if Name.strip_lower estate = Name.strip_lower surname then
       match (t.t_name, get_qualifiers p) with
-      | Tname n, [] -> (esc (sou base n) :> Adef.safe_string)
+      | Tname n, [] ->
+          (esc (sou base n) :> Geneweb_sanatize.Sanatize.safe_string)
       | Tname n, nn :: _ ->
-          (esc (sou base n) :> Adef.safe_string)
+          (esc (sou base n) :> Geneweb_sanatize.Sanatize.safe_string)
           ^^^ " <em>"
-          ^<^ (esc (sou base nn) :> Adef.safe_string)
+          ^<^ (esc (sou base nn) :> Geneweb_sanatize.Sanatize.safe_string)
           ^>^ "</em>"
       | _ -> gen_person_text ~sn:false conf base p
     else
@@ -959,21 +970,22 @@ let titled_person_text conf base p t : Adef.safe_string =
       - t    : le titre de noblesse que l'on veut afficher
     [Retour] : string
     [Rem] : Non exporté en clair hors de ce module.                        *)
-let one_title_text base t : Adef.safe_string =
+let one_title_text base t : Geneweb_sanatize.Sanatize.safe_string =
   let place = sou base t.t_place in
   let s = sou base t.t_ident in
   let s = if place = "" then s else s ^ " " ^ place in
-  " <em>" ^<^ (esc s :> Adef.safe_string) ^>^ "</em>"
+  " <em>" ^<^ (esc s :> Geneweb_sanatize.Sanatize.safe_string) ^>^ "</em>"
 
-let geneweb_link conf (href : Adef.escaped_string) (s : Adef.safe_string) =
+let geneweb_link conf (href : Geneweb_sanatize.Sanatize.escaped_string)
+    (s : Geneweb_sanatize.Sanatize.safe_string) =
   "<a href=\""
-  ^<^ (commd conf ^^^ href :> Adef.safe_string)
+  ^<^ (commd conf ^^^ href :> Geneweb_sanatize.Sanatize.safe_string)
   ^^^ "\">" ^<^ s ^>^ "</a>"
 
 let wprint_geneweb_link conf href s =
   Output.print_string conf (geneweb_link conf href s)
 
-let mod_ind_link conf p (s : Adef.safe_string) =
+let mod_ind_link conf p (s : Geneweb_sanatize.Sanatize.safe_string) =
   let cgl =
     match p_getenv conf.env "cgl" with Some "on" -> true | _ -> false
   in
@@ -986,9 +998,10 @@ let mod_ind_link conf p (s : Adef.safe_string) =
       else s
     in
     Format.sprintf {|<a href="%s%s">%s</a>|} (commd conf :> string) href txt
-    |> Adef.safe
+    |> Geneweb_sanatize.Sanatize.safe
 
-let reference_flags with_id conf base p (s : Adef.safe_string) =
+let reference_flags with_id conf base p
+    (s : Geneweb_sanatize.Sanatize.safe_string) =
   let cgl =
     match p_getenv conf.env "cgl" with Some "on" -> true | _ -> false
   in
@@ -997,7 +1010,8 @@ let reference_flags with_id conf base p (s : Adef.safe_string) =
   if is_hidden p || cgl then s
   else
     "<a href=\""
-    ^<^ (commd conf ^^^ acces conf base p :> Adef.safe_string)
+    ^<^ (commd conf ^^^ acces conf base p
+          :> Geneweb_sanatize.Sanatize.safe_string)
     ^^^ (if with_id then "\" id=\"i" else "")
     ^<^ (if with_id then string_of_iper iper else "")
     ^<^ "\">" ^<^ s ^>^ "</a>"
@@ -1043,13 +1057,13 @@ let update_family_loop conf base p s =
           let iper = string_of_iper iper in
           let ifam = string_of_ifam res in
           "<a href=\""
-          ^<^ (commd conf :> Adef.safe_string)
+          ^<^ (commd conf :> Geneweb_sanatize.Sanatize.safe_string)
           ^^^ "m=MOD_FAM&i=" ^<^ ifam ^<^ "&ip=" ^<^ iper ^<^ "\">" ^<^ s
           ^>^ "</a>"
       | _ ->
           let iper = string_of_iper iper in
           "<a href=\""
-          ^<^ (commd conf :> Adef.safe_string)
+          ^<^ (commd conf :> Geneweb_sanatize.Sanatize.safe_string)
           ^^^ "m=U&i=" ^<^ iper ^<^ "\">" ^<^ s ^>^ "</a>"
     else s
 
@@ -1090,8 +1104,8 @@ let person_title conf base p =
   if authorized_age conf base p then
     match main_title conf base p with
     | Some t -> one_title_text base t
-    | None -> Adef.safe ""
-  else Adef.safe ""
+    | None -> Geneweb_sanatize.Sanatize.safe ""
+  else Geneweb_sanatize.Sanatize.safe ""
 
 let make_key base p =
   (Name.lower (sou base p.first_name), Name.lower (sou base p.surname), p.occ)
@@ -1120,7 +1134,7 @@ let rec skip_spaces s i =
   if i < String.length s && s.[i] = ' ' then skip_spaces s (i + 1) else i
 
 let create_env s =
-  let s = (s : Adef.encoded_string :> string) in
+  let s = (s : Geneweb_sanatize.Sanatize.encoded_string :> string) in
   let use_amp = not (Mutil.contains s "content-disposition") in
   let rec get_assoc beg i =
     if i = String.length s then
@@ -1131,89 +1145,131 @@ let create_env s =
     else get_assoc beg (succ i)
   in
   let rec separate i s =
-    if i = String.length s then (s, Adef.encoded "")
+    if i = String.length s then (s, Geneweb_sanatize.Sanatize.encoded "")
     else if s.[i] = '=' then
       ( String.sub s 0 i,
-        Adef.encoded (String.sub s (succ i) (String.length s - succ i)) )
+        Geneweb_sanatize.Sanatize.encoded
+          (String.sub s (succ i) (String.length s - succ i)) )
     else separate (succ i) s
   in
   List.map (separate 0) (get_assoc 0 0)
 
-let std_color conf (s : Adef.safe_string) =
+let std_color conf (s : Geneweb_sanatize.Sanatize.safe_string) =
   "<span style=\"color:" ^<^ conf.highlight ^<^ "\">" ^<^ s ^>^ "</span>"
 
 let index_of_sex = function Male -> 0 | Female -> 1 | Neuter -> 2
 
 let string_of_pevent_name conf base epers_name =
   match epers_name with
-  | Epers_Birth -> Adef.safe @@ transl conf "birth"
-  | Epers_Baptism -> Adef.safe @@ transl conf "baptism"
-  | Epers_Death -> Adef.safe @@ transl conf "death"
-  | Epers_Burial -> Adef.safe @@ transl conf "burial"
-  | Epers_Cremation -> Adef.safe @@ transl conf "cremation"
-  | Epers_Accomplishment -> Adef.safe @@ transl conf "accomplishment"
-  | Epers_Acquisition -> Adef.safe @@ transl conf "acquisition"
-  | Epers_Adhesion -> Adef.safe @@ transl conf "adhesion"
-  | Epers_BaptismLDS -> Adef.safe @@ transl conf "baptismLDS"
-  | Epers_BarMitzvah -> Adef.safe @@ transl conf "bar mitzvah"
-  | Epers_BatMitzvah -> Adef.safe @@ transl conf "bat mitzvah"
-  | Epers_Benediction -> Adef.safe @@ transl conf "benediction"
-  | Epers_ChangeName -> Adef.safe @@ transl conf "change name"
-  | Epers_Circumcision -> Adef.safe @@ transl conf "circumcision"
-  | Epers_Confirmation -> Adef.safe @@ transl conf "confirmation"
-  | Epers_ConfirmationLDS -> Adef.safe @@ transl conf "confirmation LDS"
-  | Epers_Decoration -> Adef.safe @@ transl conf "decoration"
+  | Epers_Birth -> Geneweb_sanatize.Sanatize.safe @@ transl conf "birth"
+  | Epers_Baptism -> Geneweb_sanatize.Sanatize.safe @@ transl conf "baptism"
+  | Epers_Death -> Geneweb_sanatize.Sanatize.safe @@ transl conf "death"
+  | Epers_Burial -> Geneweb_sanatize.Sanatize.safe @@ transl conf "burial"
+  | Epers_Cremation -> Geneweb_sanatize.Sanatize.safe @@ transl conf "cremation"
+  | Epers_Accomplishment ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "accomplishment"
+  | Epers_Acquisition ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "acquisition"
+  | Epers_Adhesion -> Geneweb_sanatize.Sanatize.safe @@ transl conf "adhesion"
+  | Epers_BaptismLDS ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "baptismLDS"
+  | Epers_BarMitzvah ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "bar mitzvah"
+  | Epers_BatMitzvah ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "bat mitzvah"
+  | Epers_Benediction ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "benediction"
+  | Epers_ChangeName ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "change name"
+  | Epers_Circumcision ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "circumcision"
+  | Epers_Confirmation ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "confirmation"
+  | Epers_ConfirmationLDS ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "confirmation LDS"
+  | Epers_Decoration ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "decoration"
   | Epers_DemobilisationMilitaire ->
-      Adef.safe @@ transl conf "demobilisationMilitaire"
-  | Epers_Diploma -> Adef.safe @@ transl conf "diploma"
-  | Epers_Distinction -> Adef.safe @@ transl conf "distinction"
-  | Epers_Dotation -> Adef.safe @@ transl conf "dotation"
-  | Epers_DotationLDS -> Adef.safe @@ transl conf "dotationLDS"
-  | Epers_Education -> Adef.safe @@ transl conf "education"
-  | Epers_Election -> Adef.safe @@ transl conf "election"
-  | Epers_Emigration -> Adef.safe @@ transl conf "emigration"
-  | Epers_Excommunication -> Adef.safe @@ transl conf "excommunication"
-  | Epers_FamilyLinkLDS -> Adef.safe @@ transl conf "familyLinkLDS"
-  | Epers_FirstCommunion -> Adef.safe @@ transl conf "firstCommunion"
-  | Epers_Funeral -> Adef.safe @@ transl conf "funeral"
-  | Epers_Graduate -> Adef.safe @@ transl conf "graduate"
-  | Epers_Hospitalisation -> Adef.safe @@ transl conf "hospitalisation"
-  | Epers_Illness -> Adef.safe @@ transl conf "illness"
-  | Epers_Immigration -> Adef.safe @@ transl conf "immigration"
-  | Epers_ListePassenger -> Adef.safe @@ transl conf "listePassenger"
-  | Epers_MilitaryDistinction -> Adef.safe @@ transl conf "militaryDistinction"
-  | Epers_MilitaryPromotion -> Adef.safe @@ transl conf "militaryPromotion"
-  | Epers_MilitaryService -> Adef.safe @@ transl conf "militaryService"
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "demobilisationMilitaire"
+  | Epers_Diploma -> Geneweb_sanatize.Sanatize.safe @@ transl conf "diploma"
+  | Epers_Distinction ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "distinction"
+  | Epers_Dotation -> Geneweb_sanatize.Sanatize.safe @@ transl conf "dotation"
+  | Epers_DotationLDS ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "dotationLDS"
+  | Epers_Education -> Geneweb_sanatize.Sanatize.safe @@ transl conf "education"
+  | Epers_Election -> Geneweb_sanatize.Sanatize.safe @@ transl conf "election"
+  | Epers_Emigration ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "emigration"
+  | Epers_Excommunication ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "excommunication"
+  | Epers_FamilyLinkLDS ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "familyLinkLDS"
+  | Epers_FirstCommunion ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "firstCommunion"
+  | Epers_Funeral -> Geneweb_sanatize.Sanatize.safe @@ transl conf "funeral"
+  | Epers_Graduate -> Geneweb_sanatize.Sanatize.safe @@ transl conf "graduate"
+  | Epers_Hospitalisation ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "hospitalisation"
+  | Epers_Illness -> Geneweb_sanatize.Sanatize.safe @@ transl conf "illness"
+  | Epers_Immigration ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "immigration"
+  | Epers_ListePassenger ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "listePassenger"
+  | Epers_MilitaryDistinction ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "militaryDistinction"
+  | Epers_MilitaryPromotion ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "militaryPromotion"
+  | Epers_MilitaryService ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "militaryService"
   | Epers_MobilisationMilitaire ->
-      Adef.safe @@ transl conf "mobilisationMilitaire"
-  | Epers_Naturalisation -> Adef.safe @@ transl conf "naturalisation"
-  | Epers_Occupation -> Adef.safe @@ transl_nth conf "occupation/occupations" 0
-  | Epers_Ordination -> Adef.safe @@ transl conf "ordination"
-  | Epers_Property -> Adef.safe @@ transl conf "property"
-  | Epers_Recensement -> Adef.safe @@ transl conf "recensement"
-  | Epers_Residence -> Adef.safe @@ transl conf "residence"
-  | Epers_Retired -> Adef.safe @@ transl conf "retired"
-  | Epers_ScellentChildLDS -> Adef.safe @@ transl conf "scellentChildLDS"
-  | Epers_ScellentParentLDS -> Adef.safe @@ transl conf "scellentParentLDS"
-  | Epers_ScellentSpouseLDS -> Adef.safe @@ transl conf "scellentSpouseLDS"
-  | Epers_VenteBien -> Adef.safe @@ transl conf "venteBien"
-  | Epers_Will -> Adef.safe @@ transl conf "will"
-  | Epers_Name n -> (escape_html (sou base n) :> Adef.safe_string)
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "mobilisationMilitaire"
+  | Epers_Naturalisation ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "naturalisation"
+  | Epers_Occupation ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ transl_nth conf "occupation/occupations" 0
+  | Epers_Ordination ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "ordination"
+  | Epers_Property -> Geneweb_sanatize.Sanatize.safe @@ transl conf "property"
+  | Epers_Recensement ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "recensement"
+  | Epers_Residence -> Geneweb_sanatize.Sanatize.safe @@ transl conf "residence"
+  | Epers_Retired -> Geneweb_sanatize.Sanatize.safe @@ transl conf "retired"
+  | Epers_ScellentChildLDS ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "scellentChildLDS"
+  | Epers_ScellentParentLDS ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "scellentParentLDS"
+  | Epers_ScellentSpouseLDS ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "scellentSpouseLDS"
+  | Epers_VenteBien -> Geneweb_sanatize.Sanatize.safe @@ transl conf "venteBien"
+  | Epers_Will -> Geneweb_sanatize.Sanatize.safe @@ transl conf "will"
+  | Epers_Name n ->
+      (escape_html (sou base n) :> Geneweb_sanatize.Sanatize.safe_string)
 
 let string_of_fevent_name conf base = function
-  | Efam_Marriage -> Adef.safe @@ transl conf "marriage event"
-  | Efam_NoMarriage -> Adef.safe @@ transl conf "no marriage event"
-  | Efam_NoMention -> Adef.safe @@ transl conf "no mention"
-  | Efam_Engage -> Adef.safe @@ transl conf "engage event"
-  | Efam_Divorce -> Adef.safe @@ transl conf "divorce event"
-  | Efam_Separated -> Adef.safe @@ transl conf "separate event"
-  | Efam_Annulation -> Adef.safe @@ transl conf "annulation"
-  | Efam_MarriageBann -> Adef.safe @@ transl conf "marriage bann"
-  | Efam_MarriageContract -> Adef.safe @@ transl conf "marriage contract"
-  | Efam_MarriageLicense -> Adef.safe @@ transl conf "marriage licence"
-  | Efam_PACS -> Adef.safe @@ transl conf "PACS"
-  | Efam_Residence -> Adef.safe @@ transl conf "residence"
-  | Efam_Name n -> (escape_html (sou base n) :> Adef.safe_string)
+  | Efam_Marriage ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "marriage event"
+  | Efam_NoMarriage ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "no marriage event"
+  | Efam_NoMention -> Geneweb_sanatize.Sanatize.safe @@ transl conf "no mention"
+  | Efam_Engage -> Geneweb_sanatize.Sanatize.safe @@ transl conf "engage event"
+  | Efam_Divorce ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "divorce event"
+  | Efam_Separated ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "separate event"
+  | Efam_Annulation ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "annulation"
+  | Efam_MarriageBann ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "marriage bann"
+  | Efam_MarriageContract ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "marriage contract"
+  | Efam_MarriageLicense ->
+      Geneweb_sanatize.Sanatize.safe @@ transl conf "marriage licence"
+  | Efam_PACS -> Geneweb_sanatize.Sanatize.safe @@ transl conf "PACS"
+  | Efam_Residence -> Geneweb_sanatize.Sanatize.safe @@ transl conf "residence"
+  | Efam_Name n ->
+      (escape_html (sou base n) :> Geneweb_sanatize.Sanatize.safe_string)
 
 let string_of_witness_kind conf sex witness_kind =
   let n = if witness_kind = Witness then 0 else index_of_sex sex in
@@ -1229,7 +1285,7 @@ let string_of_witness_kind conf sex witness_kind =
     | Witness_Mentioned -> "mentioned/mentioned/mentioned"
     | Witness_Other -> "other/other/other"
   in
-  Adef.safe @@ transl_nth conf s n
+  Geneweb_sanatize.Sanatize.safe @@ transl_nth conf s n
 
 let string_of_witness_kind_raw witness_kind =
   let s =
@@ -1243,7 +1299,7 @@ let string_of_witness_kind_raw witness_kind =
     | Witness_Mentioned -> "ment"
     | Witness_Other -> "othe"
   in
-  Adef.safe s
+  Geneweb_sanatize.Sanatize.safe s
 
 let bpath bname = !GWPARAM.bpath bname
 
@@ -1285,7 +1341,7 @@ let message_to_wizard conf =
     print_file "mess_wizard";
     if conf.user <> "" then print_file ("mess_wizard_" ^ conf.user))
 
-let doctype = Adef.safe "<!DOCTYPE html>"
+let doctype = Geneweb_sanatize.Sanatize.safe "<!DOCTYPE html>"
 
 let http_string s i =
   let start_with s i p =
@@ -1656,8 +1712,8 @@ let relation_txt conf sex fam =
   | Residence -> ftransl_nth conf "residence%t to" is
   | NoMention -> "%t" ^^ ftransl conf "with"
 
-let relation_date conf fam : Adef.safe_string =
-  Adef.safe
+let relation_date conf fam : Geneweb_sanatize.Sanatize.safe_string =
+  Geneweb_sanatize.Sanatize.safe
   @@
   match Date.cdate_to_dmy_opt (get_marriage fam) with
   | None -> ""
@@ -1688,7 +1744,7 @@ let child_of_parent conf base p =
     | None -> None
   in
   match ifam with
-  | Some (None, None) | None -> Adef.safe ""
+  | Some (None, None) | None -> Geneweb_sanatize.Sanatize.safe ""
   | Some (fath, moth) ->
       let s =
         match (fath, moth) with
@@ -1697,14 +1753,14 @@ let child_of_parent conf base p =
         | Some fath, Some moth ->
             print_father fath ^^^ " " ^<^ transl_nth conf "and" 0 ^<^ " "
             ^<^ gen_person_text conf base moth
-        | _ -> Adef.safe ""
+        | _ -> Geneweb_sanatize.Sanatize.safe ""
       in
       let is = index_of_sex (get_sex p) in
       let s = (s :> string) in
       transl_a_of_gr_eq_gen_lev conf
         (transl_nth conf "son/daughter/child" is)
         s s
-      |> translate_eval |> Adef.safe
+      |> translate_eval |> Geneweb_sanatize.Sanatize.safe
 
 let husband_wife conf base p all =
   let multiple =
@@ -1724,9 +1780,9 @@ let husband_wife conf base p all =
       if multiple >= 0 then
         let fam = foi base (get_family p).(0) in
         Printf.sprintf (relation_txt conf (get_sex p) fam) (fun () -> "")
-        |> translate_eval |> Adef.safe
-      else transl conf "marriages with" |> Adef.safe
-    else Adef.safe ""
+        |> translate_eval |> Geneweb_sanatize.Sanatize.safe
+      else transl conf "marriages with" |> Geneweb_sanatize.Sanatize.safe
+    else Geneweb_sanatize.Sanatize.safe ""
   in
   let nb_fam = Array.length (get_family p) in
   let res =
@@ -1758,7 +1814,7 @@ let husband_wife conf base p all =
       String.sub res 0 (String.length res - 1)
     else res
   in
-  Adef.safe res
+  Geneweb_sanatize.Sanatize.safe res
 
 let first_child conf base p =
   let is = index_of_sex (get_sex p) in
@@ -1770,16 +1826,16 @@ let first_child conf base p =
         let enfant = pget conf base ct.(0) in
         let child =
           if is_hide_names conf enfant && not (authorized_age conf base enfant)
-          then Adef.safe "xx"
+          then Geneweb_sanatize.Sanatize.safe "xx"
           else if not (eq_istr (get_surname p) (get_surname enfant)) then
             gen_person_text conf base enfant
           else gen_person_text ~sn:false conf base enfant
         in
         let child = (child :> string) in
         transl_a_of_b conf (transl_nth conf "father/mother" is) child child
-        |> translate_eval |> Adef.safe
+        |> translate_eval |> Geneweb_sanatize.Sanatize.safe
       else loop (i + 1)
-    else Adef.safe ""
+    else Geneweb_sanatize.Sanatize.safe ""
   in
   loop 0
 
@@ -1818,12 +1874,13 @@ let specify_homonymous conf base p specify_public_name =
         Output.print_sstring conf ", ";
         Output.print_string conf hw)
 
-let get_approx_date_place d1 (p1 : Adef.safe_string) d2 (p2 : Adef.safe_string)
-    =
+let get_approx_date_place d1 (p1 : Geneweb_sanatize.Sanatize.safe_string) d2
+    (p2 : Geneweb_sanatize.Sanatize.safe_string) =
   match (d1, (p1 :> string), d2, (p2 :> string)) with
   | Some d, "", None, _ -> (Some d, p2)
   | Some d, "", Some x, y ->
-      if y = "" then (Some d, Adef.safe "") else (Some x, p2)
+      if y = "" then (Some d, Geneweb_sanatize.Sanatize.safe "")
+      else (Some x, p2)
   | Some d, _, _, _ -> (Some d, p1)
   | None, "", None, _ -> (None, p1)
   | None, "", Some x, _ -> (Some x, p2)
@@ -1836,9 +1893,9 @@ let get_approx_birth_date_place conf base p =
   let baptism = Date.od_of_cdate (get_baptism p) in
   let baptism_place = string_of_place conf (sou base (get_baptism_place p)) in
   get_approx_date_place birth
-    (birth_place :> Adef.safe_string)
+    (birth_place :> Geneweb_sanatize.Sanatize.safe_string)
     baptism
-    (baptism_place :> Adef.safe_string)
+    (baptism_place :> Geneweb_sanatize.Sanatize.safe_string)
 
 let get_approx_death_date_place conf base p =
   let death = Date.date_of_death (get_death p) in
@@ -1850,9 +1907,9 @@ let get_approx_death_date_place conf base p =
   in
   let buri_place = string_of_place conf (sou base (get_burial_place p)) in
   get_approx_date_place death
-    (death_place :> Adef.safe_string)
+    (death_place :> Geneweb_sanatize.Sanatize.safe_string)
     buri
-    (buri_place :> Adef.safe_string)
+    (buri_place :> Geneweb_sanatize.Sanatize.safe_string)
 
 let string_of_decimal_num conf f =
   let s = string_of_float f in
@@ -2075,33 +2132,38 @@ let relation_type_text conf t n =
   match t with
   | Adoption ->
       transl_nth conf "adoptive father/adoptive mother/adoptive parents" n
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | Recognition ->
       transl_nth conf
         "recognizing father/recognizing mother/recognizing parents" n
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | CandidateParent ->
       transl_nth conf "candidate father/candidate mother/candidate parents" n
-      |> Adef.safe
-  | GodParent -> transl_nth conf "godfather/godmother/godparents" n |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
+  | GodParent ->
+      transl_nth conf "godfather/godmother/godparents" n
+      |> Geneweb_sanatize.Sanatize.safe
   | FosterParent ->
       transl_nth conf "foster father/foster mother/foster parents" n
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 let rchild_type_text conf t n =
   match t with
   | Adoption ->
       transl_nth conf "adoptive son/adoptive daughter/adoptive child" n
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | Recognition ->
       transl_nth conf "recognized son/recognized daughter/recognized child" n
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | CandidateParent ->
       transl_nth conf "candidate son/candidate daughter/candidate child" n
-      |> Adef.safe
-  | GodParent -> transl_nth conf "godson/goddaughter/godchild" n |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
+  | GodParent ->
+      transl_nth conf "godson/goddaughter/godchild" n
+      |> Geneweb_sanatize.Sanatize.safe
   | FosterParent ->
-      transl_nth conf "foster son/foster daughter/foster child" n |> Adef.safe
+      transl_nth conf "foster son/foster daughter/foster child" n
+      |> Geneweb_sanatize.Sanatize.safe
 
 exception Ok
 
@@ -2160,7 +2222,7 @@ let of_course_died conf p =
 let escache_value base =
   let t = Gwdb.date_of_last_change base in
   let v = int_of_float (mod_float t (float_of_int max_int)) in
-  Adef.encoded (string_of_int v)
+  Geneweb_sanatize.Sanatize.encoded (string_of_int v)
 
 let sprintf_today conf =
   let hh, mm, ss = conf.time in
@@ -2507,11 +2569,12 @@ let gen_print_tips conf s =
 let print_tips_relationship conf =
   if p_getenv conf.env "em" = Some "R" || p_getenv conf.env "m" = Some "C" then
     Utf8.capitalize_fst (transl conf "select person to compute relationship")
-    |> Adef.safe |> gen_print_tips conf
+    |> Geneweb_sanatize.Sanatize.safe |> gen_print_tips conf
 
 let images_prefix conf =
   let s =
-    if conf.cgi then Adef.escaped conf.images_prefix else Adef.escaped "images"
+    if conf.cgi then Geneweb_sanatize.Sanatize.escaped conf.images_prefix
+    else Geneweb_sanatize.Sanatize.escaped "images"
   in
   (s :> string)
 
@@ -2545,15 +2608,19 @@ let get_opt conf evar default =
 let display_options conf =
   let img = get_opt conf "im" true in
   let mar = get_opt conf "ma" true in
-  let s = Adef.escaped @@ if img then "" else "&im=0" in
+  let s = Geneweb_sanatize.Sanatize.escaped @@ if img then "" else "&im=0" in
   let s = if mar then s else s ^>^ "&ma=0" in
   let s =
     match p_getenv conf.env "bd" with
-    | Some i -> s ^^^ "&bd=" ^<^ (Mutil.encode i :> Adef.escaped_string)
+    | Some i ->
+        s ^^^ "&bd="
+        ^<^ (Mutil.encode i :> Geneweb_sanatize.Sanatize.escaped_string)
     | None -> s
   in
   match p_getenv conf.env "color" with
-  | Some c -> s ^^^ "&color=" ^<^ (Mutil.encode c :> Adef.escaped_string)
+  | Some c ->
+      s ^^^ "&color="
+      ^<^ (Mutil.encode c :> Geneweb_sanatize.Sanatize.escaped_string)
   | None -> s
 
 (* Hashtbl qui associe un user à la liste des dernières personnes visitées. *)

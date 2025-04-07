@@ -49,13 +49,14 @@ let need_differences_selection conf base fam1 fam2 =
          | _ -> "not separated")
 
 let print_differences conf base branches (ifam1, fam1) (ifam2, fam2) =
-  let string_field (title : Adef.safe_string) (name : Adef.encoded_string) proj
-      =
-    let x1 : Adef.safe_string = proj fam1 in
-    let x2 : Adef.safe_string = proj fam2 in
+  let string_field (title : Geneweb_sanatize.Sanatize.safe_string)
+      (name : Geneweb_sanatize.Sanatize.encoded_string) proj =
+    let x1 : Geneweb_sanatize.Sanatize.safe_string = proj fam1 in
+    let x2 : Geneweb_sanatize.Sanatize.safe_string = proj fam2 in
     if (x1 :> string) <> "" && (x2 :> string) <> "" && x1 <> x2 then (
       Output.print_sstring conf "<h4>";
-      Output.print_string conf (Adef.safe_fn Utf8.capitalize_fst title);
+      Output.print_string conf
+        (Geneweb_sanatize.Sanatize.safe_fn Utf8.capitalize_fst title);
       Output.print_sstring conf
         "</h4><ul><li><input type=\"radio\" class=\"form-control\" name=\"";
       Output.print_string conf name;
@@ -88,10 +89,10 @@ let print_differences conf base branches (ifam1, fam1) (ifam2, fam2) =
    loop branches);
   Output.print_sstring conf "<p>";
   string_field
-    (transl_nth conf "relation/relations" 0 |> Adef.safe)
-    (Adef.encoded "relation")
+    (transl_nth conf "relation/relations" 0 |> Geneweb_sanatize.Sanatize.safe)
+    (Geneweb_sanatize.Sanatize.encoded "relation")
     (fun fam ->
-      Adef.safe @@ transl conf
+      Geneweb_sanatize.Sanatize.safe @@ transl conf
       @@
       match get_relation fam with
       | Married -> "married"
@@ -106,23 +107,25 @@ let print_differences conf base branches (ifam1, fam1) (ifam2, fam2) =
       | Pacs -> "PACS"
       | Residence -> "residence");
   string_field
-    (Util.translate_eval (transl_nth conf "marriage/marriages" 0) |> Adef.safe)
-    (Adef.encoded "marriage")
+    (Util.translate_eval (transl_nth conf "marriage/marriages" 0)
+    |> Geneweb_sanatize.Sanatize.safe)
+    (Geneweb_sanatize.Sanatize.encoded "marriage")
     (fun fam ->
       match Date.od_of_cdate (get_marriage fam) with
-      | None -> Adef.safe ""
+      | None -> Geneweb_sanatize.Sanatize.safe ""
       | Some d -> DateDisplay.string_of_ondate conf d);
   string_field
     (Util.translate_eval (transl_nth conf "marriage/marriages" 0)
      ^ " / "
      ^ transl_nth conf "place/places" 0
-    |> Adef.safe)
-    (Adef.encoded "marriage_place")
+    |> Geneweb_sanatize.Sanatize.safe)
+    (Geneweb_sanatize.Sanatize.encoded "marriage_place")
     (fun fam ->
-      (get_marriage_place fam |> sou base |> escape_html :> Adef.safe_string));
+      (get_marriage_place fam |> sou base |> escape_html
+        :> Geneweb_sanatize.Sanatize.safe_string));
   string_field
-    (transl conf "divorce" |> Adef.safe)
-    (Adef.encoded "divorce")
+    (transl conf "divorce" |> Geneweb_sanatize.Sanatize.safe)
+    (Geneweb_sanatize.Sanatize.encoded "divorce")
     (fun fam ->
       match get_divorce fam with
       | Divorced cod -> (
@@ -130,11 +133,11 @@ let print_differences conf base branches (ifam1, fam1) (ifam2, fam2) =
           | Some d ->
               transl conf "divorced" ^<^ " "
               ^<^ DateDisplay.string_of_ondate conf d
-          | None -> transl conf "divorced" |> Adef.safe)
-      | _ -> transl conf "not divorced" |> Adef.safe);
+          | None -> transl conf "divorced" |> Geneweb_sanatize.Sanatize.safe)
+      | _ -> transl conf "not divorced" |> Geneweb_sanatize.Sanatize.safe);
   string_field
-    (transl conf "separation" |> Adef.safe)
-    (Adef.encoded "separation")
+    (transl conf "separation" |> Geneweb_sanatize.Sanatize.safe)
+    (Geneweb_sanatize.Sanatize.encoded "separation")
     (fun fam ->
       match get_separation fam with
       | Separated cod -> (
@@ -142,9 +145,10 @@ let print_differences conf base branches (ifam1, fam1) (ifam2, fam2) =
           | Some d ->
               transl conf "separated" ^<^ " "
               ^<^ DateDisplay.string_of_ondate conf d
-          | None -> transl conf "separated" |> Adef.safe)
-      | Separated_old -> transl conf "separated" |> Adef.safe
-      | _ -> transl conf "not divorced" |> Adef.safe);
+          | None -> transl conf "separated" |> Geneweb_sanatize.Sanatize.safe)
+      | Separated_old ->
+          transl conf "separated" |> Geneweb_sanatize.Sanatize.safe
+      | _ -> transl conf "not divorced" |> Geneweb_sanatize.Sanatize.safe);
   Output.print_sstring conf
     {|</p><p><button type="submit" class="btn btn-primary btn-lg">|};
   Output.print_sstring conf

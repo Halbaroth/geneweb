@@ -43,7 +43,7 @@ type output_conf = {
 }
 (** HTTP printer, that prints and sends requests on the user's socket *)
 
-type env = (string * Adef.encoded_string) list
+type env = (string * Geneweb_sanatize.Sanatize.encoded_string) list
 
 (** Geneweb configuration data type *)
 type config = {

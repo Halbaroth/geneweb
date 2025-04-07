@@ -115,9 +115,9 @@ let util_name_with_roman_number _ =
   test (Some "bar CLX baz CCVII") "bar 160 baz 207";
   test None "foo bar baz"
 
-let printer_safe x = (x : Adef.safe_string :> string)
-let printer_encoded x = (x : Adef.encoded_string :> string)
-let printer_escaped x = (x : Adef.escaped_string :> string)
+let printer_safe x = (x : Geneweb_sanatize.Sanatize.safe_string :> string)
+let printer_encoded x = (x : Geneweb_sanatize.Sanatize.encoded_string :> string)
+let printer_escaped x = (x : Geneweb_sanatize.Sanatize.escaped_string :> string)
 
 let util_safe_html _ =
   (check string) ""
@@ -134,7 +134,7 @@ let util_transl_a_of_b _ =
   let conf =
     {
       conf with
-      env = ("lang", Adef.encoded "fr") :: conf.env;
+      env = ("lang", Geneweb_sanatize.Sanatize.encoded "fr") :: conf.env;
       vowels = [ "a"; "e"; "i"; "o"; "u"; "y" ];
     }
   in
@@ -174,7 +174,7 @@ let datedisplay_string_of_date _ =
   let conf =
     {
       conf with
-      env = ("lang", Adef.encoded "co") :: conf.env;
+      env = ("lang", Geneweb_sanatize.Sanatize.encoded "co") :: conf.env;
       vowels = [ "a"; "e"; "i"; "o"; "u"; "y" ];
     }
   in

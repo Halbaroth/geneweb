@@ -923,7 +923,7 @@ let read_or_create_value ?magic ?wait fname create =
   try read_or_create_channel ?magic ?wait fname read write
   with _ -> create ()
 
-let encode s : Adef.encoded_string =
+let encode s : Geneweb_sanatize.Sanatize.encoded_string =
   let special = function
     | '\000'..'\031' | '\127'..'\255' | '<' | '>' | '"' | '#' | '%' | '{'
     | '}' | '|' | '\\' | '^' | '~' | '[' | ']' | '`' | ';' | '/' | '?' | ':'
@@ -967,10 +967,10 @@ let encode s : Adef.encoded_string =
   in
   if need_code 0 then
     let len = compute_len 0 0 in
-    Adef.encoded (copy_code_in (Bytes.create len) 0 0)
-  else Adef.encoded s
+    Geneweb_sanatize.Sanatize.encoded (copy_code_in (Bytes.create len) 0 0)
+  else Geneweb_sanatize.Sanatize.encoded s
 
-let gen_decode strip_spaces (s : Adef.encoded_string) : string =
+let gen_decode strip_spaces (s : Geneweb_sanatize.Sanatize.encoded_string) : string =
   let s = (s :> string) in
   let hexa_val conf =
     match conf with
@@ -1027,7 +1027,7 @@ let gen_decode strip_spaces (s : Adef.encoded_string) : string =
     if strip_spaces then strip_heading_and_trailing_spaces s else s
   else s
 
-let decode : Adef.encoded_string -> string = gen_decode true
+let decode : Geneweb_sanatize.Sanatize.encoded_string -> string = gen_decode true
 
 let rec extract_param name stop_char =
   let case_unsensitive_eq s1 s2 =
@@ -1048,7 +1048,7 @@ let rec extract_param name stop_char =
   | [] -> ""
 
 let sprintf_date tm =
-  Adef.safe @@
+  Geneweb_sanatize.Sanatize.safe @@
   Printf.sprintf
     "%04d-%02d-%02d %02d:%02d:%02d"
     (1900 + tm.Unix.tm_year)

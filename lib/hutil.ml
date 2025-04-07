@@ -10,13 +10,16 @@ let get_vother = function Vother x -> Some x | _ -> None
 let set_vother x = Vother x
 
 let incorrect_request ?(comment = "") conf =
-  !GWPARAM.output_error conf Def.Bad_Request ~content:(Adef.safe comment)
+  !GWPARAM.output_error conf Def.Bad_Request
+    ~content:(Geneweb_sanatize.Sanatize.safe comment)
 
 let error_cannot_access conf fname =
   !GWPARAM.output_error conf Def.Not_Found
     ~content:
       ("Cannot access file \""
-      ^<^ (Util.escape_html fname : Adef.escaped_string :> Adef.safe_string)
+      ^<^ (Util.escape_html fname
+            : Geneweb_sanatize.Sanatize.escaped_string
+            :> Geneweb_sanatize.Sanatize.safe_string)
       ^>^ ".txt\".")
 
 let gen_interp header conf fname ifun env ep =
@@ -70,8 +73,8 @@ let link_to_referer conf =
     ({|<a href="|} ^<^ referer
      ^>^ {|" class="btn btn-sm btn-link p-0 border-0" title="|} ^ back
      ^ {|"><i class="fa fa-arrow-left-long fa-fw fa-sm"></i></a>|}
-      :> Adef.safe_string)
-  else Adef.safe ""
+      :> Geneweb_sanatize.Sanatize.safe_string)
+  else Geneweb_sanatize.Sanatize.safe ""
 
 (* S: use Util.include_template for "hed"? *)
 

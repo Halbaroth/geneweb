@@ -18,32 +18,37 @@ val code_hebrew_date : config -> int -> int -> int -> string
     translated to the current language.
 *)
 
-val string_of_dmy : Config.config -> Def.dmy -> Adef.safe_string
+val string_of_dmy :
+  Config.config -> Def.dmy -> Geneweb_sanatize.Sanatize.safe_string
 (** Converts and translate date to the textual representation for the giving language. Considers precision. *)
 
-val string_of_date : config -> date -> Adef.safe_string
+val string_of_date : config -> date -> Geneweb_sanatize.Sanatize.safe_string
 (** If date is [Dgreg] calls for [string_of_dmy] to convert date to the string else returns content of [Dtext].
     Difference between calendars is not taken into the acount. *)
 
-val string_of_ondate : ?link:bool -> config -> date -> Adef.safe_string
+val string_of_ondate :
+  ?link:bool -> config -> date -> Geneweb_sanatize.Sanatize.safe_string
 (** Converts and translate date with considering different calendars with prefix "on"
     before dates (changes for other languages).
     Date precision is much more verbose then with [string_of_date]. Decline phrase if needed.
     If [link] is true then encapsulates result in HTML link to the page calendar's date converter. *)
 
-val string_of_on_french_dmy : config -> dmy -> Adef.safe_string
+val string_of_on_french_dmy :
+  config -> dmy -> Geneweb_sanatize.Sanatize.safe_string
 (** Translate a date in the french calendar
     with prefix "on" before dates (changes for other languages). *)
 
-val string_of_on_hebrew_dmy : config -> dmy -> Adef.safe_string
+val string_of_on_hebrew_dmy :
+  config -> dmy -> Geneweb_sanatize.Sanatize.safe_string
 (** Translate a date in the hebrew calendar
     with prefix "on" before dates (changes for other languages). *)
 
-val string_slash_of_date : config -> date -> Adef.safe_string
+val string_slash_of_date :
+  config -> date -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns date in format dd/mm/yyyy. Format could be different for other languages (defined by [!dates order]
     keyword in the lexicon). *)
 
-val string_of_age : config -> dmy -> Adef.safe_string
+val string_of_age : config -> dmy -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns textual representation of the age represented by [dmy]. *)
 
 val prec_year_text : config -> dmy -> string
@@ -58,7 +63,8 @@ val month_text : dmy -> string
 val year_text : config -> dmy -> string
 (** Returns textual representation of date's year. *)
 
-val short_dates_text : config -> base -> person -> Adef.safe_string
+val short_dates_text :
+  config -> base -> person -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns concatenation of person's birth and death dates (if exists). Precision is mentionned for each date.
     For example :
 
@@ -71,11 +77,16 @@ val short_dates_text : config -> base -> person -> Adef.safe_string
 val short_dates_text_notag : config -> base -> person -> string
 
 val short_marriage_date_text :
-  config -> base -> family -> person -> person -> Adef.safe_string
+  config ->
+  base ->
+  family ->
+  person ->
+  person ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** Retruns year of marriage for given spouses with its precision. *)
 
 val short_family_dates_text :
-  config -> base -> bool -> family -> Adef.safe_string
+  config -> base -> bool -> family -> Geneweb_sanatize.Sanatize.safe_string
 (** Retruns years of marriage (yyy1-yyy2) for given family taking
 into account possible separation or divorce. *)
 
@@ -90,11 +101,11 @@ val code_french_year : config -> int -> string
 
 val string_of_date_aux :
   ?link:bool ->
-  ?dmy:(Config.config -> Def.dmy -> Adef.safe_string) ->
-  ?sep:Adef.safe_string ->
+  ?dmy:(Config.config -> Def.dmy -> Geneweb_sanatize.Sanatize.safe_string) ->
+  ?sep:Geneweb_sanatize.Sanatize.safe_string ->
   Config.config ->
   Def.date ->
-  Adef.safe_string
+  Geneweb_sanatize.Sanatize.safe_string
 (** Same as [string_of_ondate] except :
     - Conversion function for [Def.dmy] could be passed in in [dmy] argument
     - Doesn't consider phrase declination as [string_of_ondate] does. *)
@@ -112,7 +123,11 @@ val french_month : config -> int -> string
 *)
 
 val string_of_prec_dmy :
-  config -> Adef.safe_string -> Adef.safe_string -> dmy -> Adef.safe_string
+  config ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string ->
+  dmy ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [string_of_prec_dmy conf s s2 d]
     Takes two date representations (as strings) [s] and [s2] and
     returns translated phrase according to prec of [d].

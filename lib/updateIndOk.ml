@@ -715,7 +715,9 @@ let error_person conf err =
     Hutil.rheader conf title;
     Output.print_sstring conf
       (Utf8.capitalize_fst
-         (Update.string_of_error conf err : Adef.safe_string :> string));
+         (Update.string_of_error conf err
+           : Geneweb_sanatize.Sanatize.safe_string
+           :> string));
     Output.print_sstring conf "\n";
     Update.print_return conf;
     Hutil.trailer conf);
@@ -771,7 +773,7 @@ let default_prerr conf base = function
       Output.print_string conf (Util.referenced_person_text conf base p);
       Output.print_sstring conf "</li></ul>";
       Update.print_return conf;
-      Update.print_continue conf "nsck" (Adef.encoded "on")
+      Update.print_continue conf "nsck" (Geneweb_sanatize.Sanatize.encoded "on")
   | _ -> assert false
 
 let check_sex_married ?(prerr = default_prerr) conf base sp op =

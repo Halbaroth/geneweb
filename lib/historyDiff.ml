@@ -5,8 +5,8 @@ open Def
 open Gwdb
 
 type gen_record = {
-  date : Adef.safe_string;
-  wizard : Adef.safe_string;
+  date : Geneweb_sanatize.Sanatize.safe_string;
+  wizard : Geneweb_sanatize.Sanatize.safe_string;
   gen_p : (iper, iper, string) gen_person;
   gen_f : (iper, ifam, string) gen_family list;
   gen_c : iper array list;
@@ -121,7 +121,8 @@ let make_gen_record conf base first gen_p =
   in
   {
     date;
-    wizard = (Util.escape_html conf.user :> Adef.safe_string);
+    wizard =
+      (Util.escape_html conf.user :> Geneweb_sanatize.Sanatize.safe_string);
     gen_p;
     gen_f;
     gen_c;

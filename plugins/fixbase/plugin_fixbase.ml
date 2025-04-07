@@ -21,7 +21,9 @@ module UI = struct
 
   let print_arg conf
       ((name, kind, doc) :
-        Adef.encoded_string * [> `Arg_Set | `Arg_String ] * Adef.safe_string) =
+        Geneweb_sanatize.Sanatize.encoded_string
+        * [> `Arg_Set | `Arg_String ]
+        * Geneweb_sanatize.Sanatize.safe_string) =
     match kind with
     | `Arg_Set ->
         Output.print_sstring conf {|<p><label><input type="checkbox" name="|};
@@ -36,7 +38,8 @@ module UI = struct
         Output.print_string conf doc;
         Output.print_sstring conf {|</label></p>|}
 
-  let form conf (m : Adef.encoded_string) (submit : Adef.safe_string) args =
+  let form conf (m : Geneweb_sanatize.Sanatize.encoded_string)
+      (submit : Geneweb_sanatize.Sanatize.safe_string) args =
     Output.print_sstring conf {|<form action="|};
     Output.print_string conf (Util.commd conf);
     Output.print_sstring conf {|" method="GET">|};
@@ -72,11 +75,13 @@ let missing_password conf =
     [
       ( Mutil.encode arg_password,
         `Arg_String,
-        Util.transl conf "plugin_fixbase_password_missing" |> Adef.safe );
+        Util.transl conf "plugin_fixbase_password_missing"
+        |> Geneweb_sanatize.Sanatize.safe );
     ]
   in
   UI.form conf (List.assoc "m" conf.env)
-    (Util.transl conf "plugin_fixbase_password_submit" |> Adef.safe)
+    (Util.transl conf "plugin_fixbase_password_submit"
+    |> Geneweb_sanatize.Sanatize.safe)
     args
 
 let wrap conf title fn =
@@ -85,14 +90,17 @@ let wrap conf title fn =
   else missing_password conf
 
 let fixbase conf _base =
-  wrap conf (Util.transl conf "plugin_fixbase_FIXBASE" |> Adef.safe)
+  wrap conf
+    (Util.transl conf "plugin_fixbase_FIXBASE" |> Geneweb_sanatize.Sanatize.safe)
   @@ fun () ->
   Output.print_sstring conf {|<p>|};
   Output.print_sstring conf (Util.transl conf "plugin_fixbase_description");
   Output.print_sstring conf {|</p>|};
   let args =
     let input name txt =
-      (Mutil.encode name, `Arg_Set, Util.transl conf txt |> Adef.safe)
+      ( Mutil.encode name,
+        `Arg_Set,
+        Util.transl conf txt |> Geneweb_sanatize.Sanatize.safe )
     in
     [
       input arg_f_parents "plugin_fixbase_f_parents";
@@ -110,8 +118,8 @@ let fixbase conf _base =
     ]
   in
   UI.form conf
-    (Adef.encoded "FIXBASE_OK")
-    (Util.transl conf "plugin_fixbase_submit" |> Adef.safe)
+    (Geneweb_sanatize.Sanatize.encoded "FIXBASE_OK")
+    (Util.transl conf "plugin_fixbase_submit" |> Geneweb_sanatize.Sanatize.safe)
     args
 
 let fixbase_ok conf base =
@@ -164,7 +172,9 @@ let fixbase_ok conf base =
     let opt s (fn : ?report:_ -> _ -> _ -> _) =
       if UI.enabled conf s then fn ~report progress base
     in
-    wrap conf (Util.transl conf "plugin_fixbase_FIXBASE_OK" |> Adef.safe)
+    wrap conf
+      (Util.transl conf "plugin_fixbase_FIXBASE_OK"
+      |> Geneweb_sanatize.Sanatize.safe)
     @@ fun () ->
     opt "f_parents" Fixbase.check_families_parents;
     opt "f_children" Fixbase.check_families_children;
@@ -296,15 +306,21 @@ let fixbase_ok conf base =
       Printf.sprintf {|<a href="%s&i=%s">%s</a>|}
         (Util.commd conf :> string)
         (string_of_iper i |> Mutil.encode :> string)
-        (Util.designation base (poi base i) : Adef.escaped_string :> string)
-      |> Adef.safe
+        (Util.designation base (poi base i)
+          : Geneweb_sanatize.Sanatize.escaped_string
+          :> string)
+      |> Geneweb_sanatize.Sanatize.safe
     in
     let string_of_f i =
       let fam = foi base i in
       Printf.sprintf "[%s & %s]"
-        (string_of_p @@ get_father fam : Adef.safe_string :> string)
-        (string_of_p @@ get_mother fam : Adef.safe_string :> string)
-      |> Adef.safe
+        (string_of_p @@ get_father fam
+          : Geneweb_sanatize.Sanatize.safe_string
+          :> string)
+        (string_of_p @@ get_mother fam
+          : Geneweb_sanatize.Sanatize.safe_string
+          :> string)
+      |> Geneweb_sanatize.Sanatize.safe
     in
     let dump string_of dump get data =
       List.iter
@@ -401,16 +417,21 @@ let fixbase_ok conf base =
         Output.print_sstring conf
           (Util.transl conf "plugin_fixbase_ok_base_changed");
         Output.print_sstring conf {|</p>|};
-        repost true (Util.transl conf "plugin_fixbase_ok_refresh" |> Adef.safe))
+        repost true
+          (Util.transl conf "plugin_fixbase_ok_refresh"
+          |> Geneweb_sanatize.Sanatize.safe))
       else tstab ()
     else if !ipers <> [] || !ifams <> [] || !istrs <> [] then
-      repost false (Util.transl conf "plugin_fixbase_ok_apply" |> Adef.safe)
+      repost false
+        (Util.transl conf "plugin_fixbase_ok_apply"
+        |> Geneweb_sanatize.Sanatize.safe)
     else (
       Output.print_sstring conf {|<p>|};
       Output.print_sstring conf (Util.transl conf "plugin_fixbase_ok_nothing");
       Output.print_sstring conf {|</p>|});
     Output.print_sstring conf {|<p><a href="|};
-    Output.print_string conf (Util.commd conf : Adef.escaped_string);
+    Output.print_string conf
+      (Util.commd conf : Geneweb_sanatize.Sanatize.escaped_string);
     Output.print_sstring conf {|&m=FIXBASE">|};
     Output.print_sstring conf (Util.transl conf "plugin_fixbase_ok_return");
     Output.print_sstring conf {|</a></p>|}

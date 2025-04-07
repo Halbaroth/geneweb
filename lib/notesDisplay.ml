@@ -36,15 +36,17 @@ let print_search_form conf from_note =
   |> Utf8.capitalize_fst |> Output.print_sstring conf;
   Output.print_sstring conf "</button>\n</form>\n</div>"
 
-let print_whole_notes conf base fnotes (title : Adef.safe_string) s ho =
+let print_whole_notes conf base fnotes
+    (title : Geneweb_sanatize.Sanatize.safe_string) s ho =
   Hutil.header_without_title conf;
   let title_html =
     if (title :> string) <> "" then
       let title_text =
         match ho with
         | Some (case_sens, h) ->
-            html_highlight case_sens h (title : Adef.safe_string :> string)
-            |> Adef.safe
+            html_highlight case_sens h
+              (title : Geneweb_sanatize.Sanatize.safe_string :> string)
+            |> Geneweb_sanatize.Sanatize.safe
         | None -> title
       in
       Format.sprintf "<h1>%s</h1>" (title_text :> string)
@@ -85,7 +87,8 @@ let print_whole_notes conf base fnotes (title : Adef.safe_string) s ho =
        Output.print_sstring conf ")</a>\n")
    in*)
 
-let print_notes_part conf base fnotes (title : Adef.safe_string) s cnt0 =
+let print_notes_part conf base fnotes
+    (title : Geneweb_sanatize.Sanatize.safe_string) s cnt0 =
   Hutil.header_with_title conf (fun _ ->
       if (title :> string) = "" then
         Output.print_string conf (Util.escape_html fnotes)
@@ -362,8 +365,9 @@ let print_mod conf base =
   in
   match (templ, p_getenv conf.env "notmpl") with
   | Some _, Some "on" ->
-      Wiki.print_mod_view_page conf true (Adef.encoded "NOTES") fnotes title
-        nenv s
+      Wiki.print_mod_view_page conf true
+        (Geneweb_sanatize.Sanatize.encoded "NOTES")
+        fnotes title nenv s
   | Some (ic, _fname), _ -> (
       match p_getenv conf.env "ajax" with
       | Some "on" ->
@@ -377,8 +381,9 @@ let print_mod conf base =
           Wserver.printf "{\"digest\":\"%s\",\"r\":%s}" digest s
       | _ -> Templ.copy_from_templ conf Templ.Env.empty ic)
   | _ ->
-      Wiki.print_mod_view_page conf true (Adef.encoded "NOTES") fnotes title
-        nenv s
+      Wiki.print_mod_view_page conf true
+        (Geneweb_sanatize.Sanatize.encoded "NOTES")
+        fnotes title nenv s
 
 let print_mod_ok conf base =
   let fname = function

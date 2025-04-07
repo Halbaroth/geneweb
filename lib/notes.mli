@@ -32,7 +32,8 @@ val update_ind_key :
   string * string * int ->
   unit
 
-val source : Config.config -> Gwdb.base -> string -> Adef.safe_string
+val source :
+  Config.config -> Gwdb.base -> string -> Geneweb_sanatize.Sanatize.safe_string
 (** [source conf base str]
     Interprets wiki syntax in a "source" context:
     - supposed to be one line
@@ -44,21 +45,29 @@ val note :
   Gwdb.base ->
   (char * (unit -> string)) list ->
   string ->
-  Adef.safe_string
+  Geneweb_sanatize.Sanatize.safe_string
 (** [note conf base env str]
     Interprets wiki syntax in a "note" context:
     - [env] is available during [str] interpretation
 *)
 
 val person_note :
-  Config.config -> Gwdb.base -> Gwdb.person -> string -> Adef.safe_string
+  Config.config ->
+  Gwdb.base ->
+  Gwdb.person ->
+  string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [person_note conf base person str]
     Interprets wiki syntax in a "note" context:
     - env is available during [str] interpretation with [i] variable bound to person image
 *)
 
 val source_note :
-  Config.config -> Gwdb.base -> Gwdb.person -> string -> Adef.safe_string
+  Config.config ->
+  Gwdb.base ->
+  Gwdb.person ->
+  string ->
+  Geneweb_sanatize.Sanatize.safe_string
 (** [source_note conf base person str]
     Interprets wiki syntax in a "source" context:
     - env is available during [str] interpretation with [i] variable bound to person image
@@ -69,7 +78,7 @@ val source_note_with_env :
   Gwdb.base ->
   (char * (unit -> string)) list ->
   string ->
-  Adef.safe_string
+  Geneweb_sanatize.Sanatize.safe_string
 (** [source_note_with_env conf base env str]
     Interprets wiki syntax in a "source" context with a predefined env.
 *)

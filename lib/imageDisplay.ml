@@ -152,7 +152,9 @@ let print_html conf =
       Output.print_string conf (Util.commd conf);
       Mutil.list_iter_first
         (fun first (k, v) ->
-          let v = if k = "m" then Adef.encoded "IM" else v in
+          let v =
+            if k = "m" then Geneweb_sanatize.Sanatize.encoded "IM" else v
+          in
           if not first then Output.print_sstring conf "&";
           Output.print_sstring conf k;
           Output.print_sstring conf "=";

@@ -114,18 +114,25 @@ let bench () =
       in
       bench_w_base "UpdateData.get_all_data"
         (fun base conf -> UpdateData.get_all_data conf base)
-        [ { conf with Config.env = [ ("data", Adef.encoded "place") ] } ]
+        [
+          {
+            conf with
+            Config.env = [ ("data", Geneweb_sanatize.Sanatize.encoded "place") ];
+          };
+        ]
       :: bench_w_base "UpdateData.build_list"
            (fun base conf -> UpdateData.build_list conf base)
            [
              {
                conf with
-               Config.env = [ ("data", Adef.encoded "src") ];
+               Config.env =
+                 [ ("data", Geneweb_sanatize.Sanatize.encoded "src") ];
                wizard = true;
              };
              {
                conf with
-               Config.env = [ ("data", Adef.encoded "place") ];
+               Config.env =
+                 [ ("data", Geneweb_sanatize.Sanatize.encoded "place") ];
                wizard = true;
              };
            ]
@@ -135,12 +142,14 @@ let bench () =
            [
              {
                conf with
-               Config.env = [ ("data", Adef.encoded "src") ];
+               Config.env =
+                 [ ("data", Geneweb_sanatize.Sanatize.encoded "src") ];
                wizard = true;
              };
              {
                conf with
-               Config.env = [ ("data", Adef.encoded "place") ];
+               Config.env =
+                 [ ("data", Geneweb_sanatize.Sanatize.encoded "place") ];
                wizard = true;
              };
            ]

@@ -120,7 +120,9 @@ let update_ci conf create key =
 
 let bool_val x = TemplAst.VVbool x
 let str_val x = TemplAst.VVstring x
-let safe_val (x : Adef.safe_string) = TemplAst.VVstring (x :> string)
+
+let safe_val (x : Geneweb_sanatize.Sanatize.safe_string) =
+  TemplAst.VVstring (x :> string)
 
 (* TODO : rewrite, looks bad + find a better name *)
 let eval_default_var conf s =
@@ -134,7 +136,8 @@ let eval_default_var conf s =
   let v = extract_var "evar_" s in
   if v <> "" then
     match p_getenv (conf.env @ conf.henv) v with
-    | Some vv -> safe_val (Util.escape_html vv :> Adef.safe_string)
+    | Some vv ->
+        safe_val (Util.escape_html vv :> Geneweb_sanatize.Sanatize.safe_string)
     | None -> str_val ""
   else
     let v = extract_var "bvar_" s in
@@ -233,7 +236,8 @@ let eval_date_var od s =
       | _ -> "")
   | "text" -> (
       match od with
-      | Some (Dtext s) -> Util.safe_html s |> Adef.as_string
+      | Some (Dtext s) ->
+          Util.safe_html s |> Geneweb_sanatize.Sanatize.as_string
       | Some (Dgreg _) | None -> "")
   | "year" -> (
       match eval_date_field od with
@@ -285,7 +289,8 @@ let eval_create c = function
   | "birth_place" -> (
       match c with
       | Update.Create (_, Some { ci_birth_place = pl; _ }) ->
-          safe_val (Util.escape_html pl :> Adef.safe_string)
+          safe_val
+            (Util.escape_html pl :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | "birth_year" -> (
       str_val
@@ -330,7 +335,8 @@ let eval_create c = function
   | "death_place" -> (
       match c with
       | Update.Create (_, Some { ci_death_place = pl; _ }) ->
-          safe_val (Util.escape_html pl :> Adef.safe_string)
+          safe_val
+            (Util.escape_html pl :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | "death_year" -> (
       str_val
@@ -353,7 +359,9 @@ let eval_create c = function
   | "occupation" -> (
       match c with
       | Update.Create (_, Some { ci_occupation = occupation; _ }) ->
-          safe_val (Util.escape_html occupation :> Adef.safe_string)
+          safe_val
+            (Util.escape_html occupation
+              :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | "sex" -> (
       str_val

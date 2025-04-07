@@ -18,10 +18,10 @@ and ghost_id
 type align = LeftA | CenterA | RightA
 
 type 'a table_data =
-  | TDitem of iper * 'a * Adef.safe_string
-  | TDtext of iper * Adef.safe_string
+  | TDitem of iper * 'a * Geneweb_sanatize.Sanatize.safe_string
+  | TDtext of iper * Geneweb_sanatize.Sanatize.safe_string
   | TDhr of align
-  | TDbar of Adef.escaped_string option
+  | TDbar of Geneweb_sanatize.Sanatize.escaped_string option
   | TDnothing
 
 type 'a html_table_line = (int * align * 'a table_data) array
@@ -30,7 +30,7 @@ type 'a html_table = 'a html_table_line array
 val html_table_struct :
   ('a node -> iper) ->
   ('a node -> 'b) ->
-  ('a node -> Adef.escaped_string) ->
+  ('a node -> Geneweb_sanatize.Sanatize.escaped_string) ->
   ('a node -> bool) ->
   'a dag ->
   idag table ->

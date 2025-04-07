@@ -15,29 +15,30 @@ let text_to conf = function
   | 0 ->
       transl_nth conf "generation/generations" 0
       |> transl_decline conf "specify"
-      |> Adef.safe
-  | 1 -> transl conf "to the children" |> Adef.safe
-  | 2 -> transl conf "to the grandchildren" |> Adef.safe
-  | 3 -> transl conf "to the great-grandchildren" |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
+  | 1 -> transl conf "to the children" |> Geneweb_sanatize.Sanatize.safe
+  | 2 -> transl conf "to the grandchildren" |> Geneweb_sanatize.Sanatize.safe
+  | 3 ->
+      transl conf "to the great-grandchildren" |> Geneweb_sanatize.Sanatize.safe
   | i ->
       Printf.sprintf
         (ftransl conf "upto the %s generation")
         (transl_nth conf "nth (generation)" i)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 let text_level conf = function
   | 0 ->
       transl_nth conf "generation/generations" 0
       |> transl_decline conf "specify"
-      |> Adef.safe
-  | 1 -> transl conf "the children" |> Adef.safe
-  | 2 -> transl conf "the grandchildren" |> Adef.safe
-  | 3 -> transl conf "the great-grandchildren" |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
+  | 1 -> transl conf "the children" |> Geneweb_sanatize.Sanatize.safe
+  | 2 -> transl conf "the grandchildren" |> Geneweb_sanatize.Sanatize.safe
+  | 3 -> transl conf "the great-grandchildren" |> Geneweb_sanatize.Sanatize.safe
   | i ->
       Printf.sprintf
         (ftransl conf "the %s generation")
         (transl_nth conf "nth (generation)" i)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 let descendants_title conf base p h =
   let s1 = gen_person_text conf base p in
@@ -100,7 +101,7 @@ let display_descendants_level conf base max_level ancestor =
       [] list
   in
   Hutil.header conf (descendants_title conf base ancestor);
-  (text_level conf max_level : Adef.safe_string :> string)
+  (text_level conf max_level : Geneweb_sanatize.Sanatize.safe_string :> string)
   |> Utf8.capitalize_fst |> Output.print_sstring conf;
   if !len > 1 then (
     Output.print_sstring conf " (";
@@ -198,7 +199,7 @@ let labelled conf base marks max_lev lev ip =
 
 let label_of_path paths p =
   let rec loop = function
-    | [] -> Adef.escaped ""
+    | [] -> Geneweb_sanatize.Sanatize.escaped ""
     | c :: cl -> loop cl ^^^ Util.escape_html (String.make 1 c)
   in
   get_iper p |> Gwdb.Marker.get paths |> loop
@@ -294,7 +295,7 @@ let print_family_locally conf base marks paths max_lev lev p1 c1 e =
   in
   loop lev e
 
-let last_label = ref (Adef.escaped "")
+let last_label = ref (Geneweb_sanatize.Sanatize.escaped "")
 
 let print_family conf base marks paths max_lev lev p =
   if lev <> 0 then (
@@ -383,14 +384,14 @@ let display_descendants_with_numbers conf base max_level ancestor =
         ("m=D&i="
          ^ string_of_iper (get_iper ancestor)
          ^ "&v=" ^ string_of_int max_level ^ "&t=G"
-        |> Adef.escaped)
+        |> Geneweb_sanatize.Sanatize.escaped)
         (let s1 = gen_person_text conf base ancestor in
          let s2 = gen_person_text ~html:true conf base ancestor in
          transl_a_of_gr_eq_gen_lev conf
            (transl conf "descendants")
-           (s1 : Adef.safe_string :> string)
-           (s2 : Adef.safe_string :> string)
-         |> Utf8.capitalize_fst |> Adef.safe)
+           (s1 : Geneweb_sanatize.Sanatize.safe_string :> string)
+           (s2 : Geneweb_sanatize.Sanatize.safe_string :> string)
+         |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe)
   in
   let marks = Gwdb.iper_marker (Gwdb.ipers base) false in
   let paths = Gwdb.iper_marker (Gwdb.ipers base) [] in
@@ -402,7 +403,7 @@ let display_descendants_with_numbers conf base max_level ancestor =
    match (Date.od_of_cdate (get_birth p), get_death p) with
    | Some _, _ | _, Death (_, _) -> Output.print_sstring conf "<br>"
    | _ -> ());
-  (text_to conf max_level : Adef.safe_string :> string)
+  (text_to conf max_level : Geneweb_sanatize.Sanatize.safe_string :> string)
   |> Utf8.capitalize_fst |> Output.print_sstring conf;
   Output.print_sstring conf ".<p>";
   mark_descendants conf base marks max_level (get_iper ancestor);
@@ -470,7 +471,8 @@ let print_elem conf base paths precision (n, pll) =
             (fun p ->
               Output.print_sstring conf "<li><strong>";
               wprint_geneweb_link conf (acces conf base p)
-                (p_first_name base p |> Util.escape_html :> Adef.safe_string);
+                (p_first_name base p |> Util.escape_html
+                  :> Geneweb_sanatize.Sanatize.safe_string);
               Output.print_sstring conf "</strong>";
               if several && precision then (
                 Output.print_sstring conf "<em>";
@@ -527,14 +529,15 @@ let display_descendant_index conf base max_level ancestor =
   let max_level = min (Perso.limit_desc conf) max_level in
   let title h =
     let txt =
-      transl conf "index of the descendants" |> Utf8.capitalize_fst |> Adef.safe
+      transl conf "index of the descendants"
+      |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe
     in
     if not h then
       wprint_geneweb_link conf
         ("m=D&i="
          ^ string_of_iper (get_iper ancestor)
          ^ "&v=" ^ string_of_int max_level ^ "&t=C"
-        |> Adef.escaped)
+        |> Geneweb_sanatize.Sanatize.escaped)
         txt
     else Output.print_string conf txt
   in
@@ -675,10 +678,12 @@ let print_person_table conf base p lab =
       let date =
         match date with
         | Some d -> DateDisplay.string_slash_of_date conf d
-        | None -> Adef.safe ""
+        | None -> Geneweb_sanatize.Sanatize.safe ""
       in
       (date, place)
-    else (Adef.safe "&nbsp;", Adef.safe "")
+    else
+      ( Geneweb_sanatize.Sanatize.safe "&nbsp;",
+        Geneweb_sanatize.Sanatize.safe "" )
   in
   let death, death_place =
     if
@@ -690,10 +695,12 @@ let print_person_table conf base p lab =
       let date =
         match date with
         | Some d -> DateDisplay.string_slash_of_date conf d
-        | None -> Adef.safe ""
+        | None -> Geneweb_sanatize.Sanatize.safe ""
       in
       (date, place)
-    else (Adef.safe "&nbsp;", Adef.safe "")
+    else
+      ( Geneweb_sanatize.Sanatize.safe "&nbsp;",
+        Geneweb_sanatize.Sanatize.safe "" )
   in
   (* On calcul le nombre de rowspan pour avoir un affichage joli. *)
   let rowspan =
@@ -702,8 +709,10 @@ let print_person_table conf base p lab =
       && (p_getenv conf.env "marr" = Some "on"
          || p_getenv conf.env "marr_date" = Some "on"
          || p_getenv conf.env "marr_place" = Some "on")
-    then Adef.safe ("rowspan=\"" ^ string_of_int nb_families ^ "\"")
-    else Adef.safe ""
+    then
+      Geneweb_sanatize.Sanatize.safe
+        ("rowspan=\"" ^ string_of_int nb_families ^ "\"")
+    else Geneweb_sanatize.Sanatize.safe ""
   in
   let td txt =
     Output.print_sstring conf "<td ";
@@ -761,8 +770,8 @@ let print_person_table conf base p lab =
         if authorized_age conf base p && authorized_age conf base spouse then
           match Date.od_of_cdate (get_marriage fam) with
           | Some d -> DateDisplay.string_slash_of_date conf d
-          | None -> Adef.safe "&nbsp;"
-        else Adef.safe "&nbsp;"
+          | None -> Geneweb_sanatize.Sanatize.safe "&nbsp;"
+        else Geneweb_sanatize.Sanatize.safe "&nbsp;"
       in
       Output.print_string conf mdate);
   aux [ "marr_place" ] (fun fam spouse ->
@@ -886,7 +895,7 @@ let print_person_table conf base p lab =
       - l    : person list
     [Retour] : person list
     [Rem] : Non exporté en clair hors de ce module.                       *)
-let build_desc conf base l : ('a * Adef.safe_string) list =
+let build_desc conf base l : ('a * Geneweb_sanatize.Sanatize.safe_string) list =
   let rec loop l accu =
     match l with
     | [] ->
@@ -941,7 +950,7 @@ let display_descendant_with_table conf base max_lev p =
         if lev < max_lev then
           let nl = build_desc conf base refl in
           loop (lev + 1) nb_col true nl nl
-    | (p, (lab : Adef.safe_string)) :: q ->
+    | (p, (lab : Geneweb_sanatize.Sanatize.safe_string)) :: q ->
         if first && lev > 0 && p_getenv conf.env "gen" = Some "on" then (
           Output.print_sstring conf "<tr>";
           Output.print_sstring conf {|<th align="left" colspan="|};
@@ -958,7 +967,7 @@ let display_descendant_with_table conf base max_lev p =
   in
   Hutil.header ~fluid:true conf (descendants_title conf base p);
   Output.print_sstring conf "<p>";
-  (text_to conf max_lev : Adef.safe_string :> string)
+  (text_to conf max_lev : Geneweb_sanatize.Sanatize.safe_string :> string)
   |> Utf8.capitalize_fst |> Output.print_sstring conf;
   Output.print_sstring conf {|.</p><table class="descends_table">|};
   (* On affiche l'entête et on en profite pour récupèrer *)
@@ -966,8 +975,8 @@ let display_descendant_with_table conf base max_lev p =
   loop 0
     (print_desc_table_header conf)
     true
-    [ (p, Adef.safe "") ]
-    [ (p, Adef.safe "") ];
+    [ (p, Geneweb_sanatize.Sanatize.safe "") ]
+    [ (p, Geneweb_sanatize.Sanatize.safe "") ];
   Output.print_sstring conf "</table><p>";
   transl conf "total" |> Utf8.capitalize_fst |> Output.print_sstring conf;
   Output.print_sstring conf (Util.transl conf ":");
@@ -987,9 +996,11 @@ let make_tree_hts conf base gv p =
   in
   let td_prop =
     match Util.p_getenv conf.env "color" with
-    | None | Some "" -> Adef.safe ""
+    | None | Some "" -> Geneweb_sanatize.Sanatize.safe ""
     | Some x ->
-        " class=\"" ^<^ (Util.escape_html x :> Adef.safe_string) ^>^ "\""
+        " class=\""
+        ^<^ (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
+        ^>^ "\""
   in
   let rec nb_column n v u =
     if v = 0 then n + max 1 (Array.length (get_family u))
@@ -1121,7 +1132,9 @@ let make_tree_hts conf base gv p =
               ^<^ txt ^>^ {|</td></tr></table>|}
             else txt
           in
-          ((2 * ncol) - 1, CenterA, TDitem (get_iper p, txt, Adef.safe ""))
+          ( (2 * ncol) - 1,
+            CenterA,
+            TDitem (get_iper p, txt, Geneweb_sanatize.Sanatize.safe "") )
       | None -> (1, LeftA, TDnothing)
     in
     td :: tdl
@@ -1136,7 +1149,11 @@ let make_tree_hts conf base gv p =
             let ifam = (get_family p).(i) in
             let tdl =
               if i > 0 then
-                (1, LeftA, TDtext (Gwdb.dummy_iper, Adef.safe "...")) :: tdl
+                ( 1,
+                  LeftA,
+                  TDtext (Gwdb.dummy_iper, Geneweb_sanatize.Sanatize.safe "...")
+                )
+                :: tdl
               else tdl
             in
             let td =
@@ -1155,7 +1172,7 @@ let make_tree_hts conf base gv p =
                 "&amp;"
                 ^<^ (if auth then
                      DateDisplay.short_marriage_date_text conf base fam p sp
-                    else Adef.safe "")
+                    else Geneweb_sanatize.Sanatize.safe "")
                 ^^^ "&nbsp;" ^<^ txt
                 ^^^ DagDisplay.image_txt conf base sp
               in
@@ -1168,7 +1185,8 @@ let make_tree_hts conf base gv p =
               in
               ( (2 * ncol) - 1,
                 CenterA,
-                TDitem (get_iper sp, s, Adef.safe "spouse_x") )
+                TDitem
+                  (get_iper sp, s, Geneweb_sanatize.Sanatize.safe "spouse_x") )
             in
             loop (td :: tdl) (i + 1)
         in
@@ -1234,19 +1252,19 @@ let print_tree conf base v p =
     translate_eval
       (transl_a_of_gr_eq_gen_lev conf
          (transl conf "descendants")
-         (s : Adef.safe_string :> string)
-         (s : Adef.safe_string :> string))
-    |> Adef.safe
+         (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+         (s : Geneweb_sanatize.Sanatize.safe_string :> string))
+    |> Geneweb_sanatize.Sanatize.safe
   in
   let hts = make_tree_hts conf base gv p in
   DagDisplay.print_slices_menu_or_dag_page conf base page_title hts
-    (Adef.escaped "")
+    (Geneweb_sanatize.Sanatize.escaped "")
 
 let print_aboville conf base max_level p =
   let max_level = min (Perso.limit_desc conf) max_level in
   let num_aboville = p_getenv conf.env "num" = Some "on" in
   Hutil.header conf (descendants_title conf base p);
-  (text_to conf max_level : Adef.safe_string :> string)
+  (text_to conf max_level : Geneweb_sanatize.Sanatize.safe_string :> string)
   |> Utf8.capitalize_fst |> Output.print_sstring conf;
   Output.print_sstring conf ".<br><p>";
   let rec loop_ind lev lab p =
@@ -1295,7 +1313,7 @@ let print_aboville conf base max_level p =
       in
       loop_fam 1 0
   in
-  loop_ind 0 (Adef.safe "") p;
+  loop_ind 0 (Geneweb_sanatize.Sanatize.safe "") p;
   Hutil.trailer conf
 
 let desmenu_print = Perso.interp_templ "desmenu"
@@ -1339,7 +1357,7 @@ let td_hbar x1 xn =
 
 (* regular cell, centered, with text as content (may contain |<br>) *)
 let td_cell cols align ip text flags =
-  [ (cols, align, TDitem (ip, Adef.safe text, flags)) ]
+  [ (cols, align, TDitem (ip, Geneweb_sanatize.Sanatize.safe text, flags)) ]
 
 (* tdal is   (int   *    list      ) list           *)
 (*           (lastx      list of td) list of rows   *)
@@ -1534,7 +1552,8 @@ let rec p_pos conf base p x0 v ir tdal only_anc sps img marr cgl =
   let lx = if lx > -1 then lx else -1 in
   let tdal =
     tdal_add tdal ir
-      (td_fill lx (x - 1) @ td_cell 1 CenterA (get_iper p) txt (Adef.safe ""))
+      (td_fill lx (x - 1)
+      @ td_cell 1 CenterA (get_iper p) txt (Geneweb_sanatize.Sanatize.safe ""))
       x
   in
   (* row 2: Hbar over sps *)
@@ -1551,7 +1570,7 @@ let rec p_pos conf base p x0 v ir tdal only_anc sps img marr cgl =
          else
            tdal_add tdal (ir+1)
              ((td_fill lx (x - 1))
-             @ (td_cell 1 CenterA Gwdb.dummy_iper "|" (Adef.safe "")))
+             @ (td_cell 1 CenterA Gwdb.dummy_iper "|" (Geneweb_sanatize.Sanatize.safe "")))
              x
        else tdal
      in
@@ -1600,7 +1619,7 @@ and f_pos conf base ifam ifam_nbr only_one first last p x0 v ir2 tdal only_anc
   let fam = foi base ifam in
   let marr_d =
     if marr && auth then DateDisplay.short_family_dates_text conf base true fam
-    else Adef.safe ""
+    else Geneweb_sanatize.Sanatize.safe ""
   in
   let m_txt =
     (* families are scanned in reverse order *)
@@ -1624,7 +1643,9 @@ and f_pos conf base ifam ifam_nbr only_one first last p x0 v ir2 tdal only_anc
   let lx = if lx > -1 then lx else -1 in
   let tdal =
     tdal_add tdal ir2
-      (td_fill lx (x - 1) @ td_cell 1 CenterA (get_iper sp) txt (Adef.safe flag))
+      (td_fill lx (x - 1)
+      @ td_cell 1 CenterA (get_iper sp) txt
+          (Geneweb_sanatize.Sanatize.safe flag))
       x
   in
   (* rox 4: Hbar over kids *)
@@ -1771,8 +1792,10 @@ let manage_vbars tdal =
   let vbar_only_in_row row =
     List.fold_left
       (fun res (_, _, td) ->
-        if td <> TDnothing && td <> TDtext (Gwdb.dummy_iper, Adef.safe "|") then
-          false && res
+        if
+          td <> TDnothing
+          && td <> TDtext (Gwdb.dummy_iper, Geneweb_sanatize.Sanatize.safe "|")
+        then false && res
         else true && res)
       true row
   in
@@ -1851,13 +1874,13 @@ let print_vaucher_tree conf base v p =
     translate_eval
       (let s = (Util.gen_person_text conf base p ~html:false :> string) in
        transl_a_of_gr_eq_gen_lev conf (transl conf "descendants") s s)
-    |> Adef.safe
+    |> Geneweb_sanatize.Sanatize.safe
   in
   let hts = make_vaucher_tree_hts conf base gv p in
   let hts = safe_vaucher_tree hts in
   (* just to verify hts structure !! *)
   DagDisplay.print_slices_menu_or_dag_page conf base page_title hts
-    (Adef.escaped "")
+    (Geneweb_sanatize.Sanatize.escaped "")
 (* ******** end of J Vaucher tree ********* *)
 
 let print conf base p =

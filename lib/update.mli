@@ -5,7 +5,7 @@ open Def
 open Gwdb
 
 type update_error =
-  | UERR of Adef.safe_string
+  | UERR of Geneweb_sanatize.Sanatize.safe_string
   | UERR_sex_married of person
   | UERR_sex_incoherent of base * person
   | UERR_sex_undefined of string * string * int
@@ -14,10 +14,10 @@ type update_error =
   | UERR_own_ancestor of base * person
   | UERR_digest
   | UERR_bad_date of Def.dmy
-  | UERR_missing_field of Adef.safe_string
+  | UERR_missing_field of Geneweb_sanatize.Sanatize.safe_string
   | UERR_already_has_parents of base * person
-  | UERR_missing_surname of Adef.safe_string
-  | UERR_missing_first_name of Adef.safe_string
+  | UERR_missing_surname of Geneweb_sanatize.Sanatize.safe_string
+  | UERR_missing_first_name of Geneweb_sanatize.Sanatize.safe_string
   | UERR_locked_base
 
 exception ModErr of update_error
@@ -62,9 +62,9 @@ val print_return : config -> unit
 
 val print_continue :
   config ->
-  ?continue:Adef.encoded_string ->
+  ?continue:Geneweb_sanatize.Sanatize.encoded_string ->
   string ->
-  Adef.encoded_string ->
+  Geneweb_sanatize.Sanatize.encoded_string ->
   unit
 (** [print_continue conf param value]
     Helper function printing a hidden form containing current env,
@@ -79,7 +79,9 @@ val prerr : config -> update_error -> (unit -> unit) -> 'a
     API mode: only raise [ModErr err]
 *)
 
-val string_of_error : config -> update_error -> Adef.safe_string
+val string_of_error :
+  config -> update_error -> Geneweb_sanatize.Sanatize.safe_string
+
 val print_error : config -> update_error -> unit
 val print_warnings : config -> base -> CheckItem.base_warning list -> unit
 val print_miscs : config -> base -> CheckItem.base_misc list -> unit

@@ -7,7 +7,8 @@ open TemplAst
 open Util
 open HistoryDiff
 
-let escape_html s = (Util.escape_html s :> Adef.safe_string)
+let escape_html s =
+  (Util.escape_html s :> Geneweb_sanatize.Sanatize.safe_string)
 
 let print_clean conf =
   match p_getenv conf.env "f" with
@@ -19,12 +20,13 @@ let print_clean conf =
       Hutil.header conf title;
       Util.gen_print_tips conf
         ("select the input you want to erase from the history" |> transl conf
-       |> Utf8.capitalize_fst |> Adef.safe);
+       |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe);
       let history = load_person_history conf f in
       Output.print_sstring conf {|<form method="post" action="|};
       Output.print_sstring conf conf.command;
       Output.print_sstring conf "\">";
-      Util.hidden_input conf "m" ("HIST_CLEAN_OK" |> Adef.encoded);
+      Util.hidden_input conf "m"
+        ("HIST_CLEAN_OK" |> Geneweb_sanatize.Sanatize.encoded);
       Util.hidden_input conf "f" (Mutil.encode f);
       Output.print_sstring conf "<ul>";
       let rec loop i = function
@@ -110,8 +112,8 @@ let person_of_iper conf base ip =
   try
     let p = pget conf base ip in
     if authorized_age conf base p then gen_person_text conf base p
-    else Adef.safe ""
-  with _ -> Adef.safe ""
+    else Geneweb_sanatize.Sanatize.safe ""
+  with _ -> Geneweb_sanatize.Sanatize.safe ""
 
 let person_of_iper_array conf base ipl =
   (Array.fold_right
@@ -119,48 +121,55 @@ let person_of_iper_array conf base ipl =
        let x = person_of_iper conf base ip in
        if (x :> string) = "" then acc else x :: acc)
      ipl []
-    : Adef.safe_string list
+    : Geneweb_sanatize.Sanatize.safe_string list
     :> string list)
-  |> String.concat ", " |> Adef.safe
+  |> String.concat ", " |> Geneweb_sanatize.Sanatize.safe
 
 let string_of_cdate conf cod =
   match Date.od_of_cdate cod with
   | Some d -> DateDisplay.string_slash_of_date conf d
-  | None -> Adef.safe ""
+  | None -> Geneweb_sanatize.Sanatize.safe ""
 
 let string_of_death conf death =
   match Date.date_of_death death with
   | Some cd -> DateDisplay.string_slash_of_date conf cd
-  | None -> Adef.safe ""
+  | None -> Geneweb_sanatize.Sanatize.safe ""
 
 let string_of_burial conf burial =
   match burial with
   | Buried cod | Cremated cod -> string_of_cdate conf cod
-  | UnknownBurial -> Adef.safe ""
+  | UnknownBurial -> Geneweb_sanatize.Sanatize.safe ""
 
-let string_of_title conf titles : Adef.safe_string =
+let string_of_title conf titles : Geneweb_sanatize.Sanatize.safe_string =
   let string_of_t_name t =
-    match t.t_name with Tname s -> escape_html s | _ -> Adef.safe ""
+    match t.t_name with
+    | Tname s -> escape_html s
+    | _ -> Geneweb_sanatize.Sanatize.safe ""
   in
   let one_title t =
     let name = escape_html (t.t_ident ^ " " ^ t.t_place) in
-    let name = if (name :> string) = " " then Adef.safe "" else name in
+    let name =
+      if (name :> string) = " " then Geneweb_sanatize.Sanatize.safe "" else name
+    in
     let dates =
       string_of_cdate conf t.t_date_start
       ^^^ "-"
       ^<^ string_of_cdate conf t.t_date_end
     in
     let dates =
-      if (dates :> string) = "-" then Adef.safe "" else "(" ^<^ dates ^>^ ")"
+      if (dates :> string) = "-" then Geneweb_sanatize.Sanatize.safe ""
+      else "(" ^<^ dates ^>^ ")"
     in
     let nth =
       let t_name = string_of_t_name t in
       if (t_name :> string) = "" then
-        Adef.safe (if t.t_nth = 0 then "" else string_of_int t.t_nth)
+        Geneweb_sanatize.Sanatize.safe
+          (if t.t_nth = 0 then "" else string_of_int t.t_nth)
       else t_name ^>^ " " ^ string_of_int t.t_nth
     in
     let nth =
-      if (nth :> string) = "" then Adef.safe "" else "[" ^<^ nth ^>^ "]"
+      if (nth :> string) = "" then Geneweb_sanatize.Sanatize.safe ""
+      else "[" ^<^ nth ^>^ "]"
     in
     name
     ^^^ (if (name :> string) = "" then "" else " ")
@@ -169,11 +178,13 @@ let string_of_title conf titles : Adef.safe_string =
     ^<^ dates
   in
   List.fold_left
-    (fun (acc : Adef.safe_string) t ->
+    (fun (acc : Geneweb_sanatize.Sanatize.safe_string) t ->
       if (acc :> string) = "" then one_title t else acc ^^^ ", " ^<^ one_title t)
-    (Adef.safe "") titles
+    (Geneweb_sanatize.Sanatize.safe "")
+    titles
 
-let string_of_related conf base ip related : Adef.safe_string =
+let string_of_related conf base ip related :
+    Geneweb_sanatize.Sanatize.safe_string =
   List.fold_right
     (fun ic acc ->
       let p = person_of_iper conf base ip in
@@ -183,7 +194,7 @@ let string_of_related conf base ip related : Adef.safe_string =
         let rel =
           let rec loop rp =
             match rp with
-            | [] -> Adef.safe ""
+            | [] -> Geneweb_sanatize.Sanatize.safe ""
             | r :: l -> (
                 match r.r_fath with
                 | Some ifath when ifath = ip ->
@@ -192,21 +203,23 @@ let string_of_related conf base ip related : Adef.safe_string =
           in
           loop (get_rparents c)
         in
-        (Utf8.capitalize_fst (rel : Adef.safe_string :> string)
+        (Utf8.capitalize_fst
+           (rel : Geneweb_sanatize.Sanatize.safe_string :> string)
         ^<^ transl conf ":" ^<^ p)
         :: acc)
     related []
   |> (fun s -> String.concat ", " (s :> string list))
-  |> Adef.safe
+  |> Geneweb_sanatize.Sanatize.safe
 
-let string_of_rparents conf base rparents : Adef.safe_string =
+let string_of_rparents conf base rparents :
+    Geneweb_sanatize.Sanatize.safe_string =
   List.fold_right
     (fun rp accu ->
       match (rp.r_fath, rp.r_moth) with
       | Some ip1, Some ip2 -> (
           let rel =
             (Util.relation_type_text conf rp.r_type 2
-              : Adef.safe_string
+              : Geneweb_sanatize.Sanatize.safe_string
               :> string)
             |> Utf8.capitalize_fst
           in
@@ -224,7 +237,7 @@ let string_of_rparents conf base rparents : Adef.safe_string =
           else
             (Utf8.capitalize_fst
                (Util.relation_type_text conf rp.r_type 2
-                 : Adef.safe_string
+                 : Geneweb_sanatize.Sanatize.safe_string
                  :> string)
             ^<^ transl conf ":" ^<^ p)
             :: accu
@@ -234,14 +247,16 @@ let string_of_rparents conf base rparents : Adef.safe_string =
           else
             (Utf8.capitalize_fst
                (Util.relation_type_text conf rp.r_type 2
-                 : Adef.safe_string
+                 : Geneweb_sanatize.Sanatize.safe_string
                  :> string)
             ^<^ transl conf ":" ^<^ p)
             :: accu
       | None, None -> accu)
     rparents []
-  |> (fun s -> String.concat ", " (s : Adef.safe_string list :> string list))
-  |> Adef.safe
+  |> (fun s ->
+       String.concat ", "
+         (s : Geneweb_sanatize.Sanatize.safe_string list :> string list))
+  |> Geneweb_sanatize.Sanatize.safe
 
 let string_of_marriage conf marriage =
   let s =
@@ -253,16 +268,16 @@ let string_of_marriage conf marriage =
     | Residence ->
         "with"
   in
-  Adef.safe (transl conf s)
+  Geneweb_sanatize.Sanatize.safe (transl conf s)
 
 let string_of_divorce conf divorce =
   match divorce with
   | Divorced cod -> transl conf "divorced" ^<^ " " ^<^ string_of_cdate conf cod
   | Separated cod ->
       transl conf "separated" ^<^ " " ^<^ string_of_cdate conf cod
-  | Separated_old -> transl conf "separated" |> Adef.safe
-  | NotDivorced -> "" |> Adef.safe
-  | NotSeparated -> "" |> Adef.safe
+  | Separated_old -> transl conf "separated" |> Geneweb_sanatize.Sanatize.safe
+  | NotDivorced -> "" |> Geneweb_sanatize.Sanatize.safe
+  | NotSeparated -> "" |> Geneweb_sanatize.Sanatize.safe
 
 let string_of_event_witness conf base witnesses =
   Array.fold_right
@@ -273,127 +288,207 @@ let string_of_event_witness conf base witnesses =
       else accu)
     witnesses []
   |> fun s ->
-  String.concat ", " (s : Adef.safe_string list :> string list) |> Adef.safe
+  String.concat ", "
+    (s : Geneweb_sanatize.Sanatize.safe_string list :> string list)
+  |> Geneweb_sanatize.Sanatize.safe
 
 let string_of_epers_name conf epers_name =
   match epers_name with
-  | Epers_Birth -> Adef.safe @@ Utf8.capitalize_fst (transl conf "birth")
-  | Epers_Baptism -> Adef.safe @@ Utf8.capitalize_fst (transl conf "baptism")
-  | Epers_Death -> Adef.safe @@ Utf8.capitalize_fst (transl conf "death")
-  | Epers_Burial -> Adef.safe @@ Utf8.capitalize_fst (transl conf "burial")
+  | Epers_Birth ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "birth")
+  | Epers_Baptism ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "baptism")
+  | Epers_Death ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "death")
+  | Epers_Burial ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "burial")
   | Epers_Cremation ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "cremation")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "cremation")
   | Epers_Accomplishment ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "accomplishment")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "accomplishment")
   | Epers_Acquisition ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "acquisition")
-  | Epers_Adhesion -> Adef.safe @@ Utf8.capitalize_fst (transl conf "adhesion")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "acquisition")
+  | Epers_Adhesion ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "adhesion")
   | Epers_BaptismLDS ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "baptismLDS")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "baptismLDS")
   | Epers_BarMitzvah ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "bar mitzvah")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "bar mitzvah")
   | Epers_BatMitzvah ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "bat mitzvah")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "bat mitzvah")
   | Epers_Benediction ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "benediction")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "benediction")
   | Epers_ChangeName ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "change name")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "change name")
   | Epers_Circumcision ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "circumcision")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "circumcision")
   | Epers_Confirmation ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "confirmation")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "confirmation")
   | Epers_ConfirmationLDS ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "confirmation LDS")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "confirmation LDS")
   | Epers_Decoration ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "decoration")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "decoration")
   | Epers_DemobilisationMilitaire ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "demobilisationMilitaire")
-  | Epers_Diploma -> Adef.safe @@ Utf8.capitalize_fst (transl conf "diploma")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "demobilisationMilitaire")
+  | Epers_Diploma ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "diploma")
   | Epers_Distinction ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "distinction")
-  | Epers_Dotation -> Adef.safe @@ Utf8.capitalize_fst (transl conf "dotation")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "distinction")
+  | Epers_Dotation ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "dotation")
   | Epers_DotationLDS ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "dotationLDS")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "dotationLDS")
   | Epers_Education ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "education")
-  | Epers_Election -> Adef.safe @@ Utf8.capitalize_fst (transl conf "election")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "education")
+  | Epers_Election ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "election")
   | Epers_Emigration ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "emigration")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "emigration")
   | Epers_Excommunication ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "excommunication")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "excommunication")
   | Epers_FamilyLinkLDS ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "familyLinkLDS")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "familyLinkLDS")
   | Epers_FirstCommunion ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "firstCommunion")
-  | Epers_Funeral -> Adef.safe @@ Utf8.capitalize_fst (transl conf "funeral")
-  | Epers_Graduate -> Adef.safe @@ Utf8.capitalize_fst (transl conf "graduate")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "firstCommunion")
+  | Epers_Funeral ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "funeral")
+  | Epers_Graduate ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "graduate")
   | Epers_Hospitalisation ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "hospitalisation")
-  | Epers_Illness -> Adef.safe @@ Utf8.capitalize_fst (transl conf "illness")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "hospitalisation")
+  | Epers_Illness ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "illness")
   | Epers_Immigration ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "immigration")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "immigration")
   | Epers_ListePassenger ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "listePassenger")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "listePassenger")
   | Epers_MilitaryDistinction ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "militaryDistinction")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "militaryDistinction")
   | Epers_MilitaryPromotion ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "militaryPromotion")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "militaryPromotion")
   | Epers_MilitaryService ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "militaryService")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "militaryService")
   | Epers_MobilisationMilitaire ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "mobilisationMilitaire")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "mobilisationMilitaire")
   | Epers_Naturalisation ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "naturalisation")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "naturalisation")
   | Epers_Occupation ->
-      Adef.safe
+      Geneweb_sanatize.Sanatize.safe
       @@ Utf8.capitalize_fst (transl_nth conf "occupation/occupations" 0)
   | Epers_Ordination ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "ordination")
-  | Epers_Property -> Adef.safe @@ Utf8.capitalize_fst (transl conf "property")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "ordination")
+  | Epers_Property ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "property")
   | Epers_Recensement ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "recensement")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "recensement")
   | Epers_Residence ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "residence")
-  | Epers_Retired -> Adef.safe @@ Utf8.capitalize_fst (transl conf "retired")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "residence")
+  | Epers_Retired ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "retired")
   | Epers_ScellentChildLDS ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "scellentChildLDS")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "scellentChildLDS")
   | Epers_ScellentParentLDS ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "scellentParentLDS")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "scellentParentLDS")
   | Epers_ScellentSpouseLDS ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "scellentSpouseLDS")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "scellentSpouseLDS")
   | Epers_VenteBien ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "venteBien")
-  | Epers_Will -> Adef.safe @@ Utf8.capitalize_fst (transl conf "will")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "venteBien")
+  | Epers_Will ->
+      Geneweb_sanatize.Sanatize.safe @@ Utf8.capitalize_fst (transl conf "will")
   | Epers_Name n ->
-      Adef.safe
-      @@ Utf8.capitalize_fst (escape_html n : Adef.safe_string :> string)
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst
+           (escape_html n : Geneweb_sanatize.Sanatize.safe_string :> string)
 
 let string_of_efam_name conf efam_name =
   match efam_name with
   | Efam_Marriage ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "marriage event")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "marriage event")
   | Efam_NoMarriage ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "no marriage event")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "no marriage event")
   | Efam_NoMention ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "no mention")
-  | Efam_Engage -> Adef.safe @@ Utf8.capitalize_fst (transl conf "engage event")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "no mention")
+  | Efam_Engage ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "engage event")
   | Efam_Divorce ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "divorce event")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "divorce event")
   | Efam_Separated ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "separate event")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "separate event")
   | Efam_Annulation ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "annulation")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "annulation")
   | Efam_MarriageBann ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "marriage bann")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "marriage bann")
   | Efam_MarriageContract ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "marriage contract")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "marriage contract")
   | Efam_MarriageLicense ->
-      Adef.safe @@ Utf8.capitalize_fst (transl conf "marriage licence")
-  | Efam_PACS -> Adef.safe @@ Utf8.capitalize_fst (transl conf "PACS")
-  | Efam_Residence -> Adef.safe @@ Utf8.capitalize_fst (transl conf "residence")
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "marriage licence")
+  | Efam_PACS ->
+      Geneweb_sanatize.Sanatize.safe @@ Utf8.capitalize_fst (transl conf "PACS")
+  | Efam_Residence ->
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst (transl conf "residence")
   | Efam_Name n ->
-      Adef.safe
-      @@ Utf8.capitalize_fst (escape_html n : Adef.safe_string :> string)
+      Geneweb_sanatize.Sanatize.safe
+      @@ Utf8.capitalize_fst
+           (escape_html n : Geneweb_sanatize.Sanatize.safe_string :> string)
 
 (* ************************************************************************ *)
 (*  [Fonc] highlight_diff : char array -> bool array -> string              *)
@@ -449,8 +544,10 @@ let array_of_string s =
   in
   loop 0
 
-let diff_string (before : Adef.safe_string) (after : Adef.safe_string) :
-    Adef.safe_string * Adef.safe_string =
+let diff_string (before : Geneweb_sanatize.Sanatize.safe_string)
+    (after : Geneweb_sanatize.Sanatize.safe_string) :
+    Geneweb_sanatize.Sanatize.safe_string
+    * Geneweb_sanatize.Sanatize.safe_string =
   if before = after then (before, after)
   else if (before :> string) = "" then
     (before, "<span class=\"mark\">" ^<^ after ^>^ "</span>")
@@ -462,7 +559,7 @@ let diff_string (before : Adef.safe_string) (after : Adef.safe_string) :
     let bef_d, aft_d = Difference.f bb aa in
     let bef_s = highlight_diff bb bef_d in
     let aft_s = highlight_diff aa aft_d in
-    (Adef.safe bef_s, Adef.safe aft_s)
+    (Geneweb_sanatize.Sanatize.safe bef_s, Geneweb_sanatize.Sanatize.safe aft_s)
 
 type 'a env =
   | Vfam of
@@ -486,7 +583,9 @@ let get_env v env = try Templ.Env.find v env with Not_found -> Vnone
 let get_vother = function Vother x -> Some x | _ -> None
 let set_vother x = Vother x
 let str_val x = VVstring x
-let safe_val (x : Adef.safe_string) = VVstring (x :> string)
+
+let safe_val (x : Geneweb_sanatize.Sanatize.safe_string) =
+  VVstring (x :> string)
 
 let rec eval_var conf base env (bef, aft, p_auth) _loc sl =
   try eval_simple_var conf base env (bef, aft, p_auth) sl
@@ -527,7 +626,9 @@ and eval_str_gen_record conf base env (bef, aft, p_auth) :
   in
   let aux g =
     if p_auth then
-      diff_string (g bef :> Adef.safe_string) (g aft :> Adef.safe_string)
+      diff_string
+        (g bef :> Geneweb_sanatize.Sanatize.safe_string)
+        (g aft :> Geneweb_sanatize.Sanatize.safe_string)
     else (str_val "", str_val "")
   in
   let aux' m_auth bef aft f =
@@ -542,7 +643,8 @@ and eval_str_gen_record conf base env (bef, aft, p_auth) :
   function
   | "first_name" -> aux (fun x -> Util.escape_html x.gen_p.first_name)
   | "surname" -> aux (fun x -> Util.escape_html x.gen_p.surname)
-  | "occ" -> aux (fun x -> Adef.safe @@ string_of_int x.gen_p.occ)
+  | "occ" ->
+      aux (fun x -> Geneweb_sanatize.Sanatize.safe @@ string_of_int x.gen_p.occ)
   | "image" ->
       if not conf.no_image then aux (fun x -> Util.escape_html x.gen_p.image)
       else (str_val "", str_val "")
@@ -570,22 +672,22 @@ and eval_str_gen_record conf base env (bef, aft, p_auth) :
       aux (fun x ->
           Util.index_of_sex x.gen_p.sex
           |> transl_nth conf "male/female/neuter"
-          |> Adef.safe)
+          |> Geneweb_sanatize.Sanatize.safe)
   | "access" ->
       aux (fun x ->
           match x.gen_p.access with
           | IfTitles ->
               transl_nth conf "iftitles/public/semipublic/private" 0
-              |> Adef.safe
+              |> Geneweb_sanatize.Sanatize.safe
           | Public ->
               transl_nth conf "iftitles/public/semipublic/private" 1
-              |> Adef.safe
+              |> Geneweb_sanatize.Sanatize.safe
           | SemiPublic ->
               transl_nth conf "iftitles/public/semipublic/private" 2
-              |> Adef.safe
+              |> Geneweb_sanatize.Sanatize.safe
           | Private ->
               transl_nth conf "iftitles/public/semipublic/private" 3
-              |> Adef.safe)
+              |> Geneweb_sanatize.Sanatize.safe)
   | "birth" -> aux (fun x -> string_of_cdate conf x.gen_p.birth)
   | "birth_place" -> aux (fun x -> Util.escape_html x.gen_p.birth_place)
   | "birth_note" -> aux (fun x -> Util.escape_html x.gen_p.birth_note)
@@ -742,7 +844,7 @@ and eval_simple_str_var conf base env (bef, aft, p_auth) : string -> 'a expr_val
   | "acces" ->
       person_of_gen_p_key base aft.gen_p
       |> acces conf base
-      |> (safe_val :> Adef.escaped_string -> 'a expr_val)
+      |> (safe_val :> Geneweb_sanatize.Sanatize.escaped_string -> 'a expr_val)
   | "date" -> eval_string_env "date" env
   | "history_len" -> eval_int_env "history_len" env
   | "line" -> eval_int_env "line" env
@@ -911,10 +1013,16 @@ let print_foreach conf base print_ast _eval_expr =
               let env =
                 Templ.Env.(
                   empty |> add "line" (Vint i)
-                  |> add "date" (Vstring (gr.date : Adef.safe_string :> string))
+                  |> add "date"
+                       (Vstring
+                          (gr.date
+                            : Geneweb_sanatize.Sanatize.safe_string
+                            :> string))
                   |> add "wizard"
                        (Vstring
-                          (gr.HistoryDiff.wizard : Adef.safe_string :> string)))
+                          (gr.HistoryDiff.wizard
+                            : Geneweb_sanatize.Sanatize.safe_string
+                            :> string)))
               in
               List.iter (print_ast env xx) al;
               loop (i + 1) l

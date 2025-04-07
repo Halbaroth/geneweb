@@ -87,7 +87,10 @@ module Person = struct
       let sn = Name.lower (sou base (get_surname p)) in
       (fn, sn, get_occ p)
     in
-    List.fold_left (Perso.linked_page_text conf base p s key) (Adef.safe "") db
+    List.fold_left
+      (Perso.linked_page_text conf base p s key)
+      (Geneweb_sanatize.Sanatize.safe "")
+      db
 
   let note conf base p = if not conf.no_note then sou base (get_notes p) else ""
 

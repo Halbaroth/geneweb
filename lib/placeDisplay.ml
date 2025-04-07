@@ -63,7 +63,7 @@ let print_html_places_surnames conf base
   Output.print_sstring conf "</ul>\n"
 
 let print_aux_opt ~add_birth ~add_baptism ~add_death ~add_burial ~add_marriage =
-  Adef.encoded
+  Geneweb_sanatize.Sanatize.encoded
   @@ (if add_birth then "&bi=on" else "")
   ^ (if add_baptism then "&bp=on" else "")
   ^ (if add_death then "&de=on" else "")

@@ -110,7 +110,8 @@ let print_mod_ok conf base =
       Output.printf conf {|<form method="post" action="%s"><p>|} conf.command;
       Util.hidden_env conf;
       Util.hidden_input conf "key" (List.assoc "key" conf.env);
-      Util.hidden_input conf "m" (Adef.encoded "MOD_DATA_OK");
+      Util.hidden_input conf "m"
+        (Geneweb_sanatize.Sanatize.encoded "MOD_DATA_OK");
       Util.hidden_input conf "data" (Mutil.encode data);
       Util.hidden_input conf "s" (Mutil.encode ini);
       Output.print_sstring conf
@@ -215,8 +216,8 @@ and eval_simple_var conf base env xx = function
         {
           conf with
           env =
-            ("key", Adef.encoded istr)
-            :: ("data", Adef.encoded data)
+            ("key", Geneweb_sanatize.Sanatize.encoded istr)
+            :: ("data", Geneweb_sanatize.Sanatize.encoded data)
             :: conf.env;
         }
       in

@@ -60,7 +60,7 @@ let merge_events conf l1 l2 =
   let need_selection x1 x2 = x1 <> "" && x2 <> "" && x1 <> x2 in
   let string_event_date e =
     match Date.od_of_cdate e.efam_date with
-    | None -> Adef.safe ""
+    | None -> Geneweb_sanatize.Sanatize.safe ""
     | Some d -> DateDisplay.string_of_ondate conf d
   in
   let can_merge_event e1 e2 =

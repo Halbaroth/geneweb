@@ -225,7 +225,7 @@ let make_henv conf base =
   in
   let conf =
     if Util.p_getenv conf.env "manitou" = Some "off"
-    then { conf with henv = conf.henv @ ["manitou", Adef.encoded "off"] }
+    then { conf with henv = conf.henv @ ["manitou", Geneweb_sanatize.Sanatize.encoded "off"] }
     else conf
   in
   let aux param conf =

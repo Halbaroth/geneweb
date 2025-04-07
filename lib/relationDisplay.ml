@@ -47,7 +47,8 @@ let old_print_relationship_dag conf base elem_txt vbar_txt path next_txt =
   let invert = Util.p_getenv conf.env "invert" = Some "on" in
   let set, d = dag_of_relation_path conf base path in
   let page_title =
-    transl conf "relationship" |> Utf8.capitalize_fst |> Adef.safe
+    transl conf "relationship" |> Utf8.capitalize_fst
+    |> Geneweb_sanatize.Sanatize.safe
   in
   let hts =
     DagDisplay.make_tree_hts conf base elem_txt vbar_txt invert set [] d
@@ -61,12 +62,14 @@ let print_relationship_dag conf base elem_txt vbar_txt path next_txt =
     let invert = Util.p_getenv conf.env "invert" = Some "on" in
     let set = ind_set_of_relation_path base path in
     let page_title =
-      transl conf "relationship" |> Utf8.capitalize_fst |> Adef.safe
+      transl conf "relationship" |> Utf8.capitalize_fst
+      |> Geneweb_sanatize.Sanatize.safe
     in
     DagDisplay.make_and_print_dag conf base elem_txt vbar_txt invert set []
       page_title next_txt
 
-let next_relation_link_txt conf ip1 ip2 excl_faml : Adef.escaped_string =
+let next_relation_link_txt conf ip1 ip2 excl_faml :
+    Geneweb_sanatize.Sanatize.escaped_string =
   let sps =
     match (Util.p_getenv conf.env "sp", Util.p_getenv conf.env "spouse") with
     | Some ("off" | "0"), _ | _, Some "off" -> false
@@ -74,13 +77,16 @@ let next_relation_link_txt conf ip1 ip2 excl_faml : Adef.escaped_string =
   in
   let bd =
     match p_getenv conf.env "bd" with
-    | None | Some ("0" | "") -> Adef.escaped ""
-    | Some x -> "&bd=" ^<^ (Mutil.encode x :> Adef.escaped_string)
+    | None | Some ("0" | "") -> Geneweb_sanatize.Sanatize.escaped ""
+    | Some x ->
+        "&bd=" ^<^ (Mutil.encode x :> Geneweb_sanatize.Sanatize.escaped_string)
   in
   let color =
     match p_getenv conf.env "color" with
-    | None -> Adef.escaped ""
-    | Some x -> "&color=" ^<^ (Mutil.encode x :> Adef.escaped_string)
+    | None -> Geneweb_sanatize.Sanatize.escaped ""
+    | Some x ->
+        "&color="
+        ^<^ (Mutil.encode x :> Geneweb_sanatize.Sanatize.escaped_string)
   in
   let sl, _ =
     List.fold_left
@@ -104,7 +110,7 @@ let print_relation_path conf base ip1 ip2 path ifam excl_faml =
     Hutil.trailer conf)
   else
     let next_txt = next_relation_link_txt conf ip1 ip2 (ifam :: excl_faml) in
-    let elem_txt p = DagDisplay.Item (p, Adef.safe "") in
+    let elem_txt p = DagDisplay.Item (p, Geneweb_sanatize.Sanatize.safe "") in
     let vbar_txt ip =
       let u = pget conf base ip in
       let excl_faml = Array.to_list (get_family u) @ excl_faml in
@@ -144,7 +150,9 @@ let print_shortest_path conf base p1 p2 =
             let conf = { conf with is_printed_by_template = false } in
             Hutil.interp_no_env conf "buttons_rel");
         if excl_faml = [] then (
-          ([ s1; s2 ] : Adef.safe_string list :> string list)
+          ([ s1; s2 ]
+            : Geneweb_sanatize.Sanatize.safe_string list
+            :> string list)
           |> cftransl conf "no known relationship link between %s and %s"
           |> Utf8.capitalize_fst |> Output.print_sstring conf;
           Output.print_sstring conf ".<br><p><span><a href=\"";
@@ -167,7 +175,7 @@ let print_shortest_path conf base p1 p2 =
         Hutil.trailer conf
 
 let parents_label conf base info = function
-  | 1 -> transl conf "the parents" |> Adef.safe
+  | 1 -> transl conf "the parents" |> Geneweb_sanatize.Sanatize.safe
   | 2 ->
       let txt = transl conf "grand-parents" in
       let is =
@@ -177,7 +185,7 @@ let parents_label conf base info = function
           | _ -> (* must be a bug *) 0
         else 0
       in
-      nth_field txt is |> Adef.safe
+      nth_field txt is |> Geneweb_sanatize.Sanatize.safe
   | 3 ->
       let txt = transl conf "great-grand-parents" in
       let is =
@@ -187,25 +195,29 @@ let parents_label conf base info = function
           | _ -> (* must be a bug *) 0
         else 0
       in
-      nth_field txt is |> Adef.safe
+      nth_field txt is |> Geneweb_sanatize.Sanatize.safe
   | n ->
       transl conf "ancestors (some)"
       ^ " "
       ^ Printf.sprintf
           (ftransl conf "of the %s generation")
           (transl_nth conf "nth (generation)" n)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 let parent_in_law_label conf child_sex parent_sex =
   let txt = transl conf "the father-in-law/the mother-in-law" in
   let is = index_of_sex parent_sex in
-  if nb_fields txt = 2 then nth_field txt is |> Adef.safe
-  else nth_field txt ((2 * index_of_sex child_sex) + is) |> Adef.safe
+  if nb_fields txt = 2 then nth_field txt is |> Geneweb_sanatize.Sanatize.safe
+  else
+    nth_field txt ((2 * index_of_sex child_sex) + is)
+    |> Geneweb_sanatize.Sanatize.safe
 
 let ancestor_label conf base info x sex =
   let is = index_of_sex sex in
   match x with
-  | 1 -> transl_nth conf "the father/the mother/a parent" is |> Adef.safe
+  | 1 ->
+      transl_nth conf "the father/the mother/a parent" is
+      |> Geneweb_sanatize.Sanatize.safe
   | 2 ->
       let txt = transl conf "a grandfather/a grandmother/a grandparent" in
       let is =
@@ -216,7 +228,7 @@ let ancestor_label conf base info x sex =
           | _ -> (* must be a bug *) is
         else is
       in
-      nth_field txt is |> Adef.safe
+      nth_field txt is |> Geneweb_sanatize.Sanatize.safe
   | 3 ->
       let txt =
         transl conf
@@ -230,25 +242,29 @@ let ancestor_label conf base info x sex =
           | _ -> (* must be a bug *) is
         else is
       in
-      nth_field txt is |> Adef.safe
+      nth_field txt is |> Geneweb_sanatize.Sanatize.safe
   | n ->
       transl_nth conf "an ancestor" is
       ^ " "
       ^ Printf.sprintf
           (ftransl conf "of the %s generation")
           (transl_nth conf "nth (generation)" n)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 let child_in_law_label conf sex_child sex_parent =
   let txt = transl conf "a son-in-law/a daughter-in-law" in
   let is = index_of_sex sex_child in
-  if nb_fields txt = 2 then nth_field txt is |> Adef.safe
-  else nth_field txt ((2 * index_of_sex sex_parent) + is) |> Adef.safe
+  if nb_fields txt = 2 then nth_field txt is |> Geneweb_sanatize.Sanatize.safe
+  else
+    nth_field txt ((2 * index_of_sex sex_parent) + is)
+    |> Geneweb_sanatize.Sanatize.safe
 
 let descendant_label conf base info x p =
   let is = index_of_sex (get_sex p) in
   match x with
-  | 1 -> transl_nth conf "a son/a daughter/a child" is |> Adef.safe
+  | 1 ->
+      transl_nth conf "a son/a daughter/a child" is
+      |> Geneweb_sanatize.Sanatize.safe
   | 2 ->
       let txt = transl conf "a grandson/a granddaughter/a grandchild" in
       let is =
@@ -260,7 +276,7 @@ let descendant_label conf base info x p =
           | _ -> (* must be a bug *) is
         else is
       in
-      nth_field txt is |> Adef.safe
+      nth_field txt is |> Geneweb_sanatize.Sanatize.safe
   | 3 ->
       let txt =
         transl conf "a great-grandson/a great-granddaughter/a great-grandchild"
@@ -277,18 +293,18 @@ let descendant_label conf base info x p =
           | _ -> (* must be a bug *) is
         else is
       in
-      nth_field txt is |> Adef.safe
+      nth_field txt is |> Geneweb_sanatize.Sanatize.safe
   | n ->
       transl_nth conf "a descendant" is
       ^ " "
       ^ Printf.sprintf
           (ftransl conf "of the %s generation")
           (transl_nth conf "nth (generation)" n)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 (* transl_nth does a plain translation *)
 (* apply_format handles %s, %d after the nth selection *)
-let brother_label conf x sex : Adef.safe_string =
+let brother_label conf x sex : Geneweb_sanatize.Sanatize.safe_string =
   let is = index_of_sex sex in
   let str =
     match x with
@@ -301,19 +317,21 @@ let brother_label conf x sex : Adef.safe_string =
           (ftransl_nth conf "a %s cousin" is)
           (transl_nth conf "nth (cousin)" (n - 1))
   in
-  Adef.safe str
+  Geneweb_sanatize.Sanatize.safe str
 
 let half_brother_label conf sex =
   let is = index_of_sex sex in
   Templ.apply_format conf (Some is)
     "a half-brother/a half-sister/a half-sibling" ""
-  |> Adef.safe
+  |> Geneweb_sanatize.Sanatize.safe
 
 let brother_in_law_label conf brother_sex self_sex =
   let txt = transl conf "a brother-in-law/a sister-in-law" in
   let is = index_of_sex brother_sex in
-  if nb_fields txt = 2 then nth_field txt is |> Adef.safe
-  else nth_field txt ((2 * index_of_sex self_sex) + is) |> Adef.safe
+  if nb_fields txt = 2 then nth_field txt is |> Geneweb_sanatize.Sanatize.safe
+  else
+    nth_field txt ((2 * index_of_sex self_sex) + is)
+    |> Geneweb_sanatize.Sanatize.safe
 
 let uncle_label conf base info x p =
   let is = index_of_sex (get_sex p) in
@@ -329,7 +347,7 @@ let uncle_label conf base info x p =
           | _ -> (* must be a bug *) is
         else is
       in
-      Templ.apply_format conf (Some is) txt "" |> Adef.safe
+      Templ.apply_format conf (Some is) txt "" |> Geneweb_sanatize.Sanatize.safe
   | 2 ->
       let txt = "a great-uncle/a great-aunt" in
       let is =
@@ -341,29 +359,31 @@ let uncle_label conf base info x p =
           | _ -> (* must be a bug *) is
         else is
       in
-      Templ.apply_format conf (Some is) txt "" |> Adef.safe
+      Templ.apply_format conf (Some is) txt "" |> Geneweb_sanatize.Sanatize.safe
   | n ->
       Templ.apply_format conf (Some is) "an uncle/an aunt" ""
       ^ " "
       ^ Printf.sprintf
           (ftransl conf "of the %s generation")
           (transl_nth conf "nth (generation)" n)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 let nephew_label conf x p =
   let is = index_of_sex (get_sex p) in
   match x with
-  | 1 -> Templ.apply_format conf (Some is) "a nephew/a niece" "" |> Adef.safe
+  | 1 ->
+      Templ.apply_format conf (Some is) "a nephew/a niece" ""
+      |> Geneweb_sanatize.Sanatize.safe
   | 2 ->
       Templ.apply_format conf (Some is) "a great-nephew/a great-niece" ""
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   | n ->
       Templ.apply_format conf (Some is) "a nephew/a niece" ""
       ^ " "
       ^ Printf.sprintf
           (ftransl conf "of the %s generation")
           (transl_nth conf "nth (generation)" n)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
 
 let same_parents conf base p1 p2 =
   get_parents (pget conf base (get_iper p1))
@@ -413,10 +433,12 @@ let print_link_name conf base n p1 p2 sol =
         let info = ((info, x1), fun r -> r.Consang.lens1) in
         let s = ancestor_label conf base info (x1 - x2) Neuter in
         transl_a_of_gr_eq_gen_lev conf
-          (brother_label conf x2 (get_sex p2) : Adef.safe_string :> string)
-          (s : Adef.safe_string :> string)
-          (s : Adef.safe_string :> string)
-        |> Adef.safe
+          (brother_label conf x2 (get_sex p2)
+            : Geneweb_sanatize.Sanatize.safe_string
+            :> string)
+          (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+          (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+        |> Geneweb_sanatize.Sanatize.safe
       in
       (s, sp1, sp2)
     else
@@ -433,10 +455,10 @@ let print_link_name conf base n p1 p2 sol =
             | _ -> sm
         in
         transl_a_of_gr_eq_gen_lev conf
-          (d : Adef.safe_string :> string)
-          (s : Adef.safe_string :> string)
-          (s : Adef.safe_string :> string)
-        |> Adef.safe
+          (d : Geneweb_sanatize.Sanatize.safe_string :> string)
+          (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+          (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+        |> Geneweb_sanatize.Sanatize.safe
       in
       (s, sp1, sp2)
   in
@@ -444,9 +466,9 @@ let print_link_name conf base n p1 p2 sol =
     if sp2 then
       transl_a_of_gr_eq_gen_lev conf
         (transl_nth conf "the spouse" (index_of_sex (get_sex p2)))
-        (s : Adef.safe_string :> string)
-        (s : Adef.safe_string :> string)
-      |> Adef.safe
+        (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+        (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+      |> Geneweb_sanatize.Sanatize.safe
     else s
   in
   let s =
@@ -456,35 +478,35 @@ let print_link_name conf base n p1 p2 sol =
           let s' =
             get_sex pp1 |> index_of_sex
             |> transl_nth conf "the spouse"
-            |> Adef.safe
+            |> Geneweb_sanatize.Sanatize.safe
           in
           transl_a_of_gr_eq_gen_lev conf
-            (s : Adef.safe_string :> string)
-            (s' : Adef.safe_string :> string)
-            (s' : Adef.safe_string :> string)
-          |> Adef.safe
+            (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+            (s' : Geneweb_sanatize.Sanatize.safe_string :> string)
+            (s' : Geneweb_sanatize.Sanatize.safe_string :> string)
+          |> Geneweb_sanatize.Sanatize.safe
       | None -> s
     else s
   in
   let s1 = "<strong>" ^<^ std_color conf s ^>^ "</strong>" in
   let s2 =
     if is_hide_names conf p1 && not (authorized_age conf base p1) then
-      Adef.safe "x x"
+      Geneweb_sanatize.Sanatize.safe "x x"
     else gen_person_title_text no_reference conf base p1
   in
   let s =
     if x2 < x1 then
       transl_a_of_b conf
-        (s1 : Adef.safe_string :> string)
-        (s2 : Adef.safe_string :> string)
-        (s2 : Adef.safe_string :> string)
-      |> Adef.safe
+        (s1 : Geneweb_sanatize.Sanatize.safe_string :> string)
+        (s2 : Geneweb_sanatize.Sanatize.safe_string :> string)
+        (s2 : Geneweb_sanatize.Sanatize.safe_string :> string)
+      |> Geneweb_sanatize.Sanatize.safe
     else
       transl_a_of_gr_eq_gen_lev conf
-        (s1 : Adef.safe_string :> string)
-        (s2 : Adef.safe_string :> string)
-        (s2 : Adef.safe_string :> string)
-      |> Adef.safe
+        (s1 : Geneweb_sanatize.Sanatize.safe_string :> string)
+        (s2 : Geneweb_sanatize.Sanatize.safe_string :> string)
+        (s2 : Geneweb_sanatize.Sanatize.safe_string :> string)
+      |> Geneweb_sanatize.Sanatize.safe
   in
   Util.translate_eval (s :> string) |> Output.print_sstring conf;
   Output.print_sstring conf ".\n"
@@ -525,15 +547,24 @@ let print_solution_ancestor conf base long p1 p2 pp1 pp2 x1 x2 list =
             (Util.images_prefix conf :> string)
             (commd conf ^^^ "m=RL&" ^<^ acces conf base a ^^^ "&l1="
              ^<^ string_of_int x1 ^<^ "&"
-             ^<^ acces_n conf base (Adef.escaped "1") dp1
+             ^<^ acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") dp1
              ^^^ "&l2=" ^<^ string_of_int x2 ^<^ "&"
-             ^<^ acces_n conf base (Adef.escaped "2") dp2
-             ^^^ (if pp1 = None then Adef.escaped ""
-                 else "&" ^<^ acces_n conf base (Adef.escaped "3") p1)
-             ^^^ (if pp2 = None then Adef.escaped ""
-                 else "&" ^<^ acces_n conf base (Adef.escaped "4") p2)
-             ^^^ (if propose_dag then Adef.escaped "&dag=on"
-                 else Adef.escaped "")
+             ^<^ acces_n conf base (Geneweb_sanatize.Sanatize.escaped "2") dp2
+             ^^^ (if pp1 = None then Geneweb_sanatize.Sanatize.escaped ""
+                 else
+                   "&"
+                   ^<^ acces_n conf base
+                         (Geneweb_sanatize.Sanatize.escaped "3")
+                         p1)
+             ^^^ (if pp2 = None then Geneweb_sanatize.Sanatize.escaped ""
+                 else
+                   "&"
+                   ^<^ acces_n conf base
+                         (Geneweb_sanatize.Sanatize.escaped "4")
+                         p2)
+             ^^^ (if propose_dag then
+                  Geneweb_sanatize.Sanatize.escaped "&dag=on"
+                 else Geneweb_sanatize.Sanatize.escaped "")
              ^>^ if img then "" else "&im=0"
               :> string)
             (transl conf "see" |> Utf8.capitalize_fst)
@@ -571,14 +602,19 @@ let print_solution_not_ancestor conf base long p1 p2 sol =
         let href =
           commd conf ^^^ "m=RL&" ^<^ acces conf base a ^^^ "&l1="
           ^<^ string_of_int x1 ^<^ "&"
-          ^<^ acces_n conf base (Adef.escaped "1") dp1
+          ^<^ acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") dp1
           ^^^ "&l2=" ^<^ string_of_int x2 ^<^ "&"
-          ^<^ acces_n conf base (Adef.escaped "2") dp2
-          ^^^ (if pp1 = None then Adef.escaped ""
-              else "&" ^<^ acces_n conf base (Adef.escaped "3") p1)
-          ^^^ (if pp2 = None then Adef.escaped ""
-              else "&" ^<^ acces_n conf base (Adef.escaped "4") p2)
-          ^^^ (if propose_dag then Adef.escaped "&dag=on" else Adef.escaped "")
+          ^<^ acces_n conf base (Geneweb_sanatize.Sanatize.escaped "2") dp2
+          ^^^ (if pp1 = None then Geneweb_sanatize.Sanatize.escaped ""
+              else
+                "&"
+                ^<^ acces_n conf base (Geneweb_sanatize.Sanatize.escaped "3") p1)
+          ^^^ (if pp2 = None then Geneweb_sanatize.Sanatize.escaped ""
+              else
+                "&"
+                ^<^ acces_n conf base (Geneweb_sanatize.Sanatize.escaped "4") p2)
+          ^^^ (if propose_dag then Geneweb_sanatize.Sanatize.escaped "&dag=on"
+              else Geneweb_sanatize.Sanatize.escaped "")
           ^>^ if img then "" else "&im=0"
         in
         Output.print_sstring conf {|<a href="|};
@@ -602,7 +638,7 @@ let print_solution_not_ancestor conf base long p1 p2 sol =
     | [ (a, _) ] -> ancestor_label conf base info x (get_sex a)
     | _ -> parents_label conf base info x
   in
-  let print pp p (alab : Adef.safe_string) =
+  let print pp p (alab : Geneweb_sanatize.Sanatize.safe_string) =
     let s = gen_person_title_text no_reference conf base p in
     let s =
       match pp with
@@ -691,15 +727,19 @@ let print_dag_links conf base p1 p2 rl =
           Output.print_sstring conf "m=RL&";
           Output.print_string conf (acces conf base a);
           Output.print_sstring conf "&";
-          Output.print_string conf (acces_n conf base (Adef.escaped "1") dp1);
+          Output.print_string conf
+            (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") dp1);
           Output.print_sstring conf "&";
-          Output.print_string conf (acces_n conf base (Adef.escaped "2") dp2);
+          Output.print_string conf
+            (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "2") dp2);
           if pp1 <> None then (
             Output.print_sstring conf "&";
-            Output.print_string conf (acces_n conf base (Adef.escaped "3") p1));
+            Output.print_string conf
+              (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "3") p1));
           if pp2 <> None then (
             Output.print_sstring conf "&";
-            Output.print_string conf (acces_n conf base (Adef.escaped "4") p2));
+            Output.print_string conf
+              (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "4") p2));
           let l1, l2 =
             List.fold_left
               (fun (l1, l2) (_, _, (x1, x2, list), _) ->
@@ -752,7 +792,11 @@ let print_propose_upto conf base p1 p2 rl =
           rl 0
       in
       let p, a = if x1 = 0 then (p2, p1) else (p1, p2) in
-      let s = (person_title_text conf base p : Adef.safe_string :> string) in
+      let s =
+        (person_title_text conf base p
+          : Geneweb_sanatize.Sanatize.safe_string
+          :> string)
+      in
       let str =
         Printf.sprintf
           {|
@@ -764,11 +808,14 @@ let print_propose_upto conf base p1 p2 rl =
           (Util.images_prefix conf :> string)
           (commd conf :> string)
           (acces conf base p :> string)
-          (acces_n conf base (Adef.escaped "1") a :> string)
+          (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") a
+            :> string)
           (string_of_int maxlen)
           (transl_a_of_b conf (transl_nth conf "ancestor/ancestors" 1) s s
           |> translate_eval |> Utf8.capitalize_fst)
-          ((person_title_text conf base a : Adef.safe_string :> string)
+          ((person_title_text conf base a
+             : Geneweb_sanatize.Sanatize.safe_string
+             :> string)
           |> transl_decline conf "up to")
       in
       Output.print_sstring conf str
@@ -790,9 +837,10 @@ let print_one_path conf base found a p1 p2 pp1 pp2 l1 l2 =
       let bd = Option.value ~default:0 (p_getint conf.env "bd") in
       let td_prop =
         match Util.p_getenv conf.env "color" with
-        | None | Some "" -> Adef.safe ""
+        | None | Some "" -> Geneweb_sanatize.Sanatize.safe ""
         | Some x ->
-            (" class=\"" ^<^ Mutil.encode x ^>^ "\"" :> Adef.safe_string)
+            (" class=\"" ^<^ Mutil.encode x ^>^ "\""
+              :> Geneweb_sanatize.Sanatize.safe_string)
       in
       let info =
         RelationLink.
@@ -884,7 +932,7 @@ let print_main_relationship conf base long p1 p2 rel =
            gen_person_title_text reference conf base p1;
            gen_person_title_text reference conf base p2;
          ]
-          : Adef.safe_string list
+          : Geneweb_sanatize.Sanatize.safe_string list
           :> string list)
         |> cftransl conf "no known relationship link between %s and %s"
         |> Utf8.capitalize_fst |> Output.print_sstring conf;
@@ -938,10 +986,11 @@ let print_main_relationship conf base long p1 p2 rel =
 let multi_relation_next_txt conf pl2 lim assoc_txt =
   let assoc_txt : (Gwdb.iper, string) Hashtbl.t = assoc_txt in
   match pl2 with
-  | [] -> Adef.escaped ""
+  | [] -> Geneweb_sanatize.Sanatize.escaped ""
   | _ ->
       let acc =
-        Adef.escaped (if lim > 0 then "&lim=" ^ string_of_int lim else "")
+        Geneweb_sanatize.Sanatize.escaped
+          (if lim > 0 then "&lim=" ^ string_of_int lim else "")
       in
       let acc =
         List.fold_left
@@ -950,14 +999,14 @@ let multi_relation_next_txt conf pl2 lim assoc_txt =
               try
                 "&t" ^<^ string_of_int n ^<^ "="
                 ^<^ (get_iper p |> Hashtbl.find assoc_txt |> Mutil.encode
-                      :> Adef.escaped_string)
+                      :> Geneweb_sanatize.Sanatize.escaped_string)
                 ^^^ acc
               with Not_found -> acc
             in
             let acc =
               "&i" ^<^ string_of_int n ^<^ "="
               ^<^ (get_iper p |> string_of_iper |> Mutil.encode
-                    :> Adef.escaped_string)
+                    :> Geneweb_sanatize.Sanatize.escaped_string)
               ^^^ acc
             in
             (acc, n - 1))
@@ -1026,13 +1075,15 @@ let print_multi_relation conf base pl lim assoc_txt =
         try
           let txt = Hashtbl.find assoc_txt (get_iper p) in
           if txt <> "" then
-            "<b>(" ^<^ (Util.escape_html txt :> Adef.safe_string) ^>^ ")</b>"
-          else Adef.safe ""
-        with Not_found -> Adef.safe ""
+            "<b>("
+            ^<^ (Util.escape_html txt :> Geneweb_sanatize.Sanatize.safe_string)
+            ^>^ ")</b>"
+          else Geneweb_sanatize.Sanatize.safe ""
+        with Not_found -> Geneweb_sanatize.Sanatize.safe ""
       in
       DagDisplay.Item (p, content)
     in
-    let vbar_txt _ = Adef.escaped "" in
+    let vbar_txt _ = Geneweb_sanatize.Sanatize.escaped "" in
     let next_txt = multi_relation_next_txt conf pl2 lim assoc_txt in
     print_relationship_dag conf base elem_txt vbar_txt path next_txt
 
@@ -1044,7 +1095,9 @@ let print_base_loop conf base p =
   Output.printf conf
     (fcapitale (ftransl conf "loop in database: %s is his/her own ancestor"))
     (Util.update_family_loop conf base p
-       (Util.designation base p : Adef.escaped_string :> Adef.safe_string)
+       (Util.designation base p
+         : Geneweb_sanatize.Sanatize.escaped_string
+         :> Geneweb_sanatize.Sanatize.safe_string)
       :> string);
   Output.print_sstring conf ".";
   Hutil.trailer conf

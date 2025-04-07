@@ -184,13 +184,14 @@ let print_birth_day conf base day_name fphrase wd dt list =
       let txt =
         transl_nth conf "(week day)" wd ^ " " ^ DateDisplay.code_dmy conf dt
         |> transl_decline conf "on (weekday day month year)"
-        |> Adef.safe
+        |> Geneweb_sanatize.Sanatize.safe
       in
       Output.printf conf fphrase
-        (Utf8.capitalize_fst (day_name : Adef.safe_string :> string)
+        (Utf8.capitalize_fst
+           (day_name : Geneweb_sanatize.Sanatize.safe_string :> string)
          ^<^ ",\n"
          ^<^ std_color conf ("<b>" ^<^ txt ^>^ "</b>")
-          : Adef.safe_string
+          : Geneweb_sanatize.Sanatize.safe_string
           :> string)
         (transl conf "the birthday");
       Output.print_sstring conf "...</p>";
@@ -252,13 +253,14 @@ let print_anniv conf base day_name fphrase wd dt = function
       let txt =
         transl_nth conf "(week day)" wd ^ " " ^ DateDisplay.code_dmy conf dt
         |> transl_decline conf "on (weekday day month year)"
-        |> Adef.safe
+        |> Geneweb_sanatize.Sanatize.safe
       in
       Output.printf conf fphrase
-        (Utf8.capitalize_fst (day_name : Adef.safe_string :> string)
+        (Utf8.capitalize_fst
+           (day_name : Geneweb_sanatize.Sanatize.safe_string :> string)
          ^<^ ",\n"
          ^<^ std_color conf ("<b>" ^<^ txt ^>^ "</b>")
-          : Adef.safe_string
+          : Geneweb_sanatize.Sanatize.safe_string
           :> string)
         (transl conf "the anniversary");
       Output.print_sstring conf "...</p>";
@@ -345,7 +347,8 @@ let print_marriage_day conf base day_name fphrase wd dt = function
   | list ->
       Output.print_sstring conf "<p>";
       Output.printf conf fphrase
-        (Utf8.capitalize_fst (day_name : Adef.safe_string :> string)
+        (Utf8.capitalize_fst
+           (day_name : Geneweb_sanatize.Sanatize.safe_string :> string)
          ^<^ ",\n"
          ^<^ std_color conf
                ("<b>"
@@ -354,8 +357,8 @@ let print_marriage_day conf base day_name fphrase wd dt = function
                     ^ " "
                     ^ DateDisplay.code_dmy conf dt)
                 ^ "</b>"
-               |> Adef.safe)
-          : Adef.safe_string
+               |> Geneweb_sanatize.Sanatize.safe)
+          : Geneweb_sanatize.Sanatize.safe_string
           :> string)
         (transl conf "the anniversary of marriage");
       Output.print_sstring conf "...</p>";
@@ -399,16 +402,16 @@ let gen_print_menu_birth conf base f_scan mode =
       xx := List.sort (fun (_, a1, _, _) (_, a2, _, _) -> compare a1 a2) !xx)
     [ list_tod; list_tom; list_aft ];
   print_birth_day conf base
-    (transl conf "today" |> Adef.safe)
+    (transl conf "today" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it is %s of")
     conf.today_wd conf.today !list_tod;
   print_birth_day conf base
-    (transl conf "tomorrow" |> Adef.safe)
+    (transl conf "tomorrow" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it will be %s of")
     ((conf.today_wd + 1) mod 7)
     tom !list_tom;
   print_birth_day conf base
-    (transl conf "the day after tomorrow" |> Adef.safe)
+    (transl conf "the day after tomorrow" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it will be %s of")
     ((conf.today_wd + 2) mod 7)
     aft !list_aft;
@@ -480,16 +483,16 @@ let gen_print_menu_dead conf base f_scan mode =
       xx := List.sort (fun (_, a1, _, _) (_, a2, _, _) -> compare a1 a2) !xx)
     [ list_tod; list_tom; list_aft ];
   print_anniv conf base
-    (transl conf "today" |> Adef.safe)
+    (transl conf "today" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it is %s of")
     conf.today_wd conf.today !list_tod;
   print_anniv conf base
-    (transl conf "tomorrow" |> Adef.safe)
+    (transl conf "tomorrow" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it will be %s of")
     ((conf.today_wd + 1) mod 7)
     tom !list_tom;
   print_anniv conf base
-    (transl conf "the day after tomorrow" |> Adef.safe)
+    (transl conf "the day after tomorrow" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it will be %s of")
     ((conf.today_wd + 2) mod 7)
     aft !list_aft;
@@ -507,7 +510,7 @@ let print_menu_dead conf base =
       | None -> raise Not_found
   in
   gen_print_menu_dead conf base f_scan (fun () ->
-      Util.hidden_input conf "m" @@ Adef.encoded "AD")
+      Util.hidden_input conf "m" @@ Geneweb_sanatize.Sanatize.encoded "AD")
 
 let match_mar_dates conf base cpl d1 d2 =
   if d1.day = d2.day && d1.month = d2.month then
@@ -562,22 +565,22 @@ let print_menu_marriage conf base =
     (fun xx -> xx := List.sort (fun (_, y1) (_, y2) -> compare y1 y2) !xx)
     [ list_tod; list_tom; list_aft ];
   print_marriage_day conf base
-    (transl conf "today" |> Adef.safe)
+    (transl conf "today" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it is %s of")
     conf.today_wd conf.today !list_tod;
   print_marriage_day conf base
-    (transl conf "tomorrow" |> Adef.safe)
+    (transl conf "tomorrow" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it will be %s of")
     ((conf.today_wd + 1) mod 7)
     tom !list_tom;
   print_marriage_day conf base
-    (transl conf "the day after tomorrow" |> Adef.safe)
+    (transl conf "the day after tomorrow" |> Geneweb_sanatize.Sanatize.safe)
     (ftransl conf "%s, it will be %s of")
     ((conf.today_wd + 2) mod 7)
     aft !list_aft;
   Output.print_sstring conf "\n";
   propose_months conf (fun () ->
-      Util.hidden_input conf "m" @@ Adef.encoded "AM");
+      Util.hidden_input conf "m" @@ Geneweb_sanatize.Sanatize.encoded "AM");
   Output.print_sstring conf "\n";
   Hutil.trailer conf
 

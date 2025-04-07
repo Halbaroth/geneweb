@@ -304,7 +304,7 @@ let print_sosa conf base p link =
           in
           Output.print_sstring conf {|<a href="|};
           Output.print_string conf (Util.commd conf);
-          Output.print_string conf (sosa_link |> Adef.safe);
+          Output.print_string conf (sosa_link |> Geneweb_sanatize.Sanatize.safe);
           Output.print_sstring conf {|"> |});
         let title =
           if Util.is_hide_names conf r && not (Util.authorized_age conf base r)
@@ -326,7 +326,7 @@ let print_sosa conf base p link =
         Output.print_sstring conf {|<img class="mb-1" src="|};
         Output.print_sstring conf (Util.images_prefix conf);
         Output.print_sstring conf {|/sosa.png" alt="sosa" title="|};
-        Output.print_string conf (title |> Adef.safe);
+        Output.print_string conf (title |> Geneweb_sanatize.Sanatize.safe);
         Output.print_sstring conf {|"> |};
         if not link then () else Output.print_sstring conf "</a> "
     | None -> ()

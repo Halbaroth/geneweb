@@ -49,7 +49,7 @@ val trailer : config -> unit
     - Scripts JS from template {i js.txt}
     - Closing <body> and <html> tags *)
 
-val link_to_referer : config -> Adef.safe_string
+val link_to_referer : config -> Geneweb_sanatize.Sanatize.safe_string
 (** Returns the HTML link to the previous (referer) page *)
 
 val incorrect_request : ?comment:string -> config -> unit

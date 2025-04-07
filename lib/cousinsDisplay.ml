@@ -27,39 +27,43 @@ let cnt_sp = ref 0
 let give_access conf base ~cnt_sp ia_asex p1 b1 p2 b2 =
   let sps = Util.get_opt conf "sp" true in
   let img = Util.get_opt conf "im" true in
-  let reference _ _ p (s : Adef.safe_string) =
+  let reference _ _ p (s : Geneweb_sanatize.Sanatize.safe_string) =
     if is_hidden p then s
     else
       Printf.sprintf {|<a href="%sm=RL&%s&b1=%s&%s&b2=%s%s%s&bd=%s">%s</a>|}
         (commd conf :> string)
-        (acces_n conf base (Adef.escaped "1") p1 :> string)
+        (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") p1 :> string)
         (Sosa.to_string (Util.old_sosa_of_branch conf base (ia_asex :: b1)))
-        (acces_n conf base (Adef.escaped "2") p2 :> string)
+        (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "2") p2 :> string)
         (Sosa.to_string (Util.old_sosa_of_branch conf base (ia_asex :: b2)))
         (if sps then "" else "&sp=0")
         (if img then "" else "&im=0")
-        (Option.value ~default:(Adef.encoded "0") (List.assoc_opt "bd" conf.env)
+        (Option.value
+           ~default:(Geneweb_sanatize.Sanatize.encoded "0")
+           (List.assoc_opt "bd" conf.env)
           :> string)
         (s :> string)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   in
 
-  let reference_sp p3 _ _ p (s : Adef.safe_string) =
+  let reference_sp p3 _ _ p (s : Geneweb_sanatize.Sanatize.safe_string) =
     if is_hidden p then s
     else
       Printf.sprintf {|<a href="%sm=RL&%s&b1=%s&%s&b2=%s&%s%s%s&bd=%s">%s</a>|}
         (commd conf :> string)
-        (acces_n conf base (Adef.escaped "1") p1 :> string)
+        (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") p1 :> string)
         (Sosa.to_string (Util.old_sosa_of_branch conf base (ia_asex :: b1)))
-        (acces_n conf base (Adef.escaped "2") p2 :> string)
+        (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "2") p2 :> string)
         (Sosa.to_string (Util.old_sosa_of_branch conf base (ia_asex :: b2)))
-        (acces_n conf base (Adef.escaped "4") p3 :> string)
+        (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "4") p3 :> string)
         (if sps then "" else "&sp=0")
         (if img then "" else "&im=0")
-        (Option.value ~default:(Adef.encoded "0") (List.assoc_opt "bd" conf.env)
+        (Option.value
+           ~default:(Geneweb_sanatize.Sanatize.encoded "0")
+           (List.assoc_opt "bd" conf.env)
           :> string)
         (s :> string)
-      |> Adef.safe
+      |> Geneweb_sanatize.Sanatize.safe
   in
   let print_nospouse _ =
     SosaCache.print_sosa conf base p2 true;
@@ -115,7 +119,7 @@ let rec print_descend_upto conf base max_cnt ini_p ini_br lev children =
             let sp = get_spouse base ip (get_family p).(0) in
             " " ^<^ Util.transl conf "with" ^<^ " "
             ^<^ person_title_text conf base sp
-          else Adef.safe ""
+          else Geneweb_sanatize.Sanatize.safe ""
         in
         let br = List.rev ((ip, get_sex p) :: rev_br) in
         let is_valid_rel = br_inter_is_empty ini_br br in
@@ -126,7 +130,9 @@ let rec print_descend_upto conf base max_cnt ini_p ini_br lev children =
               give_access conf base ~cnt_sp ia_asex ini_p ini_br p br;
               incr cnt)
             else
-              let s : Adef.safe_string = person_title_text conf base p in
+              let s : Geneweb_sanatize.Sanatize.safe_string =
+                person_title_text conf base p
+              in
               transl_a_of_gr_eq_gen_lev conf
                 (transl_nth conf "child/children" 1)
                 (s :> string)
@@ -170,7 +176,7 @@ let print_cousins_side_of conf base max_cnt a ini_p ini_br lev1 lev2 =
       Output.print_sstring conf "<li>";
       [
         (gen_person_title_text no_reference conf base a
-          : Adef.safe_string
+          : Geneweb_sanatize.Sanatize.safe_string
           :> string);
       ]
       |> cftransl conf "on %s's siblings side"
@@ -365,17 +371,19 @@ let print_anniv conf base p dead_people level =
   let txt_of (up_sosa, down_br, spouse) conf base c =
     Printf.sprintf {|<a href="%sm=RL&%s&b1=%d&%s&b2=%d%s">%s</a>|}
       (commd conf :> string)
-      (acces_n conf base (Adef.escaped "1") p :> string)
+      (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "1") p :> string)
       up_sosa
-      (acces_n conf base (Adef.escaped "2")
+      (acces_n conf base
+         (Geneweb_sanatize.Sanatize.escaped "2")
          (Option.fold ~none:c ~some:(pget conf base) spouse)
         :> string)
       (sosa_of_persons conf base down_br)
       (if spouse = None then
-       "&" ^ (acces_n conf base (Adef.escaped "4") c :> string)
+       "&"
+       ^ (acces_n conf base (Geneweb_sanatize.Sanatize.escaped "4") c :> string)
       else "")
       (person_title_text conf base c :> string)
-    |> Adef.safe
+    |> Geneweb_sanatize.Sanatize.safe
   in
   let f_scan =
     let list = ref (S.fold (fun ip b list -> (ip, b) :: list) set []) in
@@ -387,10 +395,11 @@ let print_anniv conf base p dead_people level =
       | [] -> raise Not_found
   in
   let mode () =
-    Util.hidden_input conf "m" (Adef.encoded "C");
-    Util.hidden_input conf "i" (get_iper p |> string_of_iper |> Adef.encoded);
+    Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "C");
+    Util.hidden_input conf "i"
+      (get_iper p |> string_of_iper |> Geneweb_sanatize.Sanatize.encoded);
     Util.hidden_input conf "t"
-      (Adef.encoded (if dead_people then "AD" else "AN"))
+      (Geneweb_sanatize.Sanatize.encoded (if dead_people then "AD" else "AN"))
   in
   match p_getint conf.env "v" with
   | Some i -> BirthdayDisplay.gen_print conf base i f_scan dead_people

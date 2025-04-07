@@ -206,12 +206,12 @@ and eval_event_str conf base env fam =
         let e = List.nth (get_fevents fam) (i - 1) in
         let name =
           Util.string_of_fevent_name conf base e.efam_name
-          |> Adef.safe_fn Utf8.capitalize_fst
+          |> Geneweb_sanatize.Sanatize.safe_fn Utf8.capitalize_fst
         in
         let date =
           match Date.od_of_cdate e.efam_date with
           | Some d -> DateDisplay.string_of_date conf d
-          | None -> Adef.safe ""
+          | None -> Geneweb_sanatize.Sanatize.safe ""
         in
         let place = Util.string_of_place conf (sou base e.efam_place) in
         let note = Util.safe_html (sou base e.efam_note) in
@@ -227,11 +227,17 @@ and eval_event_str conf base env fam =
         in
         let s =
           String.concat ", "
-            ([ name; date; (place :> Adef.safe_string); note; src ]
+            ([
+               name;
+               date;
+               (place :> Geneweb_sanatize.Sanatize.safe_string);
+               note;
+               src;
+             ]
               :> string list)
         in
         let sw = String.concat ", " (wit :> string list) in
-        safe_val (Adef.safe (s ^ ", " ^ sw))
+        safe_val (Geneweb_sanatize.Sanatize.safe (s ^ ", " ^ sw))
       with Failure _ -> str_val "")
   | _ -> str_val ""
 
@@ -277,27 +283,38 @@ and eval_simple_var conf base env (fam, cpl, des) = function
   | [ "bvar"; v ] -> eval_bvar conf v
   | "child" :: sl -> eval_child conf base env des sl
   | [ "cnt" ] -> eval_int_env "cnt" env
-  | [ "comment" ] -> safe_val (Util.escape_html fam.comment :> Adef.safe_string)
+  | [ "comment" ] ->
+      safe_val
+        (Util.escape_html fam.comment :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "digest" ] -> eval_string_env "digest" env
   | [ "divorce" ] -> eval_divorce fam
   | [ "divorce"; s ] -> eval_divorce' fam s
   | "father" :: sl -> eval_key conf base (Gutil.father cpl) sl
   | [ "fsources" ] ->
-      safe_val (Util.escape_html fam.fsources :> Adef.safe_string)
+      safe_val
+        (Util.escape_html fam.fsources :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "is_first" ] -> eval_is_first env
   | [ "is_last" ] -> eval_is_last env
   | [ "marriage"; s ] -> eval_date_var (Date.od_of_cdate fam.marriage) s
   | [ "marriage_place" ] ->
-      safe_val (Util.escape_html fam.marriage_place :> Adef.safe_string)
+      safe_val
+        (Util.escape_html fam.marriage_place
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "marriage_note" ] ->
-      safe_val (Util.escape_html fam.marriage_note :> Adef.safe_string)
+      safe_val
+        (Util.escape_html fam.marriage_note
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "marriage_src" ] ->
-      safe_val (Util.escape_html fam.marriage_src :> Adef.safe_string)
+      safe_val
+        (Util.escape_html fam.marriage_src
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | "mother" :: sl -> eval_key conf base (Gutil.mother cpl) sl
   | [ "mrel" ] -> str_val (eval_relation_kind fam.relation)
   | [ "nb_fevents" ] -> str_val (string_of_int (List.length fam.fevents))
   | [ "origin_file" ] ->
-      safe_val (Util.escape_html fam.origin_file :> Adef.safe_string)
+      safe_val
+        (Util.escape_html fam.origin_file
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | "parent" :: sl -> eval_parent conf base env cpl sl
   | [ "wcnt" ] -> eval_int_env "wcnt" env
   | "witness" :: sl -> eval_witness conf base env fam sl
@@ -332,22 +349,24 @@ and eval_event_var e = function
           | Efam_MarriageLicense -> str_val "#marl"
           | Efam_PACS -> str_val "#pacs"
           | Efam_Residence -> str_val "#resi"
-          | Efam_Name x -> safe_val (Util.escape_html x :> Adef.safe_string))
+          | Efam_Name x ->
+              safe_val
+                (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string))
       | _ -> str_val "")
   | [ "e_place" ] -> (
       match e with
       | Some { efam_place = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "e_note" ] -> (
       match e with
       | Some { efam_note = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "e_src" ] -> (
       match e with
       | Some { efam_src = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "e_w_nbr" ] -> (
       match e with
@@ -377,9 +396,11 @@ and get_parent_sex conf base fn sn oc =
 and eval_key conf base (fn, sn, oc, create, _) = function
   | [ "create" ] -> str_val (if create <> Update.Link then "create" else "link")
   | [ "create"; s ] -> Update_util.eval_create create s
-  | [ "first_name" ] -> safe_val (Util.escape_html fn :> Adef.safe_string)
+  | [ "first_name" ] ->
+      safe_val (Util.escape_html fn :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "occ" ] -> str_val (string_of_int oc)
-  | [ "surname" ] -> safe_val (Util.escape_html sn :> Adef.safe_string)
+  | [ "surname" ] ->
+      safe_val (Util.escape_html sn :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "sex" ] ->
       if create = Update.Link then
         let sex = get_parent_sex conf base fn sn oc in
@@ -446,7 +467,8 @@ and eval_int_env var env =
 
 and eval_string_env var env =
   match get_env var env with
-  | Vstring x -> safe_val (Util.escape_html x :> Adef.safe_string)
+  | Vstring x ->
+      safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
   | _ -> str_val ""
 
 (* print *)
@@ -555,11 +577,13 @@ let print_del1 conf base ifam =
   Output.print_sstring conf conf.command;
   Output.print_sstring conf {|"><p>|};
   Util.hidden_env conf;
-  Util.hidden_input conf "i" (Adef.encoded @@ string_of_ifam ifam);
+  Util.hidden_input conf "i"
+    (Geneweb_sanatize.Sanatize.encoded @@ string_of_ifam ifam);
   (match p_getenv conf.env "ip" with
-  | Some ip -> Util.hidden_input conf "ip" (Adef.encoded ip)
+  | Some ip ->
+      Util.hidden_input conf "ip" (Geneweb_sanatize.Sanatize.encoded ip)
   | None -> ());
-  Util.hidden_input conf "m" (Adef.encoded "DEL_FAM_OK");
+  Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "DEL_FAM_OK");
   Output.print_sstring conf
     {|</p><p><button type="submit" class="btn btn-primary btn-lg">|};
   Output.print_sstring conf
@@ -570,7 +594,8 @@ let print_del1 conf base ifam =
 let print_inv1 conf base p ifam1 ifam2 =
   let title _ =
     transl_decline conf "invert" ""
-    |> Utf8.capitalize_fst |> Adef.safe |> Output.print_string conf
+    |> Utf8.capitalize_fst |> Geneweb_sanatize.Sanatize.safe
+    |> Output.print_string conf
   in
   let cpl1 = foi base ifam1 in
   let cpl2 = foi base ifam2 in
@@ -596,9 +621,11 @@ let print_inv1 conf base p ifam1 ifam2 =
   Output.print_sstring conf conf.command;
   Output.print_sstring conf {|"><p>|};
   Util.hidden_env conf;
-  Util.hidden_input conf "i" (get_iper p |> string_of_iper |> Adef.encoded);
-  Util.hidden_input conf "f" (string_of_ifam ifam2 |> Adef.encoded);
-  Util.hidden_input conf "m" (Adef.encoded "INV_FAM_OK");
+  Util.hidden_input conf "i"
+    (get_iper p |> string_of_iper |> Geneweb_sanatize.Sanatize.encoded);
+  Util.hidden_input conf "f"
+    (string_of_ifam ifam2 |> Geneweb_sanatize.Sanatize.encoded);
+  Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "INV_FAM_OK");
   Output.print_sstring conf
     {|</p><p><button type="submit" class="btn btn-primary btn-lg">|};
   Output.print_sstring conf
@@ -792,10 +819,14 @@ let print_change_order conf base =
       Output.print_sstring conf conf.command;
       Output.print_sstring conf {|"><p>|};
       Util.hidden_env conf;
-      Util.hidden_input conf "i" (Adef.encoded @@ string_of_iper ip);
-      Util.hidden_input conf "f" (Adef.encoded @@ string_of_ifam ifam);
-      Util.hidden_input conf "n" (Adef.encoded @@ string_of_int n);
-      Util.hidden_input conf "m" (Adef.encoded "CHG_FAM_ORD_OK");
+      Util.hidden_input conf "i"
+        (Geneweb_sanatize.Sanatize.encoded @@ string_of_iper ip);
+      Util.hidden_input conf "f"
+        (Geneweb_sanatize.Sanatize.encoded @@ string_of_ifam ifam);
+      Util.hidden_input conf "n"
+        (Geneweb_sanatize.Sanatize.encoded @@ string_of_int n);
+      Util.hidden_input conf "m"
+        (Geneweb_sanatize.Sanatize.encoded "CHG_FAM_ORD_OK");
       Output.print_sstring conf
         {|</p><p><button type="submit" class="btn btn-primary btn-lg">|};
       Output.print_sstring conf

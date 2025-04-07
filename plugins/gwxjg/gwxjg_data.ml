@@ -6,9 +6,9 @@ open Jg_types
 
 let person_ht = Hashtbl.create 32
 let mk_opt fn = function None -> Tnull | Some x -> fn x
-let safe (x : Adef.safe_string) = Tsafe (x :> string)
-let encoded (x : Adef.encoded_string) = Tsafe (x :> string)
-let escaped (x : Adef.escaped_string) = Tsafe (x :> string)
+let safe (x : Geneweb_sanatize.Sanatize.safe_string) = Tsafe (x :> string)
+let encoded (x : Geneweb_sanatize.Sanatize.encoded_string) = Tsafe (x :> string)
+let escaped (x : Geneweb_sanatize.Sanatize.escaped_string) = Tsafe (x :> string)
 
 let unbox_string = function
   | Tsafe s | Tstr s -> s
@@ -718,7 +718,8 @@ and unsafe_mk_person conf base (p : Gwdb.person) =
                safe
                  (List.fold_left
                     (Perso.linked_page_text conf base p s key)
-                    (Adef.safe "") db))
+                    (Geneweb_sanatize.Sanatize.safe "")
+                    db))
          else Tnull))
   in
   let titles = lazy_list (mk_title conf base) (Gwdb.get_titles p) in
@@ -1168,13 +1169,14 @@ let mk_env conf base =
 
 let decode_varenv =
   func_arg1_no_kw @@ function
-  | Tstr str | Tsafe str -> Tstr (Mutil.decode (Adef.encoded str))
+  | Tstr str | Tsafe str ->
+      Tstr (Mutil.decode (Geneweb_sanatize.Sanatize.encoded str))
   | x -> Jg_types.failwith_type_error_1 "decode_varenv" x
 
 let encode_varenv =
   func_arg1_no_kw @@ function
   | Tstr str -> encoded (Mutil.encode str)
-  | Tsafe str -> safe (Adef.safe str)
+  | Tsafe str -> safe (Geneweb_sanatize.Sanatize.safe str)
   | x -> Jg_types.failwith_type_error_1 "encode_varenv" x
 
 let mk_base base =

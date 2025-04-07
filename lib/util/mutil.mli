@@ -329,7 +329,7 @@ val bench : string -> (unit -> 'a) -> 'a
 val print_callstack : ?max:int -> unit -> unit
 (** Prints call stack on stderr with at most [max] entries. *)
 
-val encode : string -> Adef.encoded_string
+val encode : string -> Geneweb_sanatize.Sanatize.encoded_string
 (** [encode s]
     Encodes the string [s] in another string
     where spaces and special characters are coded. This allows
@@ -337,14 +337,14 @@ val encode : string -> Adef.encoded_string
     the same encoding done by Web browsers in forms.
 *)
 
-val decode : Adef.encoded_string -> string
+val decode : Geneweb_sanatize.Sanatize.encoded_string -> string
 (** [decode s]
     Does the inverse job than [code],
     restoring the initial string. The heading and trailing spaces
     are stripped.
 *)
 
-val gen_decode : bool -> Adef.encoded_string -> string
+val gen_decode : bool -> Geneweb_sanatize.Sanatize.encoded_string -> string
 (** Like above but heading and trailing spaces are stripped
     only if bool parameter is [true]. [decode] = [gen_decode true].
 *)
@@ -357,7 +357,7 @@ val extract_param : string -> char -> string list -> string
     string request has been obtained by: [extract_param "GET /" ' '].
     Answers the empty string if the parameter is not found. *)
 
-val sprintf_date : Unix.tm -> Adef.safe_string
+val sprintf_date : Unix.tm -> Geneweb_sanatize.Sanatize.safe_string
 (** Print a date using "%04d-%02d-%02d %02d:%02d:%02d" format
     Example : 2021-12-13 22:35:08. *)
 

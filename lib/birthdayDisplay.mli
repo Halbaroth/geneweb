@@ -3,7 +3,11 @@ val gen_print :
   Gwdb.base ->
   int ->
   (unit ->
-  Gwdb.person * (Config.config -> Gwdb.base -> Gwdb.person -> Adef.safe_string)) ->
+  Gwdb.person
+  * (Config.config ->
+    Gwdb.base ->
+    Gwdb.person ->
+    Geneweb_sanatize.Sanatize.safe_string)) ->
   bool ->
   unit
 (** [gen_print conf base month (next,txt_of) dead_people] displays anniversaries
@@ -26,7 +30,11 @@ val gen_print_menu_birth :
   Config.config ->
   Gwdb.base ->
   (unit ->
-  Gwdb.person * (Config.config -> Gwdb.base -> Gwdb.person -> Adef.safe_string)) ->
+  Gwdb.person
+  * (Config.config ->
+    Gwdb.base ->
+    Gwdb.person ->
+    Geneweb_sanatize.Sanatize.safe_string)) ->
   (unit -> unit) ->
   unit
 (** [gen_print_menu_birth conf base (next,txt_of) mode] displays the main birthdays menu for alive people
@@ -45,7 +53,11 @@ val gen_print_menu_dead :
   Config.config ->
   Gwdb.base ->
   (unit ->
-  Gwdb.person * (Config.config -> Gwdb.base -> Gwdb.person -> Adef.safe_string)) ->
+  Gwdb.person
+  * (Config.config ->
+    Gwdb.base ->
+    Gwdb.person ->
+    Geneweb_sanatize.Sanatize.safe_string)) ->
   (unit -> unit) ->
   unit
 (** [gen_print_menu_dead conf base (next,txt_of) mode] displays the main anniversaries menu for dead people

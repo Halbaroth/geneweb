@@ -13,8 +13,8 @@ let raise_with_loc loc = function
       incr GWPARAM.nb_errors;
       raise (Exc_located (loc, e))
 
-let include_begin_end_aux (k : Adef.safe_string) conf (fname : Adef.safe_string)
-    =
+let include_begin_end_aux (k : Geneweb_sanatize.Sanatize.safe_string) conf
+    (fname : Geneweb_sanatize.Sanatize.safe_string) =
   if conf.debug then
     match Filename.extension (fname :> string) with
     | ".css" | ".js" ->
@@ -30,8 +30,10 @@ let include_begin_end_aux (k : Adef.safe_string) conf (fname : Adef.safe_string)
         Output.print_string conf fname;
         Output.print_sstring conf " -->\n"
 
-let include_begin = include_begin_end_aux (Adef.safe "begin")
-let include_end = include_begin_end_aux (Adef.safe "end")
+let include_begin =
+  include_begin_end_aux (Geneweb_sanatize.Sanatize.safe "begin")
+
+let include_end = include_begin_end_aux (Geneweb_sanatize.Sanatize.safe "end")
 
 let open_etc_file conf fname =
   let fname = etc_file_name conf fname in
@@ -70,7 +72,7 @@ let escape_aux count blit str =
 
 (** [escape_html str] replaces '&', '"', '<' and '>'
     with their corresponding character entities (using entity number) *)
-let escape_html s : Adef.escaped_string =
+let escape_html s : Geneweb_sanatize.Sanatize.escaped_string =
   escape_aux
     (function '&' | '"' | '\'' | '<' | '>' -> 5 (* "&#xx;" *) | _ -> 1)
     (fun buf ibuf istr loop -> function
@@ -93,9 +95,9 @@ let escape_html s : Adef.escaped_string =
           Bytes.unsafe_set buf ibuf c;
           loop (istr + 1) (ibuf + 1))
     s
-  |> Adef.escaped
+  |> Geneweb_sanatize.Sanatize.escaped
 
-let esc x = (escape_html x :> Adef.safe_string)
+let esc x = (escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
 
 (* END: DUPLICATION OF UTIL *)
 
@@ -235,7 +237,7 @@ let url_aux ?(pwd = true) conf =
   let l =
     List.filter_map
       (fun (k, v) ->
-        let v = Adef.as_string v in
+        let v = Geneweb_sanatize.Sanatize.as_string v in
         if ((k = "oc" || k = "ocz") && v = "0") || k = "" then None
         else Some (Format.sprintf "%s=%s" k v))
       (conf.henv @ conf.senv @ conf.env)
@@ -320,7 +322,9 @@ let reorder conf url_env =
 let find_sosa_ref conf =
   let env = conf.henv @ conf.senv @ conf.env in
   let get_env evar env =
-    match List.assoc_opt evar env with Some s -> Adef.as_string s | None -> ""
+    match List.assoc_opt evar env with
+    | Some s -> Geneweb_sanatize.Sanatize.as_string s
+    | None -> ""
   in
   let pz = get_env "pz" env in
   let nz = get_env "nz" env in
@@ -366,7 +370,8 @@ let url_set_aux conf evar_l str_l =
       match conf_l with
       | [] -> acc
       | (k, _v) :: conf_l when List.mem k evar_l -> loop acc conf_l
-      | (k, v) :: conf_l -> loop ((k, Adef.as_string v) :: acc) conf_l
+      | (k, v) :: conf_l ->
+          loop ((k, Geneweb_sanatize.Sanatize.as_string v) :: acc) conf_l
     in
     loop url_env conf_l
   in
@@ -588,7 +593,8 @@ and eval_simple_variable conf = function
   | "highlight" -> conf.highlight
   | "gw_prefix" ->
       let s =
-        if conf.cgi then Adef.escaped conf.gw_prefix else Adef.escaped ""
+        if conf.cgi then Geneweb_sanatize.Sanatize.escaped conf.gw_prefix
+        else Geneweb_sanatize.Sanatize.escaped ""
       in
       let s = (s :> string) in
       if s = "" then s else s ^ Filename.dir_sep
@@ -634,7 +640,8 @@ and eval_simple_variable conf = function
   | "sp" -> " "
   | "static_path" | "etc_prefix" ->
       let s =
-        if conf.cgi then Adef.escaped conf.etc_prefix else Adef.escaped ""
+        if conf.cgi then Geneweb_sanatize.Sanatize.escaped conf.etc_prefix
+        else Geneweb_sanatize.Sanatize.escaped ""
       in
       let s = (s :> string) in
       if s = "" then s else s ^ Filename.dir_sep
@@ -648,7 +655,7 @@ and eval_simple_variable conf = function
       let l =
         List.filter_map
           (fun (k, v) ->
-            let v = Adef.as_string v in
+            let v = Geneweb_sanatize.Sanatize.as_string v in
             if ((k = "oc" || k = "ocz") && v = "0") || k = "" then None
             else Some (Format.sprintf "%s=%s" k v))
           l
@@ -1058,7 +1065,7 @@ let print_body_prop conf =
 type 'a vother =
   | Vdef of (string * ast option) list * ast list
   | Vval of 'a expr_val
-  | Vbind of string * Adef.encoded_string
+  | Vbind of string * Geneweb_sanatize.Sanatize.encoded_string
 
 module Env = Map.Make (String)
 
@@ -1430,9 +1437,9 @@ let rec interp_ast :
         let s = squeeze_spaces s in
         print_ast_list env ep (Atext (loc, s) :: al)
     | Ainclude (fname, astl) :: al ->
-        include_begin conf (Adef.safe fname);
+        include_begin conf (Geneweb_sanatize.Sanatize.safe fname);
         print_ast_list env ep astl;
-        include_end conf (Adef.safe fname);
+        include_end conf (Geneweb_sanatize.Sanatize.safe fname);
         print_ast_list !m_env ep al
     | [ a ] -> print_ast env ep a
     | a :: al ->
@@ -1508,9 +1515,9 @@ and print_var print_ast_list conf ifun env ep loc sl =
                     Templ_parser.(
                       included_files := (templ, astl) :: !included_files)
                   in
-                  include_begin conf (Adef.safe fname);
+                  include_begin conf (Geneweb_sanatize.Sanatize.safe fname);
                   print_ast_list env ep astl;
-                  include_end conf (Adef.safe fname)
+                  include_end conf (Geneweb_sanatize.Sanatize.safe fname)
               | None ->
                   GWPARAM.errors_other :=
                     Format.sprintf "%%%s?" (String.concat "." sl)
@@ -1595,12 +1602,16 @@ and copy_from_templ conf env ic =
     {
       eval_var =
         (fun env _ _ -> function
-          | [ s ] -> VVstring (Env.find s env : Adef.encoded_string :> string)
+          | [ s ] ->
+              VVstring
+                (Env.find s env
+                  : Geneweb_sanatize.Sanatize.encoded_string
+                  :> string)
           | _ -> raise Not_found);
       eval_transl = (fun _ -> eval_transl conf);
       eval_predefined_apply = (fun _ -> raise Not_found);
       get_vother = (fun _ -> None);
-      set_vother = (fun _ -> Adef.encoded "");
+      set_vother = (fun _ -> Geneweb_sanatize.Sanatize.encoded "");
       print_foreach = (fun _ -> raise Not_found);
     }
   in
@@ -1609,9 +1620,9 @@ and copy_from_templ conf env ic =
 and include_template conf env fname failure =
   match open_etc_file conf fname with
   | Some (ic, fname) ->
-      include_begin conf @@ Adef.safe fname;
+      include_begin conf @@ Geneweb_sanatize.Sanatize.safe fname;
       copy_from_templ conf env ic;
-      include_end conf @@ Adef.safe fname
+      include_end conf @@ Geneweb_sanatize.Sanatize.safe fname
   | None -> failure ()
 
 (** Evaluates and prints content of {i cpr} template.

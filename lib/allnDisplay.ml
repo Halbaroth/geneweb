@@ -62,7 +62,10 @@ let tr c1 s2 s =
 
 let print_alphabetic_big conf base is_surnames ini list len too_big =
   let title _ = print_title conf base is_surnames ini len in
-  let mode = if is_surnames then Adef.encoded "N" else Adef.encoded "P" in
+  let mode =
+    if is_surnames then Geneweb_sanatize.Sanatize.encoded "N"
+    else Geneweb_sanatize.Sanatize.encoded "P"
+  in
   Hutil.header conf title;
   Output.print_sstring conf {|<p class="search_name">|};
   List.iter
@@ -125,7 +128,9 @@ let print_alphabetic_big conf base is_surnames ini list len too_big =
 
 let print_alphabetic_all conf base is_surnames ini list len =
   let title _ = print_title conf base is_surnames ini len in
-  let mode = Adef.encoded (if is_surnames then "N" else "P") in
+  let mode =
+    Geneweb_sanatize.Sanatize.encoded (if is_surnames then "N" else "P")
+  in
   Hutil.header conf title;
   Output.print_sstring conf {|<p class="search_name">|};
   List.iter
@@ -133,7 +138,8 @@ let print_alphabetic_all conf base is_surnames ini list len =
       Output.print_sstring conf "<a href=\"#a";
       Output.print_string conf (Mutil.encode ini_k);
       Output.print_sstring conf "\">";
-      Output.print_string conf (Mutil.tr '_' ' ' ini_k |> Adef.safe);
+      Output.print_string conf
+        (Mutil.tr '_' ' ' ini_k |> Geneweb_sanatize.Sanatize.safe);
       Output.print_sstring conf "</a>\n")
     list;
   Output.print_sstring conf "</p><ul>";
@@ -142,16 +148,17 @@ let print_alphabetic_all conf base is_surnames ini list len =
       Output.print_sstring conf "<li><a id=\"a";
       Output.print_string conf (Mutil.encode ini_k);
       Output.print_sstring conf "\">";
-      Output.print_string conf (Mutil.tr '_' ' ' ini_k |> Adef.safe);
+      Output.print_string conf
+        (Mutil.tr '_' ' ' ini_k |> Geneweb_sanatize.Sanatize.safe);
       Output.print_sstring conf "</a><ul>";
       List.iter
         (fun (s, cnt) ->
           Output.print_sstring conf "<li>";
           let href = "m=" ^<^ mode ^^^ "&v=" ^<^ Mutil.encode s ^>^ "&t=A" in
           wprint_geneweb_link conf
-            (href :> Adef.escaped_string)
+            (href :> Geneweb_sanatize.Sanatize.escaped_string)
             (particle_at_the_end base is_surnames s |> Util.escape_html
-              :> Adef.safe_string);
+              :> Geneweb_sanatize.Sanatize.safe_string);
           Output.print_sstring conf " (";
           Output.print_sstring conf (format_with_thousand_sep conf cnt);
           Output.print_sstring conf ")</li>")
@@ -166,7 +173,9 @@ let print_alphabetic_all conf base is_surnames ini list len =
 
 let print_alphabetic_small conf base is_surnames ini list len =
   let title _ = print_title conf base is_surnames ini len in
-  let mode = Adef.encoded (if is_surnames then "N" else "P") in
+  let mode =
+    Geneweb_sanatize.Sanatize.encoded (if is_surnames then "N" else "P")
+  in
   Hutil.header conf title;
   if list <> [] then (
     Output.print_sstring conf "<ul>";
@@ -194,7 +203,9 @@ let print_alphabetic_small conf base is_surnames ini list len =
 
 let print_frequency_any conf base is_surnames list len =
   let title _ = print_title conf base is_surnames "" len in
-  let mode = Adef.encoded (if is_surnames then "N" else "P") in
+  let mode =
+    Geneweb_sanatize.Sanatize.encoded (if is_surnames then "N" else "P")
+  in
   let n = ref 0 in
   Hutil.header conf title;
   Output.print_sstring conf "<ul>";
@@ -261,7 +272,9 @@ let print_alphabetic conf base is_surnames =
 
 let print_alphabetic_short conf base is_surnames ini list len =
   let title _ = print_title conf base is_surnames ini len in
-  let mode = Adef.encoded (if is_surnames then "N" else "P") in
+  let mode =
+    Geneweb_sanatize.Sanatize.encoded (if is_surnames then "N" else "P")
+  in
   let need_ref = len >= 250 in
   Hutil.header conf title;
   if need_ref then (
@@ -283,10 +296,10 @@ let print_alphabetic_short conf base is_surnames ini list len =
           let href =
             " href=\"" ^<^ commd conf
             ^^^ ("m=" ^<^ mode ^^^ "&v=" ^<^ Mutil.encode s ^>^ "&t=A\""
-                  :> Adef.escaped_string)
+                  :> Geneweb_sanatize.Sanatize.escaped_string)
           in
           let name =
-            Adef.encoded
+            Geneweb_sanatize.Sanatize.encoded
               (if first && need_ref then " id=\"a" ^ ini_k ^ "\"" else "")
           in
           if not first then Output.print_sstring conf ",";

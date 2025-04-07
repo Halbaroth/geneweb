@@ -10,7 +10,8 @@ type generation_person =
   | GP_interv of (Sosa.t * Sosa.t * (Sosa.t * Sosa.t) option) option
   | GP_missing of Sosa.t * iper
 
-val string_of_marriage_text : config -> base -> family -> Adef.safe_string
+val string_of_marriage_text :
+  config -> base -> family -> Geneweb_sanatize.Sanatize.safe_string
 
 val interp_templ :
   ?no_headers:bool -> string -> config -> base -> person -> unit
@@ -27,13 +28,26 @@ val print : ?no_headers:bool -> config -> base -> person -> unit
 val print_what_links : config -> base -> person -> unit
 (** Displays links to pages associated to the person *)
 
-val get_linked_page : config -> base -> person -> string -> Adef.safe_string
-val get_birth_text : config -> person -> bool -> Adef.safe_string
-val get_baptism_text : config -> person -> bool -> Adef.safe_string
-val get_death_text : config -> person -> bool -> Adef.safe_string
-val get_burial_text : config -> person -> bool -> Adef.safe_string
-val get_cremation_text : config -> person -> bool -> Adef.safe_string
-val get_marriage_date_text : config -> family -> bool -> Adef.safe_string
+val get_linked_page :
+  config -> base -> person -> string -> Geneweb_sanatize.Sanatize.safe_string
+
+val get_birth_text :
+  config -> person -> bool -> Geneweb_sanatize.Sanatize.safe_string
+
+val get_baptism_text :
+  config -> person -> bool -> Geneweb_sanatize.Sanatize.safe_string
+
+val get_death_text :
+  config -> person -> bool -> Geneweb_sanatize.Sanatize.safe_string
+
+val get_burial_text :
+  config -> person -> bool -> Geneweb_sanatize.Sanatize.safe_string
+
+val get_cremation_text :
+  config -> person -> bool -> Geneweb_sanatize.Sanatize.safe_string
+
+val get_marriage_date_text :
+  config -> family -> bool -> Geneweb_sanatize.Sanatize.safe_string
 
 val linked_page_text :
   Config.config ->
@@ -41,17 +55,26 @@ val linked_page_text :
   Gwdb.person ->
   string ->
   'a ->
-  Adef.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string ->
   (iper, ifam) Def.NLDB.page * ('b * ('a * Def.NLDB.ind) list) ->
-  Adef.safe_string
+  Geneweb_sanatize.Sanatize.safe_string
 
-val string_of_died : config -> person -> bool -> Adef.safe_string
+val string_of_died :
+  config -> person -> bool -> Geneweb_sanatize.Sanatize.safe_string
 
 val string_of_parent_age :
-  config -> base -> person * bool -> (family -> iper) -> Adef.safe_string
+  config ->
+  base ->
+  person * bool ->
+  (family -> iper) ->
+  Geneweb_sanatize.Sanatize.safe_string
 
 val string_of_image_url :
-  config -> base -> person * bool -> bool -> Adef.escaped_string
+  config ->
+  base ->
+  person * bool ->
+  bool ->
+  Geneweb_sanatize.Sanatize.escaped_string
 
 val round_2_dec : float -> float
 
@@ -101,12 +124,12 @@ val string_of_title :
   ?link:bool ->
   config ->
   base ->
-  Adef.safe_string ->
+  Geneweb_sanatize.Sanatize.safe_string ->
   person ->
   int
   * istr Def.gen_title_name
   * istr
   * istr list
   * (Def.date option * Def.date option) list ->
-  Adef.safe_string
+  Geneweb_sanatize.Sanatize.safe_string
 (** Optionnal [link] argument is passed to {!val:DateDisplay.string_of_ondate} *)

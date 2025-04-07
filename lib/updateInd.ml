@@ -45,18 +45,28 @@ and eval_simple_var conf base env p = function
   | [ "acc_semi_public" ] -> bool_val (p.access = SemiPublic)
   | [ "acc_public" ] -> bool_val (p.access = Public)
   | [ "bapt_place" ] ->
-      safe_val (Util.escape_html p.baptism_place :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.baptism_place
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "bapt_note" ] ->
-      safe_val (Util.escape_html p.baptism_note :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.baptism_note
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "bapt_src" ] ->
-      safe_val (Util.escape_html p.baptism_src :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.baptism_src
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "birth"; s ] -> eval_date_var (Date.od_of_cdate p.birth) s
   | [ "birth_place" ] ->
-      safe_val (Util.escape_html p.birth_place :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.birth_place
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "birth_note" ] ->
-      safe_val (Util.escape_html p.birth_note :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.birth_note :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "birth_src" ] ->
-      safe_val (Util.escape_html p.birth_src :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.birth_src :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "bapt"; s ] -> eval_date_var (Date.od_of_cdate p.baptism) s
   | [ "bt_buried" ] ->
       bool_val (match p.burial with Buried _ -> true | _ -> false)
@@ -71,22 +81,31 @@ and eval_simple_var conf base env p = function
       in
       eval_date_var od s
   | [ "burial_place" ] ->
-      safe_val (Util.escape_html p.burial_place :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.burial_place
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "burial_note" ] ->
-      safe_val (Util.escape_html p.burial_note :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.burial_note
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "burial_src" ] ->
-      safe_val (Util.escape_html p.burial_src :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.burial_src :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "cnt" ] -> eval_int_env "cnt" env
   | [ "dead_dont_know_when" ] -> bool_val (p.death = DeadDontKnowWhen)
   | [ "death"; s ] ->
       let od = Date.date_of_death p.death in
       eval_date_var od s
   | [ "death_place" ] ->
-      safe_val (Util.escape_html p.death_place :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.death_place
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "death_note" ] ->
-      safe_val (Util.escape_html p.death_note :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.death_note :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "death_src" ] ->
-      safe_val (Util.escape_html p.death_src :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.death_src :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "died_young" ] -> bool_val (p.death = DeadYoung)
   | [ "digest" ] -> eval_string_env "digest" env
   | [ "dont_know_if_dead" ] -> bool_val (p.death = DontKnowIfDead)
@@ -122,22 +141,23 @@ and eval_simple_var conf base env p = function
             let e = List.nth (get_pevents p) (i - 1) in
             let name =
               Util.string_of_pevent_name conf base e.epers_name
-              |> Adef.safe_fn Utf8.capitalize_fst
+              |> Geneweb_sanatize.Sanatize.safe_fn Utf8.capitalize_fst
             in
             let date =
               match Date.od_of_cdate e.epers_date with
               | Some d -> DateDisplay.string_of_date conf d
-              | None -> Adef.safe ""
+              | None -> Geneweb_sanatize.Sanatize.safe ""
             in
             let place = Util.string_of_place conf (sou base e.epers_place) in
-            ([ name; date; (place :> Adef.safe_string) ]
-              : Adef.safe_string list
+            ([ name; date; (place :> Geneweb_sanatize.Sanatize.safe_string) ]
+              : Geneweb_sanatize.Sanatize.safe_string list
               :> string list)
-            |> String.concat ", " |> Adef.safe |> safe_val
+            |> String.concat ", " |> Geneweb_sanatize.Sanatize.safe |> safe_val
           with Failure _ -> str_val "")
       | _ -> str_val "")
   | [ "first_name" ] ->
-      safe_val (Util.escape_html p.first_name :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.first_name :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "first_name_alias" ] -> eval_string_env "first_name_alias" env
   | [ "has_aliases" ] -> bool_val (p.aliases <> [])
   | [ "has_birth_date" ] -> bool_val (Date.od_of_cdate p.birth <> None)
@@ -211,7 +231,9 @@ and eval_simple_var conf base env p = function
   | [ "has_relations" ] -> bool_val (p.rparents <> [])
   | [ "has_surnames_aliases" ] -> bool_val (p.surnames_aliases <> [])
   | [ "has_titles" ] -> bool_val (p.titles <> [])
-  | [ "image" ] -> safe_val (Util.escape_html p.image :> Adef.safe_string)
+  | [ "image" ] ->
+      safe_val
+        (Util.escape_html p.image :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "index" ] -> str_val (string_of_iper p.key_index)
   | [ "is_female" ] -> bool_val (p.sex = Female)
   | [ "is_male" ] -> bool_val (p.sex = Male)
@@ -225,7 +247,9 @@ and eval_simple_var conf base env p = function
       | _ -> raise Not_found)
   | [ "nb_pevents" ] -> str_val (string_of_int (List.length p.pevents))
   | [ "not_dead" ] -> bool_val (p.death = NotDead)
-  | [ "notes" ] -> safe_val (Util.escape_html p.notes :> Adef.safe_string)
+  | [ "notes" ] ->
+      safe_val
+        (Util.escape_html p.notes :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "next_pevent" ] -> (
       match get_env "next_pevent" env with
       | Vcnt c -> str_val (string_of_int !c)
@@ -238,10 +262,13 @@ and eval_simple_var conf base env p = function
       | _ -> str_val "")
   | [ "occ" ] -> str_val (string_of_int p.occ)
   | [ "occupation" ] ->
-      safe_val (Util.escape_html p.occupation :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.occupation :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "of_course_dead" ] -> bool_val (p.death = OfCourseDead)
   | [ "public_name" ] ->
-      safe_val (Util.escape_html p.public_name :> Adef.safe_string)
+      safe_val
+        (Util.escape_html p.public_name
+          :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "qualifier" ] -> eval_string_env "qualifier" env
   | "relation" :: sl ->
       let r =
@@ -251,8 +278,12 @@ and eval_simple_var conf base env p = function
         | _ -> None
       in
       eval_relation_var base r sl
-  | [ "sources" ] -> safe_val (Util.escape_html p.psources :> Adef.safe_string)
-  | [ "surname" ] -> safe_val (Util.escape_html p.surname :> Adef.safe_string)
+  | [ "sources" ] ->
+      safe_val
+        (Util.escape_html p.psources :> Geneweb_sanatize.Sanatize.safe_string)
+  | [ "surname" ] ->
+      safe_val
+        (Util.escape_html p.surname :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "surname_alias" ] -> eval_string_env "surname_alias" env
   | "title" :: sl ->
       let t =
@@ -405,22 +436,24 @@ and eval_event_var e = function
           | Epers_ScellentSpouseLDS -> str_val "#slgs"
           | Epers_VenteBien -> str_val "#vteb"
           | Epers_Will -> str_val "#will"
-          | Epers_Name x -> safe_val (Util.escape_html x :> Adef.safe_string))
+          | Epers_Name x ->
+              safe_val
+                (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string))
       | _ -> str_val "")
   | [ "e_place" ] -> (
       match e with
       | Some { epers_place = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "e_note" ] -> (
       match e with
       | Some { epers_note = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "e_src" ] -> (
       match e with
       | Some { epers_src = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | _ -> raise Not_found
 
@@ -428,12 +461,12 @@ and eval_title_var t = function
   | [ "t_estate" ] -> (
       match t with
       | Some { t_place = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "t_ident" ] -> (
       match t with
       | Some { t_ident = x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "t_main" ] -> (
       match t with
@@ -442,7 +475,7 @@ and eval_title_var t = function
   | [ "t_name" ] -> (
       match t with
       | Some { t_name = Tname x; _ } ->
-          safe_val (Util.escape_html x :> Adef.safe_string)
+          safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
       | _ -> str_val "")
   | [ "t_nth" ] -> (
       match t with
@@ -482,10 +515,12 @@ and eval_person_var base (fn, sn, oc, create, _) = function
       | Update.Create (_, _) -> bool_val true
       | _ -> bool_val false)
   | [ "create"; s ] -> Update_util.eval_create create s
-  | [ "first_name" ] -> safe_val (Util.escape_html fn :> Adef.safe_string)
+  | [ "first_name" ] ->
+      safe_val (Util.escape_html fn :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "link" ] -> bool_val (create = Update.Link)
   | [ "occ" ] -> str_val (string_of_int oc)
-  | [ "surname" ] -> safe_val (Util.escape_html sn :> Adef.safe_string)
+  | [ "surname" ] ->
+      safe_val (Util.escape_html sn :> Geneweb_sanatize.Sanatize.safe_string)
   | [ "index" ] -> (
       match person_of_key base fn sn oc with
       | Some ip -> str_val (string_of_iper ip)
@@ -536,7 +571,8 @@ and eval_int_env var env =
 
 and eval_string_env var env =
   match get_env var env with
-  | Vstring x -> safe_val (Util.escape_html x :> Adef.safe_string)
+  | Vstring x ->
+      safe_val (Util.escape_html x :> Geneweb_sanatize.Sanatize.safe_string)
   | _ -> str_val ""
 
 (* print *)

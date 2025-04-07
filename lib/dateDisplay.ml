@@ -199,7 +199,7 @@ let replace_spaces_by_nbsp s =
   loop 0 0
 
 let string_of_on_prec_dmy conf sy sy2 d =
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   let r = string_of_on_prec_dmy_aux conf sy sy2 d in
   replace_spaces_by_nbsp r
@@ -223,7 +223,7 @@ let string_of_on_hebrew_dmy conf d =
   string_of_on_prec_dmy conf sy sy2 d
 
 let string_of_prec_dmy conf s s2 d =
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   match d.prec with
   | Sure -> Mutil.nominative s
@@ -344,7 +344,7 @@ let gregorian_precision conf d =
     let d2 =
       Calendar.gregorian_of_sdn d.prec (Calendar.sdn_of_gregorian d + d.delta)
     in
-    Adef.safe
+    Geneweb_sanatize.Sanatize.safe
     @@ transl conf "between (date)"
     ^ " "
     ^ (string_of_on_dmy conf d :> string)
@@ -352,9 +352,9 @@ let gregorian_precision conf d =
     ^ (string_of_on_dmy conf d2 :> string)
 
 let string_of_date_aux ?(link = true) ?(dmy = string_of_dmy)
-    ?(sep = Adef.safe " ") conf =
-  let mk_link c d (s : Adef.safe_string) =
-    Adef.safe
+    ?(sep = Geneweb_sanatize.Sanatize.safe " ") conf =
+  let mk_link c d (s : Geneweb_sanatize.Sanatize.safe_string) =
+    Geneweb_sanatize.Sanatize.safe
     @@ Printf.sprintf
          {|<a href="%sm=CAL&y%c=%d&m%c=%d&d%c=%d&t%c=1" class="date">%s</a>|}
          (commd conf :> string)
@@ -367,7 +367,7 @@ let string_of_date_aux ?(link = true) ?(dmy = string_of_dmy)
       if link && d.day > 0 then mk_link 'g' d s else s
   | Dgreg (d, Djulian) ->
       let cal_prec =
-        if d.year < 1582 then Adef.safe ""
+        if d.year < 1582 then Geneweb_sanatize.Sanatize.safe ""
         else " (" ^<^ gregorian_precision conf d ^>^ ")"
       in
       let d1 = Calendar.julian_of_gregorian d in
@@ -399,15 +399,18 @@ let string_of_date_aux ?(link = true) ?(dmy = string_of_dmy)
       | Sure | About | Before | After | Maybe ->
           s ^^^ sep ^^^ " (" ^<^ gregorian_precision conf d ^>^ ")"
       | OrYear _ | YearInt _ -> s)
-  | Dtext t -> "(" ^<^ (Util.escape_html t :> Adef.safe_string) ^>^ ")"
+  | Dtext t ->
+      "("
+      ^<^ (Util.escape_html t :> Geneweb_sanatize.Sanatize.safe_string)
+      ^>^ ")"
 
 let string_of_ondate ?link conf d =
   (string_of_date_aux ?link ~dmy:string_of_on_dmy conf d :> string)
-  |> Util.translate_eval |> Adef.safe
+  |> Util.translate_eval |> Geneweb_sanatize.Sanatize.safe
 
 let string_of_date conf = function
   | Dgreg (d, _) -> string_of_dmy conf d
-  | Dtext t -> (Util.escape_html t :> Adef.safe_string)
+  | Dtext t -> (Util.escape_html t :> Geneweb_sanatize.Sanatize.safe_string)
 
 let string_slash_of_date conf date =
   let rec slashify_dmy (fst, snd, trd) d =
@@ -433,9 +436,9 @@ let string_slash_of_date conf date =
         (string_of_prec_dmy conf sy "" d :> string)
   in
   match date with
-  | Dtext t -> (Util.escape_html t :> Adef.safe_string)
+  | Dtext t -> (Util.escape_html t :> Geneweb_sanatize.Sanatize.safe_string)
   | Dgreg (d, cal) -> (
-      Adef.safe
+      Geneweb_sanatize.Sanatize.safe
       @@
       match cal with
       | Dgregorian -> slashify_dmy (decode_dmy conf d) d
@@ -456,7 +459,7 @@ let string_slash_of_date conf date =
           ^ ")")
 
 let string_of_age conf a =
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   match a with
   | { day = 0; month = 0; year = y; _ } ->
@@ -602,7 +605,9 @@ let short_dates_text_notag conf base p =
 
 let short_dates_text conf base p =
   let s = short_dates_text_notag conf base p in
-  if s <> "" then Adef.safe @@ " <bdo dir=ltr>" ^ s ^ "</bdo>" else Adef.safe ""
+  if s <> "" then
+    Geneweb_sanatize.Sanatize.safe @@ " <bdo dir=ltr>" ^ s ^ "</bdo>"
+  else Geneweb_sanatize.Sanatize.safe ""
 
 (* ********************************************************************** *)
 (* [Fonc] short_marriage_date_text :
@@ -620,7 +625,7 @@ let short_dates_text conf base p =
     [Retour] : string
     [Rem] : Exporté en clair hors de ce module.                           *)
 let short_marriage_date_text conf base fam p1 p2 =
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   if authorized_age conf base p1 && authorized_age conf base p2 then
     match Date.cdate_to_dmy_opt (get_marriage fam) with
@@ -667,7 +672,7 @@ let short_family_dates_text conf base marr_sep fam =
   in
   let fa = poi base (get_father fam) in
   let mo = poi base (get_mother fam) in
-  Adef.safe
+  Geneweb_sanatize.Sanatize.safe
   @@
   if authorized_age conf base fa && authorized_age conf base mo then
     if marr_sep then
@@ -680,6 +685,6 @@ let short_family_dates_text conf base marr_sep fam =
 
 (* For public interfce, force [string_of_prec_dmy] args to be safe strings *)
 let string_of_prec_dmy conf s s2 d =
-  let s = (s : Adef.safe_string :> string) in
-  let s2 = (s2 : Adef.safe_string :> string) in
+  let s = (s : Geneweb_sanatize.Sanatize.safe_string :> string) in
+  let s2 = (s2 : Geneweb_sanatize.Sanatize.safe_string :> string) in
   string_of_prec_dmy conf s s2 d

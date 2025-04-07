@@ -194,18 +194,19 @@ let print_confirm_c conf base save_m report =
       let new_env =
         List.fold_left
           (fun accu (k, v) ->
-            if k = "m" then ("m", Adef.encoded "REFRESH") :: accu
+            if k = "m" then
+              ("m", Geneweb_sanatize.Sanatize.encoded "REFRESH") :: accu
             else if k = "idigest" || k = "" || k = "file" then accu
             else (k, v) :: accu)
           [] conf.env
       in
       let new_env =
         if save_m = "REFRESH" then new_env
-        else ("em", Adef.encoded save_m) :: new_env
+        else ("em", Geneweb_sanatize.Sanatize.encoded save_m) :: new_env
       in
       let new_env =
-        ("idigest", Adef.encoded digest)
-        :: ("report", Adef.encoded report)
+        ("idigest", Geneweb_sanatize.Sanatize.encoded digest)
+        :: ("report", Geneweb_sanatize.Sanatize.encoded report)
         :: new_env
       in
       let conf = { conf with env = new_env } in
@@ -255,7 +256,8 @@ let print_send_image conf base p =
   Output.print_sstring conf
     "<div class=\"d-inline-flex align-items-center mt-2\">\n";
   Util.hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "SND_IMAGE_C_OK");
+  Util.hidden_input conf "m"
+    (Geneweb_sanatize.Sanatize.encoded "SND_IMAGE_C_OK");
   Util.hidden_input conf "i" (get_iper p |> string_of_iper |> Mutil.encode);
   Util.hidden_input conf "idigest" (Mutil.encode digest);
   Output.print_sstring conf (Utf8.capitalize_fst (transl conf "file"));
@@ -347,7 +349,8 @@ let print_send_ok conf base =
   let p = poi base ip in
   let digest = Image.default_portrait_filename base p in
   if (digest :> string) = Mutil.decode (raw_get conf "idigest") then
-    raw_get conf "file" |> Adef.as_string |> effective_send_ok conf base p
+    raw_get conf "file" |> Geneweb_sanatize.Sanatize.as_string
+    |> effective_send_ok conf base p
   else Update.error_digest conf
 
 (* carrousel *)
@@ -366,14 +369,14 @@ let effective_send_c_ok conf base p file file_name =
     | Some v ->
         Util.safe_html
           (Util.only_printable_or_nl (Mutil.strip_all_trailing_spaces v))
-    | None -> Adef.safe ""
+    | None -> Geneweb_sanatize.Sanatize.safe ""
   in
   let source =
     match Util.p_getenv conf.env "source" with
     | Some v ->
         Util.safe_html
           (Util.only_printable_or_nl (Mutil.strip_all_trailing_spaces v))
-    | None -> Adef.safe ""
+    | None -> Geneweb_sanatize.Sanatize.safe ""
   in
   let strm = Stream.of_string file in
   let request, content = Wserver.get_request_and_content strm in
@@ -452,14 +455,14 @@ let effective_send_c_ok conf base p file file_name =
       incorrect conf
         (Printf.sprintf "effective send (writing .url file %s)" fname)
   else ();
-  if note <> Adef.safe "" then
+  if note <> Geneweb_sanatize.Sanatize.safe "" then
     let fname = Filename.remove_extension fname ^ ".txt" in
     try write_file fname (note :> string)
     with _ ->
       incorrect conf
         (Printf.sprintf "effective send (writing .txt file %s)" fname)
   else ();
-  if source <> Adef.safe "" then
+  if source <> Geneweb_sanatize.Sanatize.safe "" then
     let fname = Filename.remove_extension fname ^ ".src" in
     try write_file fname (source :> string)
     with _ ->
@@ -471,11 +474,14 @@ let effective_send_c_ok conf base p file file_name =
   in
   History.record conf base changed
     (if mode = "portraits" then "si"
-    else if file_name <> "" && note <> Adef.safe "" && source <> Adef.safe ""
+    else if
+    file_name <> ""
+    && note <> Geneweb_sanatize.Sanatize.safe ""
+    && source <> Geneweb_sanatize.Sanatize.safe ""
    then "sb"
     else if file_name <> "" then "so"
-    else if note <> Adef.safe "" then "sc"
-    else if source <> Adef.safe "" then "ss"
+    else if note <> Geneweb_sanatize.Sanatize.safe "" then "sc"
+    else if source <> Geneweb_sanatize.Sanatize.safe "" then "ss"
     else "sn");
   file_name
 
@@ -500,7 +506,7 @@ let print_delete_image conf base p =
   Hutil.header conf title;
   Output.printf conf "<form method=\"post\" action=\"%s\">" conf.command;
   Util.hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "DEL_IMAGE_OK");
+  Util.hidden_input conf "m" (Geneweb_sanatize.Sanatize.encoded "DEL_IMAGE_OK");
   Util.hidden_input conf "i" (get_iper p |> string_of_iper |> Mutil.encode);
   Output.print_sstring conf
     {|<div class="mt-3"><button type="submit" class="btn btn-danger">|};
@@ -555,14 +561,15 @@ let print_del conf base =
 let effective_delete_c_ok conf base p =
   let fname = Image.default_portrait_filename base p in
   let file_name =
-    try List.assoc "file_name" conf.env with Not_found -> Adef.encoded ""
+    try List.assoc "file_name" conf.env
+    with Not_found -> Geneweb_sanatize.Sanatize.encoded ""
   in
   let file_name = (Mutil.decode file_name :> string) in
   let mode =
     try (List.assoc "mode" conf.env :> string) with Not_found -> "portraits"
   in
   let delete =
-    try List.assoc "delete" conf.env = Adef.encoded "on"
+    try List.assoc "delete" conf.env = Geneweb_sanatize.Sanatize.encoded "on"
     with Not_found -> false
   in
   let ext = get_extension conf delete fname in
@@ -592,7 +599,8 @@ let effective_reset_c_ok conf base p =
   in
   let keydir = Image.default_portrait_filename base p in
   let file_name =
-    try List.assoc "file_name" conf.env with Not_found -> Adef.encoded ""
+    try List.assoc "file_name" conf.env
+    with Not_found -> Geneweb_sanatize.Sanatize.encoded ""
   in
   let file_name = (Mutil.decode file_name :> string) in
   let file_name = if mode = "portraits" then keydir else file_name in
@@ -661,14 +669,17 @@ let print_main_c conf base =
                       else file_name
                     in
                     let file_name =
-                      (Mutil.decode (Adef.encoded file_name) :> string)
+                      (Mutil.decode
+                         (Geneweb_sanatize.Sanatize.encoded file_name)
+                        :> string)
                     in
                     let file_name_2 = Filename.remove_extension file_name in
                     let new_env =
                       List.fold_left
                         (fun accu (k, v) ->
                           if k = "file_name_2" then
-                            (k, Adef.encoded file_name_2) :: accu
+                            (k, Geneweb_sanatize.Sanatize.encoded file_name_2)
+                            :: accu
                           else (k, v) :: accu)
                         [] conf.env
                     in

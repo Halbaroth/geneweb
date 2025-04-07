@@ -229,7 +229,8 @@ let print_search_form conf from_wiz =
   Output.print_sstring conf conf.command;
   Output.print_sstring conf {|"><p>|};
   hidden_env conf;
-  Util.hidden_input conf "m" (Adef.encoded "WIZNOTES_SEARCH");
+  Util.hidden_input conf "m"
+    (Geneweb_sanatize.Sanatize.encoded "WIZNOTES_SEARCH");
   Output.print_sstring conf {|<input name="s" size="30" maxlength="40" value="|};
   (match p_getenv conf.env "s" with
   | Some s -> Output.print_string conf (Util.escape_html s)
@@ -387,7 +388,11 @@ let print_part_wiznote conf base wz s cnt0 =
   let title = Util.escape_html wz in
   Hutil.header_without_home conf (fun _ -> Output.print_string conf title);
   let s = Util.safe_html @@ string_with_macros conf [] s in
-  let lines = Wiki.extract_sub_part (s : Adef.safe_string :> string) cnt0 in
+  let lines =
+    Wiki.extract_sub_part
+      (s : Geneweb_sanatize.Sanatize.safe_string :> string)
+      cnt0
+  in
   let lines =
     if cnt0 = 0 then (title :> string) :: "<br><br>" :: lines else lines
   in
@@ -447,8 +452,9 @@ let print_mod conf base =
         let title = wizard_page_title conf (Util.escape_html wz) in
         let wfile = wzfile (dir conf base) wz in
         let s, _ = read_wizard_notes wfile in
-        Wiki.print_mod_view_page conf true (Adef.encoded "WIZNOTES") wz title []
-          s
+        Wiki.print_mod_view_page conf true
+          (Geneweb_sanatize.Sanatize.encoded "WIZNOTES")
+          wz title [] s
       else Hutil.incorrect_request conf)
 
 let print_view conf base =
@@ -457,8 +463,9 @@ let print_view conf base =
       let title = wizard_page_title conf (Util.escape_html wz) in
       let wfile = wzfile (dir conf base) wz in
       let s, _ = read_wizard_notes wfile in
-      Wiki.print_mod_view_page conf false (Adef.encoded "WIZNOTES") wz title []
-        s)
+      Wiki.print_mod_view_page conf false
+        (Geneweb_sanatize.Sanatize.encoded "WIZNOTES")
+        wz title [] s)
 
 let commit_wiznotes conf base wz s =
   let wddir = dir conf base in
