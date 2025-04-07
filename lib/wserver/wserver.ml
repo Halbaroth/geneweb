@@ -9,7 +9,6 @@ let sock_out = ref "wserver.sou"
 (* global parameters set by command arguments *)
 let stop_server = ref "STOP_SERVER"
 let cgi = ref false
-let no_fork = ref false
 
 (* state of a connection request *)
 let connection_closed = ref false
@@ -272,9 +271,9 @@ let accept_connections_windows socket =
   while true do
     try accept_connection_windows socket with
     | Unix.Unix_error (Unix.ECONNRESET, "accept", _) as e ->
-        GwdLog.syslog `LOG_INFO (Printexc.to_string e)
+        GwdLog.info (fun k -> k "%s" (Printexc.to_string e))
     | Sys_error msg as e when msg = "Broken pipe" ->
-        GwdLog.syslog `LOG_INFO (Printexc.to_string e)
+        GwdLog.info (fun k -> k "%s" (Printexc.to_string e))
   done
 
 (* Set a Unix signal with a timeout around the execution of the function [f].
@@ -301,8 +300,7 @@ let with_timeout ~timeout handler f =
     Fun.protect ~finally g
   else f ()
 
-let accept_connections_unix ~timeout ~n_workers callback socket =
-  Pool.start n_workers @@ fun pid ->
+let accept_connection_unix ~timeout callback socket pid =
   let client_socket, client_addr = Unix.accept socket in
   GwdLog.debug (fun k -> k "Worker %d got a job" pid);
   Unix.setsockopt client_socket Unix.SO_KEEPALIVE true;
@@ -312,6 +310,19 @@ let accept_connections_unix ~timeout ~n_workers callback socket =
   Fun.protect ~finally:close_connection @@ fun () ->
   with_timeout ~timeout (timeout_handler ~timeout) @@ fun () ->
   treat_connection callback client_addr client_socket
+
+let accept_connections_unix ~timeout ~n_workers callback socket =
+  if n_workers > 0 then
+    Pool.start n_workers (accept_connection_unix ~timeout callback socket)
+  else
+    (* We avoid forking in the case, which is helpful for debugging. *)
+    while true do
+      try accept_connection_unix ~timeout callback socket (Unix.getpid ()) with
+      | Unix.Unix_error (Unix.ECONNRESET, "accept", _) as e ->
+          GwdLog.info (fun k -> k "%s" (Printexc.to_string e))
+      | Sys_error msg as e when msg = "Broken pipe" ->
+          GwdLog.info (fun k -> k "%s" (Printexc.to_string e))
+    done
 
 let accept_connections ~timeout ~n_workers callback socket =
   if Sys.unix then accept_connections_unix ~timeout ~n_workers callback socket
@@ -349,7 +360,7 @@ let start ?addr ~port ?timeout ~max_pending_requests ~n_workers callback =
         (1900 + tm.Unix.tm_year) (succ tm.Unix.tm_mon) tm.Unix.tm_mday
         tm.Unix.tm_hour tm.Unix.tm_min port;
       flush stderr;
-      if !no_fork then ignore @@ Sys.signal Sys.sigpipe Sys.Signal_ignore;
+      if n_workers = 0 then ignore @@ Sys.signal Sys.sigpipe Sys.Signal_ignore;
       accept_connections ~timeout ~n_workers callback socket
   | s ->
       let addr = sockaddr_of_string s in
