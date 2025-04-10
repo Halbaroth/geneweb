@@ -115,6 +115,7 @@ type config = {
   cgi : bool;
   forced_plugins : string list;
   plugins : string list;
+  secret_salt : string option;
 }
 
 (**/**)
@@ -189,6 +190,7 @@ let empty =
       { status = ignore; header = ignore; body = ignore; flush = ignore };
     forced_plugins = [];
     plugins = [];
+    secret_salt = None;
   }
 
 (**/**)
