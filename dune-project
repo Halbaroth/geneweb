@@ -47,6 +47,7 @@
     pp_loc
     (utop :with-dev-setup)
     (ocamlformat (and :with-dev-setup (= "0.27.0")))
+    progress
   )
   (depopts
     ocaml-option-nnp
