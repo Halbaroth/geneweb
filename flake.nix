@@ -23,8 +23,7 @@
               not-ocamlfind = prev.ocamlPackages.callPackage ./nix/not-ocamlfind.nix { };
               odoc = prev.ocamlPackages.callPackage ./nix/odoc.nix { };
               ancient = ocaml-ancient.outputs.packages.${system}.ancient;
-              # Produce a segment fault while compiling stdlib with jsoo...
-              # ocaml = p.ocaml.override { framePointerSupport = true; };
+              ocaml = p.ocaml.override { framePointerSupport = true; };
             });
           })];
         };
