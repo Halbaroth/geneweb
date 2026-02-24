@@ -1,8 +1,14 @@
 (executable
  (name bench)
+ (modules bench)
  (libraries unix geneweb geneweb.sosa benchmark))
 
 (rule
  (action
   (run ./bench.exe))
  (alias runbench))
+
+(executable
+ (name bench_requests)
+ (modules bench_requests)
+ (libraries geneweb geneweb_db str cmdliner yojson unix))

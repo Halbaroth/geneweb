@@ -120,7 +120,10 @@
         formatter = pkgs.nixpkgs-fmt;
 
         devShells.default = pkgs.mkShell {
-          packages = [ ocamlWrapped ] ++ (with ocamlPackages; [
+          packages = [ 
+            ocamlWrapped 
+            pkgs.curl
+          ] ++ (with ocamlPackages; [
             qcheck
             qcheck-alcotest
             findlib

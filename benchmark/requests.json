@@ -1,0 +1,12 @@
+{
+  "requests": [
+    {
+      "name": "Personal page",
+      "pattern": "m=S&n=$FN+$SN&p="
+    },
+    {
+      "name": "Foo",
+      "pattern": "p=$FN&n=$SN&oc=$OC"
+    }
+  ]
+}
