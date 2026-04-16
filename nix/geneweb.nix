@@ -3,6 +3,7 @@
   buildDunePackage,
   alcotest,
   ancient,
+  angstrom,
   brotli,
   pcre2,
   benchmark,
@@ -63,6 +64,7 @@ buildDunePackage {
     geneweb-compat
     geneweb-http
     ancient
+    angstrom
     cmdliner
     pcre2
     benchmark

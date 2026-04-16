@@ -51,6 +51,7 @@
     conf-brotli
     (utop :with-dev-setup)
     (ocamlformat (and :with-dev-setup (= "0.29.0")))
+    angstrom
   )
   (depopts
     (ancient (>= 0.10.0))

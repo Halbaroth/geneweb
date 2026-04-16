@@ -1,4 +1,6 @@
-type error = [ Encoding.error | `Bad_arity ]
+module Types = Geneweb_types
+
+type error = [ Types.error | `Bad_arity ]
 
 val pp_error : error Fmt.t
 
@@ -19,10 +21,10 @@ module Desc : sig
       debugging purposes. *)
 
   module Syntax : sig
-    include module type of Encoding.Syntax
+    include module type of Types.Syntax
 
-    val ret : 'a Encoding.t -> ('a res, 'a) t
-    val ( @-> ) : 'a Encoding.t -> ('b, 'r) t -> ('a -> 'b, 'r) t
+    val ret : 'a Types.t -> ('a res, 'a) t
+    val ( @-> ) : 'a Types.t -> ('b, 'r) t -> ('a -> 'b, 'r) t
   end
 end
 

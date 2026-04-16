@@ -1,7 +1,6 @@
 module Json_rpc = Geneweb_rpc.Json_rpc
 module Response = Geneweb_rpc.Json_rpc.Response
 module Request = Geneweb_rpc.Json_rpc.Request
-module Encoding = Geneweb_rpc.Encoding
 module Service = Geneweb_rpc.Service
 module MS = Map.Make (String)
 

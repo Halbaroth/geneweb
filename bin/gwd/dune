@@ -12,6 +12,21 @@
    %{target}
    (run ./generate_plugin_checksums.exe %{project_root}/plugins))))
 
+(executable
+ (name generate_default_gwf)
+ (modules generate_default_gwf)
+ (libraries geneweb_formats))
+
+(rule
+  (with-stdout-to
+   default.gwf
+   (run ./generate_default_gwf.exe)))
+
+(install
+ (package geneweb)
+ (section share)
+ (files ./default.gwf))
+
 (generate_sites_module
  (module geneweb_sites)
  (sites geneweb))

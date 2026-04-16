@@ -2,25 +2,26 @@ module Y = Yojson.Safe
 module U = Yojson.Safe.Util
 module MS = Map.Make (String)
 module Compat = Geneweb_compat
+module Types = Geneweb_types
 open Lwt.Infix
 
-type error = [ Encoding.error | `Bad_arity ]
+type error = [ Types.error | `Bad_arity ]
 type 'a res = ('a, error) Lwt_result.t
 
 let pp_error ppf = function
-  | #Encoding.error as e -> Encoding.pp_error ppf e
+  | #Types.error as e -> Types.pp_error ppf e
   | `Bad_arity -> Fmt.string ppf "bad arity"
 
 module Desc = struct
   type ('a, 'r) t =
-    | R : 'a Encoding.t -> ('a res, 'a) t
-    | N : 'a Encoding.t * ('b, 'r) t -> ('a -> 'b, 'r) t
+    | R : 'a Types.t -> ('a res, 'a) t
+    | N : 'a Types.t * ('b, 'r) t -> ('a -> 'b, 'r) t
 
   let rec pp_desc : type a r. (a, r) t Fmt.t =
    fun ppf desc ->
     match desc with
-    | R a -> Encoding.pp ppf a
-    | N (a, r) -> Fmt.pf ppf "%a -> %a" Encoding.pp a pp_desc r
+    | R a -> Types.pp ppf a
+    | N (a, r) -> Fmt.pf ppf "%a -> %a" Types.pp a pp_desc r
 
   let rec eval : type a b. (a, b) t -> a -> Y.t list -> Y.t res =
    fun desc f l ->
@@ -28,10 +29,10 @@ module Desc = struct
     | R a, [] -> (
         f >>= fun f ->
         match f with
-        | Ok f -> Lwt_result.return (Encoding.val_to_json a f)
+        | Ok f -> Lwt_result.return (Types.to_json a f)
         | Error e -> Lwt_result.fail (e :> error))
     | N (a, g), x :: xs -> (
-        match Encoding.val_of_json a x with
+        match Types.of_json a x with
         | Ok y -> eval g (f y) xs
         | Error e -> Lwt_result.fail (e :> error))
     | _ -> Lwt_result.fail `Bad_arity
@@ -40,7 +41,7 @@ module Desc = struct
    fun desc -> match desc with R _ -> 0 | N (_, g) -> 1 + arity g
 
   module Syntax = struct
-    include Encoding.Syntax
+    include Types.Syntax
 
     let ret x = R x
     let ( @-> ) x y = N (x, y)
@@ -76,7 +77,7 @@ module Analyze = Geneweb_search.Analyze
 module Search = struct
   let info indexes =
     decl "info"
-      Desc.Syntax.(ret (list (tup2 string int)))
+      Desc.Syntax.(ret (list (tuple2 string int)))
       (Lwt_result.return
       @@ List.map (fun (name, idx) -> (name, Index.cardinal idx)) indexes)
 

@@ -1,0 +1,4 @@
+(library
+ (public_name geneweb.types)
+ (name geneweb_types)
+ (libraries yojson fmt))

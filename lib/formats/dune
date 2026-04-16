@@ -1,0 +1,4 @@
+(library
+ (package geneweb)
+ (name geneweb_formats)
+ (libraries geneweb_types angstrom fmt))

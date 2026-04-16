@@ -45,6 +45,7 @@ depends: [
   "conf-brotli"
   "utop" {with-dev-setup}
   "ocamlformat" {with-dev-setup & = "0.29.0"}
+  "angstrom"
   "odoc" {with-doc}
 ]
 depopts: [

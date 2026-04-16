@@ -7,7 +7,6 @@ module Y = Yojson.Safe
 module U = Yojson.Safe.Util
 module Json_rpc = Geneweb_rpc.Json_rpc
 module Service = Geneweb_rpc.Service
-module Encoding = Geneweb_rpc.Encoding
 
 type callback = Json_rpc.Response.t -> unit
 
