@@ -30,7 +30,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          C:\.opam\.cygwin\setup-x86_64.exe \
+          /cygdrive/c/.opam/.cygwin\setup-x86_64.exe \
             --root "C:\\.opam\\.cygwin\\root" \
             --quiet-mode noinput \
             --no-shortcuts \
