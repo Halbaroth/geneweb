@@ -26,25 +26,25 @@ jobs:
         with:
           ocaml-compiler: 5
 
-      - name: Install perl-IPC-System-Simple
+      - name: Install Cygwin Dependencies
         if: runner.os == 'Windows'
-        shell: bash
+        shell: powershell
         run: |
-          /cygdrive/c/.opam/.cygwin\setup-x86_64.exe \
-            --root "C:\\.opam\\.cygwin\\root" \
-            --quiet-mode noinput \
-            --no-shortcuts \
-            --no-startmenu \
-            --no-desktop \
-            --no-admin \
-            --no-version-check \
-            --no-write-registry \
-            --packages perl-IPC-System-Simple \
-            --symlink-type native \
-            --upgrade-also \
-            --only-site \
-            --site https://cygwin.mirror.constant.com/ \
-            --local-package-dir "C:\\.opam\\.cygwin\\cache"
+          & "C:\.opam\.cygwin\setup-x86_64.exe" `
+            --root "C:\.opam\.cygwin\root" `
+            --quiet-mode noinput `
+            --no-shortcuts `
+            --no-startmenu `
+            --no-desktop `
+            --no-admin `
+            --no-version-check `
+            --no-write-registry `
+            --packages "perl-IPC-System-Simple" `
+            --symlink-type native `
+            --upgrade-also `
+            --only-site `
+            --site "https://cygwin.mirror.constant.com/" `
+            --local-package-dir "C:\.opam\.cygwin\cache"
 
       - name: Install geneweb-compat
         run: opam install ./geneweb-compat.opam
