@@ -50,7 +50,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          perl -MCPAN -e CPAN::Shell->notest('install', 'String::ShellQuote')
+          perl -MCPAN -e "CPAN::Shell->notest('install', 'String::ShellQuote')"
 
       - name: Install geneweb-compat
         run: opam install ./geneweb-compat.opam
