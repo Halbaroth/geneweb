@@ -27,6 +27,7 @@
     (camlp5 (>= "8.03.00"))
     camlp-streams
     cppo
+    (cmdliner (>= "2.1.1"))
     decompress
     fmt
     logs
@@ -87,7 +88,7 @@
     lwt
     lwt_ppx
     tls
-    (cmdliner (>= "2.0.0"))
+    (cmdliner (>= "2.1.1"))
     logs
     digestif
     httpun
