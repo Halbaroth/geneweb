@@ -1,0 +1,4 @@
+(test
+  (package geneweb-http)
+  (name test)
+  (libraries geneweb_named_pipe))
