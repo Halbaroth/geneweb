@@ -43,29 +43,8 @@ raise_error (const char *name, DWORD id)
   CAMLnoreturn;
 }
 
-static value
-Val_open_mode (DWORD mode)
-{
-  switch (mode)
-    {
-    case PIPE_ACCESS_DUPLEX:
-      return Val_int (0);
-    case PIPE_ACCESS_INBOUND:
-      return Val_int (1);
-    case PIPE_ACCESS_OUTBOUND:
-      return Val_int (2);
-    case FILE_FLAG_FIRST_PIPE_INSTANCE:
-      return Val_int (3);
-    case FILE_FLAG_WRITE_THROUGH:
-      return Val_int (4);
-    case FILE_FLAG_OVERLAPPED:
-      return Val_int (5);
-    default:
-      assert (false);
-    }
-}
-
-static Open_mode_val (value v)
+static DWORD
+Open_mode_val (value v)
 {
   switch (Int_val (v))
     {
@@ -94,37 +73,11 @@ flag_of_open_modes (value modes)
 
   while (head != Val_emptylist)
     {
-      flag |= Dw_open_mode_val (Field (head, 0));
+      flag |= Open_mode_val (Field (head, 0));
       head = Field (head, 1);
     }
 
   return flag;
-}
-
-static value
-Val_pipe_mode (DWORD mode)
-{
-  switch (mode)
-    {
-    case PIPE_TYPE_BYTE:
-      return Val_int (0);
-    case PIPE_TYPE_MESSAGE:
-      return Val_int (1);
-    case PIPE_READMODE_BYTE:
-      return Val_int (2);
-    case PIPE_READMODE_MESSAGE:
-      return Val_int (3);
-    case PIPE_WAIT:
-      return Val_int (4);
-    case PIPE_NOWAIT:
-      return Val_int (5);
-    case PIPE_ACCEPT_REMOTE_CLIENTS:
-      return Val_int (6);
-    case PIPE_REJECT_REMOTE_CLIENTS:
-      return Val_int (7);
-    default:
-      assert (false);
-    }
 }
 
 static DWORD
@@ -135,15 +88,19 @@ Pipe_mode_val (value v)
     case 0:
       return PIPE_TYPE_BYTE;
     case 1:
-      return PIPE_ACCESS_INBOUND;
+      return PIPE_TYPE_MESSAGE;
     case 2:
-      return PIPE_ACCESS_OUTBOUND;
+      return PIPE_READMODE_BYTE;
     case 3:
-      return FILE_FLAG_FIRST_PIPE_INSTANCE;
+      return PIPE_READMODE_MESSAGE;
     case 4:
-      return FILE_FLAG_WRITE_THROUGH;
+      return PIPE_WAIT;
     case 5:
-      return FILE_FLAG_OVERLAPPED;
+      return PIPE_NOWAIT;
+    case 6:
+      return PIPE_ACCEPT_REMOTE_CLIENTS;
+    case 7:
+      return PIPE_REJECT_REMOTE_CLIENTS;
     default:
       assert (false);
     }
@@ -157,7 +114,7 @@ flag_of_pipe_modes (value modes)
 
   while (head != Val_emptylist)
     {
-      flag |= Dw_pipe_mode_val (Field (head, 0));
+      flag |= Pipe_mode_val (Field (head, 0));
       head = Field (head, 1);
     }
 
@@ -220,21 +177,17 @@ geneweb_win32_named_pipe_pipe_unlimited_instances (value unit)
 }
 
 CAMLprim value
-geneweb_win32_named_pipe_create_named_pipe (
+geneweb_win32_named_pipe_create_named_pipe_native (
     value name, value open_modes, value pipe_modes, value max_instances,
     value out_buffer_size, value in_buffer_size, value default_timeout)
 {
 #if defined(_WIN32)
-  CAMLparam1 (name);
+  CAMLparam7 (name, open_modes, pipe_modes, max_instances, out_buffer_size,
+              in_buffer_size, default_timeout);
 
   wchar_t *wname = caml_stat_strdup_to_utf16 (String_val (name));
 
   caml_release_runtime_system ();
-  // HANDLE handle =
-  //     CreateNamedPipeW (wname, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE |
-  //     PIPE_WAIT,
-  //                       PIPE_UNLIMITED_INSTANCES, SIZEBUF, SIZEBUF, 0,
-  //                       NULL);
   HANDLE h = CreateNamedPipeW (
       wname, flag_of_open_modes (open_modes), flag_of_pipe_modes (pipe_modes),
       PIPE_UNLIMITED_INSTANCES, Int_val (out_buffer_size),
@@ -250,6 +203,13 @@ geneweb_win32_named_pipe_create_named_pipe (
 #else
   caml_invalid_argument ("pipe_open: not supported");
 #endif
+}
+
+CAMLprim value
+geneweb_win32_named_pipe_create_named_pipe_bytecode (value *argv, int argn)
+{
+  return geneweb_win32_named_pipe_create_named_pipe_native (
+      argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 }
 
 CAMLprim value
@@ -273,11 +233,17 @@ geneweb_win32_named_pipe_connect_named_pipe (value handle)
 }
 
 CAMLprim value
-geneweb_win32_named_pipe_flush_all_buffers (value handle)
+geneweb_win32_named_pipe_flush_file_buffers (value handle)
 {
 #if defined(_WIN32)
   CAMLparam1 (handle);
   HANDLE h = Handle_val (handle);
+  BOOL flushed = FlushFileBuffers (handle);
+
+  if (!flushed)
+    raise_error ("FlushFileBuffers", GetLastError ());
+
+  CAMLreturn (Val_unit);
 #else
   caml_invalid_argument ("flush_all_buffers: not supported");
 #endif

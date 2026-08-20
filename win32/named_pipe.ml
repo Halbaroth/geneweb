@@ -27,7 +27,8 @@ type time_out = WAIT_USE_DEFAULT_WAIT | WAIT_WAIT_FOREVER | TIME_OUT of int
 
 external create_named_pipe :
   string -> open_mode list -> pipe_mode list -> int -> int -> int -> t
-  = "geneweb_win32_named_pipe_create_named_pipe"
+  = "geneweb_win32_named_pipe_create_named_pipe_bytecode"
+    "geneweb_win32_named_pipe_create_named_pipe_native"
 
 external connect_named_pipe : t -> unit
   = "geneweb_win32_named_pipe_connect_named_pipe"
