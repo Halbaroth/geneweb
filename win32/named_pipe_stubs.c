@@ -7,6 +7,9 @@
 #include <caml/callback.h>
 #include <caml/unixsupport.h>
 #include <caml/osdeps.h>
+
+#if defined(_WIN32)
+
 #include <windows.h>
 #define SIZEBUF 4096
 
@@ -15,11 +18,11 @@ static value retrieve_error_message (DWORD id) {
   LPTSTR error = NULL;
 
   FormatMessage (
-    FORMAT_MESSAGE_FROM_SYSTEM | 
-    FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+    FORMAT_MESSAGE_FROM_SYSTEM |
+    FORMAT_MESSAGE_ALLOCATE_BUFFER |
     FORMAT_MESSAGE_IGNORE_INSERTS,
     NULL,
-    id, 
+    id,
     MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
     (LPTSTR) &error,
     0,
@@ -32,36 +35,43 @@ static value retrieve_error_message (DWORD id) {
 static void raise_error (const char *name, DWORD id) {
   CAMLparam0 ();
   CAMLlocal1 (res);
-  
+
   res = caml_alloc_small (4, 0);
   Field (res, 0) = *caml_named_value ("Geneweb_named_pipe.Error");
   Field (res, 1) = caml_copy_string (name);
   Field (res, 2) = id;
   Field (res, 3) = retrieve_error_message (id);
-  
+
   CAMLnoreturn;
 }
 
-CAMLprim value geneweb_named_pipe_open (value name) {
+#endif // _WIN32
+
+CAMLprim value geneweb_named_pipe_create_named_pipe (value name) {
+#if defined(_WIN32)
   CAMLparam1 (name);
-  
+
   wchar_t *wname = caml_stat_strdup_to_utf16 (String_val (name));
 
   caml_release_runtime_system ();
   HANDLE handle =
-    CreateNamedPipeW (wname, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_WAIT, 
+    CreateNamedPipeW (wname, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_WAIT,
       PIPE_UNLIMITED_INSTANCES, SIZEBUF, SIZEBUF, 0, NULL);
   caml_acquire_runtime_system ();
-  
+
   caml_stat_free (wname);
 
-  if (handle == INVALID_HANDLE_VALUE) 
+  if (handle == INVALID_HANDLE_VALUE)
     raise_error ("named_pipe_open", GetLastError ());
 
   CAMLreturn (caml_win32_alloc_handle (handle));
+#else
+  caml_invalid_argument ("pipe_open: not supported");
+#endif
 }
 
 CAMLprim value geneweb_named_pipe_connect (value handle) {
+#if defined(_WIN32)
   CAMLparam1 (handle);
   HANDLE h = Handle_val (handle);
 
@@ -73,15 +83,22 @@ CAMLprim value geneweb_named_pipe_connect (value handle) {
     raise_error ("named_pipe_connect", GetLastError ());
 
   CAMLreturn (Val_unit);
+#else
+  caml_invalid_argument ("connect: not supported");
+#endif
 }
 
-// CAMLprim value geneweb_named_pipe_flush (value handle) {
-//   CAMLparam1 (handle);
-//   HANDLE h = Handle_val (handle);
-// 
-// }
+CAMLprim value geneweb_named_pipe_flush (value handle) {
+#if defined(_WIN32)
+  CAMLparam1 (handle);
+  HANDLE h = Handle_val (handle);
+#else
+  caml_invalid_argument ("flush: not supported");
+#endif
+}
 
 CAMLprim value geneweb_named_pipe_disconnect (value handle) {
+#if defined(_WIN32)
   CAMLparam1 (handle);
   HANDLE h = Handle_val (handle);
 
@@ -90,21 +107,28 @@ CAMLprim value geneweb_named_pipe_disconnect (value handle) {
   caml_acquire_runtime_system ();
 
   CAMLreturn (Val_unit);
+#else
+  caml_invalid_argument ("disconnect: not supported");
+#endif
 }
 
 CAMLprim value geneweb_named_pipe_wait (value name) {
+#if defined(_WIN32)
   CAMLparam1 (name);
-  
+
   wchar_t *wname = caml_stat_strdup_to_utf16 (String_val (name));
 
   caml_release_runtime_system ();
   BOOL ready = WaitNamedPipeW (wname, NMPWAIT_USE_DEFAULT_WAIT);
   caml_acquire_runtime_system ();
-  
+
   caml_stat_free (wname);
 
   if (!ready)
     raise_error ("named_pipe_wait" , GetLastError ());
 
   CAMLreturn (Val_unit);
+#else
+  caml_invalid_argument ("wait: not supported");
+#endif
 }

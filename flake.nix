@@ -76,6 +76,7 @@
             pkgs.mkShell {
               packages = [
                 ocamlWrapped
+                pkgs.clang-tools
               ]
               ++ (with ocamlPackages; [
                 qcheck
