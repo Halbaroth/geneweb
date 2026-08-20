@@ -121,28 +121,6 @@ flag_of_pipe_modes (value modes)
   return flag;
 }
 
-static value
-Val_of_time_out (DWORD time_out)
-{
-  CAMLparam0 ();
-  CAMLlocal1 (result);
-
-  switch (time_out)
-    {
-    case NMPWAIT_USE_DEFAULT_WAIT:
-      result = Val_int (0);
-      break;
-    case NMPWAIT_WAIT_FOREVER:
-      result = Val_int (1);
-      break;
-    default:
-      result = caml_alloc_small (1, 0);
-      Field (result, 0) = Val_int (time_out);
-    }
-
-  CAMLreturn (result);
-}
-
 static DWORD
 Time_out_of_val (value time_out)
 {
@@ -183,8 +161,8 @@ geneweb_win32_named_pipe_create_named_pipe_native (
     value out_buffer_size, value in_buffer_size, value default_timeout)
 {
 #if defined(_WIN32)
-  CAMLparam7 (name, open_modes, pipe_modes, max_instances, out_buffer_size,
-              in_buffer_size, default_timeout);
+  CAMLparam5 (name, open_modes, pipe_modes, max_instances, out_buffer_size);
+  CAMLxparam2 (in_buffer_size, default_timeout);
 
   wchar_t *wname = caml_stat_strdup_to_utf16 (String_val (name));
 
