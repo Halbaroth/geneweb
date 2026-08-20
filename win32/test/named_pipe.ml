@@ -14,11 +14,10 @@ let client () =
 
 let spawn_client () =
   let env = Array.append [| "IS_CLIENT=yes" |] (Unix.environment ()) in
-  let _ : int =
-    Unix.create_process_env Sys.executable_name Sys.argv env Unix.stdin
-      Unix.stdout Unix.stderr
-  in
-  ()
+  ignore
+    (Unix.create_process_env Sys.executable_name Sys.argv env Unix.stdin
+       Unix.stdout Unix.stderr
+      : int)
 
 let server () =
   Format.eprintf "[server] started@.";
