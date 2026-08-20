@@ -1,0 +1,4 @@
+(test
+  (package geneweb-win32)
+  (name named_pipe)
+  (libraries named_pipe))

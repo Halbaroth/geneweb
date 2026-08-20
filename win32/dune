@@ -1,0 +1,6 @@
+(library
+ (public_name geneweb_win32.named_pipe)
+ (libraries unix)
+ (foreign_stubs
+  (language c)
+  (names named_pipe_stubs.c)))
