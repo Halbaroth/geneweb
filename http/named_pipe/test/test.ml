@@ -1,5 +1,10 @@
 module Named_pipe = Geneweb_named_pipe
 
+type t = {
+  msg : string;
+  priority : int
+}
+
 let pipe_name = "foo" 
 
 let client () =
@@ -7,10 +12,9 @@ let client () =
   Format.eprintf "[client] waiting pipe...@.";
   Named_pipe.wait pipe_name;
   let fd = Unix.openfile "\\\\.\\pipe\\foo" [ Unix.O_RDWR ] 0 in 
-  let bytes = Bytes.of_string "Hello" in
-  let w = Unix.write fd bytes 0 (Bytes.length bytes) in
-  assert (w = Bytes.length bytes);
-  Unix.close fd;
+  let oc = Unix.out_channel_of_descr fd in
+  Fun.protect ~finally:(fun () -> close_out_noerr oc) @@ fun () ->
+  Marshal.to_channel oc { msg = "Hello"; priority = 18 } [ No_sharing ];
   Format.eprintf "[client] end@."
 
 let spawn_client () =
@@ -29,10 +33,10 @@ let server () =
   spawn_client ();
   Format.eprintf "[server] waiting for client...@.";
   Named_pipe.connect pipe;
-  let buf = Bytes.create 4096 in
-  let r = Unix.read pipe buf 0 4096 in
-  let content = Bytes.sub_string buf 0 r in
-  Format.eprintf "result: %s@." content
+  let ic = Unix.in_channel_of_descr pipe in
+  Fun.protect ~finally:(fun () -> close_in_noerr ic) @@ fun () ->
+  let { msg; priority } = Marshal.from_channel ic in
+  Format.eprintf "[server] msg = %S, priority = %d@." msg priority
 
 let () =
   match Sys.getenv "IS_CLIENT" with 
