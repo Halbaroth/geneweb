@@ -32,13 +32,13 @@ static void
 raise_error (const char *name, DWORD id)
 {
   CAMLparam0 ();
-  CAMLlocal1 (res);
+  CAMLlocal1 (result);
 
-  res = caml_alloc_small (4, 0);
-  Field (res, 0) = *caml_named_value ("Geneweb_named_pipe.Error");
-  Field (res, 1) = caml_copy_string (name);
-  Field (res, 2) = id;
-  Field (res, 3) = retrieve_error_message (id);
+  result = caml_alloc_small (4, 0);
+  Field (result, 0) = *caml_named_value ("Geneweb_named_pipe.Error");
+  Field (result, 1) = caml_copy_string (name);
+  Field (result, 2) = id;
+  Field (result, 3) = retrieve_error_message (id);
 
   CAMLnoreturn;
 }
@@ -61,7 +61,7 @@ Open_mode_val (value v)
     case 5:
       return FILE_FLAG_OVERLAPPED;
     default:
-      assert (false);
+      assert (FALSE);
     }
 }
 
@@ -102,7 +102,7 @@ Pipe_mode_val (value v)
     case 7:
       return PIPE_REJECT_REMOTE_CLIENTS;
     default:
-      assert (false);
+      assert (FALSE);
     }
 }
 
@@ -124,6 +124,7 @@ flag_of_pipe_modes (value modes)
 static value
 Val_of_time_out (DWORD time_out)
 {
+  CAMLparam0 ();
   CAMLlocal1 (result);
 
   switch (time_out)
@@ -154,12 +155,12 @@ Time_out_of_val (value time_out)
         case 1:
           return NMPWAIT_WAIT_FOREVER;
         default:
-          assert (false);
+          assert (FALSE);
         }
     }
   else
     {
-      return Int_val (Field (result, 0));
+      return Int_val (Field (time_out, 0));
     }
 }
 
@@ -238,7 +239,7 @@ geneweb_win32_named_pipe_flush_file_buffers (value handle)
 #if defined(_WIN32)
   CAMLparam1 (handle);
   HANDLE h = Handle_val (handle);
-  BOOL flushed = FlushFileBuffers (handle);
+  BOOL flushed = FlushFileBuffers (h);
 
   if (!flushed)
     raise_error ("FlushFileBuffers", GetLastError ());
