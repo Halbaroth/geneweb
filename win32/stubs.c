@@ -10,6 +10,8 @@ CAMLprim value geneweb_win32_fd_of_file_descr (value file_descr) {
 
 #if defined (_WIN32)
   fd = caml_win32_CRT_fd_of_filedescr (file_descr);
+  if (fd == -1)
+    caml_invalid_argument ("floop");
 #else
   fd = Int_val (file_descr);
 #endif
