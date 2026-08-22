@@ -190,7 +190,7 @@ let check_stopping () =
     exit 0)
 
 let accept_connection_windows socket =
-  let client_socket, addr = Unix.accept socket in
+  let client_socket, addr = Unix.accept ~cloexec:false socket in
   Unix.setsockopt client_socket Unix.SO_KEEPALIVE true;
   connection_closed := false;
   wserver_sock := client_socket;
