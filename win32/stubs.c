@@ -3,6 +3,7 @@
 #include <caml/memory.h>
 #include <caml/unixsupport.h>
 #include <caml/fail.h>
+#include <stdio.h>
 
 CAMLprim value geneweb_win32_fd_of_file_descr (value file_descr) {
   CAMLparam1 (file_descr);
@@ -10,6 +11,7 @@ CAMLprim value geneweb_win32_fd_of_file_descr (value file_descr) {
 
 #if defined (_WIN32)
   fd = caml_win32_CRT_fd_of_filedescr (file_descr);
+  fprintf (stderr, "got %d\n", fd);
   if (fd == -1)
     caml_invalid_argument ("floop");
 #else
@@ -24,6 +26,7 @@ CAMLprim value geneweb_win32_file_descr_of_fd (value fd) {
   CAMLlocal1 (file_descr);
 
 #if defined (_WIN32)
+  fprintf (stderr, "received: %d\n", Int_val (fd));
   HANDLE h = (HANDLE) _get_osfhandle (Int_val (fd));
   // if (h == INVALID_HANDLE_VALUE)
   //   caml_invalid_argument ("is not a handle!");
