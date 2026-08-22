@@ -25,8 +25,8 @@ CAMLprim value geneweb_win32_file_descr_of_fd (value fd) {
 
 #if defined (_WIN32)
   HANDLE h = (HANDLE) _get_osfhandle (Int_val (fd));
-  if (h == INVALID_HANDLE_VALUE)
-    caml_invalid_argument ("is not a handle!");
+  // if (h == INVALID_HANDLE_VALUE)
+  //   caml_invalid_argument ("is not a handle!");
 
   file_descr = caml_win32_alloc_socket ((SOCKET) h);
 #else
