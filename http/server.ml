@@ -196,6 +196,7 @@ let accept_connection_windows socket =
   wserver_sock := client_socket;
   check_stopping ();
   let fd_in, fd_out = Unix.pipe ~cloexec:true () in
+  let foo = Socket.fd_of_file_descr client_socket in
   let pid =
     let env = Array.append [| "WSERVER=true" |] (Unix.environment ()) in
     Unix.create_process_env Sys.argv.(0) Sys.argv env fd_in Unix.stdout
@@ -207,7 +208,7 @@ let accept_connection_windows socket =
     ~finally:(fun () -> close_out_noerr oc)
     (fun () ->
       set_binary_mode_out oc true;
-      output_value oc (Socket.fd_of_file_descr client_socket);
+      output_value oc foo;
       output_value oc addr);
   close_in stdin;
   ignore (Unix.waitpid [] pid)
