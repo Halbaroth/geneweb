@@ -9,24 +9,6 @@ let tn conf ?(c = 1) l n =
   let s = Util.transl_nth conf l n in
   if c <> 0 then Utf8.capitalize_fst s else s
 
-module TranslCache = struct
-  let cache = Hashtbl.create 32
-
-  let get conf key =
-    match Hashtbl.find_opt cache (conf.lang, key) with
-    | Some v -> v
-    | None ->
-        let v = t conf key in
-        if Hashtbl.length cache >= 256 then (
-          let to_remove = ref None in
-          Hashtbl.iter
-            (fun k _ -> if !to_remove = None then to_remove := Some k)
-            cache;
-          match !to_remove with Some k -> Hashtbl.remove cache k | None -> ());
-        Hashtbl.add cache (conf.lang, key) v;
-        v
-end
-
 type dict_info = {
   dict_type : CheckData.dict_type;
   transl_key : string;
@@ -203,28 +185,26 @@ let get_sel_err_types conf =
 
 let error_type_name conf err_type = t conf (ErrorInfo.get_name err_type)
 
+let get_config_max conf =
+  match List.assoc_opt "chk_data_max_results" conf.base_env with
+  | Some "" -> None
+  | Some s -> (
+      match int_of_string_opt s with
+      | Some n when n > 0 -> Some n
+      | Some _ | None -> Some 150)
+  | None -> Some 150
+
+let get_form_max conf =
+  match Util.p_getenv conf.env "max" with
+  | Some "" -> None
+  | Some s -> (
+      match int_of_string_opt s with
+      | Some n when n > 0 -> Some n
+      | Some _ | None -> None)
+  | None -> None
+
 let get_max_results conf =
-  let config_max =
-    match List.assoc_opt "chk_data_max_results" conf.base_env with
-    | Some "" -> None
-    | Some s -> (
-        try
-          let n = int_of_string s in
-          if n > 0 then Some n else Some 150
-        with _ -> Some 150)
-    | None -> Some 150
-  in
-  let form_max =
-    match Util.p_getenv conf.env "max" with
-    | Some "" -> None
-    | Some s -> (
-        try
-          let n = int_of_string s in
-          if n > 0 then Some n else None
-        with _ -> None)
-    | None -> None
-  in
-  match (config_max, form_max) with
+  match (get_config_max conf, get_form_max conf) with
   | Some c, Some f -> Some (min c f)
   | Some c, None -> Some c
   | None, Some f -> Some f
@@ -240,9 +220,9 @@ let print_redirect_to_list conf base =
         (fun acc (k, v) ->
           if k = "m" then acc
           else
-            let decoded_v = Mutil.decode v in
-            let base_param = acc ^ "&" ^ k ^ "=" ^ decoded_v in
-            if k = "data" && decoded_v = "place" then
+            let v = (v : Adef.encoded_string :> string) in
+            let base_param = acc ^ "&" ^ k ^ "=" ^ v in
+            if k = "data" && v = "place" then
               base_param ^ "&bi=on&ba=on&ma=on&de=on&bu=on"
             else base_param)
         "" conf.env
@@ -267,7 +247,7 @@ let print_redirect_to_list conf base =
         redirect_url ^ String.concat "" person_params
     in
     Server.http_redirect_temporarily final_url
-  with _ ->
+  with Failure _ | Not_found ->
     let error_url = Printf.sprintf "%sm=CHK_DATA" (Util.commd conf :> string) in
     Server.http_redirect_temporarily error_url
 
@@ -282,13 +262,13 @@ let render_error_entry_fast conf base dict_param istr s error_type ~book_title
     {|    <div class="err" data-ori="%s">
       <a href="%s" class="bk" title="%s"%s></a>
       <a class="pl" title="%s"></a>
-      <button onclick="return false;">%s</button>
+      <button type="button">%s</button>
       <a href="%s" class="s2" title="%s"%s></a>
     </div>
 |}
     entry url_mod book_title dict_vis list_title hled url_chk fix_title chk_vis
 
-let render_dict_section_streaming conf base dict filtrd_entries sel_err_types =
+let render_dict_section conf base dict filtrd_entries sel_err_types =
   let dict_title = tn conf (DictInfo.get_name dict) 1 in
   let dict_param = DictInfo.get_url_param dict in
   Output.printf conf
@@ -298,9 +278,9 @@ let render_dict_section_streaming conf base dict filtrd_entries sel_err_types =
       </div>
       <div class="card-body">|}
     dict_title;
-  let book_title = TranslCache.get conf "book link" in
-  let list_title = TranslCache.get conf "list of linked persons" in
-  let fix_title = TranslCache.get conf "fix error automatically" in
+  let book_title = t conf "book link" in
+  let list_title = t conf "list of linked persons" in
+  let fix_title = t conf "fix error automatically" in
   List.iter
     (fun error_type ->
       let entries_for_error =
@@ -323,50 +303,6 @@ let render_dict_section_streaming conf base dict filtrd_entries sel_err_types =
     sel_err_types;
   Output.print_sstring conf "</div></div>"
 
-let render_error_section conf base dict entries_for_error error_type =
-  let dict_param = DictInfo.get_url_param dict in
-  let error_count = List.length entries_for_error in
-  let error_name = error_type_name conf error_type in
-  let book_title = TranslCache.get conf "book link" in
-  let list_title = TranslCache.get conf "list of linked persons" in
-  let fix_title = TranslCache.get conf "fix error automatically" in
-  let buf = Buffer.create (List.length entries_for_error * 200) in
-  Printf.bprintf buf {|<h4>%s (%d)</h4><div class="list-group">|} error_name
-    error_count;
-  List.iter
-    (fun (istr, s, _) ->
-      Buffer.add_string buf
-        (render_error_entry_fast conf base dict_param istr s error_type
-           ~book_title ~list_title ~fix_title))
-    entries_for_error;
-  Buffer.add_string buf "</div>";
-  Buffer.contents buf
-
-let render_dict_section conf base dict filtrd_entries sel_err_types =
-  let dict_title = tn conf (DictInfo.get_name dict) 1 in
-  let buf = Buffer.create 8192 in
-  Printf.bprintf buf
-    {|<div class="card mt-3">
-        <div class="card-header">
-          <h3 class="fw-bold mb-0">%s</h3>
-        </div>
-        <div class="card-body">|}
-    dict_title;
-  List.iter
-    (fun error_type ->
-      let entries_for_error =
-        List.filter_map
-          (fun (istr, s, errors) ->
-            if List.mem error_type errors then Some (istr, s, errors) else None)
-          filtrd_entries
-      in
-      if entries_for_error <> [] then
-        Buffer.add_string buf
-          (render_error_section conf base dict entries_for_error error_type))
-    sel_err_types;
-  Buffer.add_string buf "</div></div>";
-  Buffer.contents buf
-
 let render_missing_cache_warning conf missing_caches =
   if missing_caches = [] then ""
   else
@@ -382,7 +318,7 @@ let render_missing_cache_warning conf missing_caches =
       |> List.map CheckData.dict_to_cache_name
       |> String.concat ", ");
     Printf.bprintf buf
-      {|.<br>%s%s <b><code class="user-select-all">.\gw\cache_file -bd ..\bases -all %s</code></b></div>|}
+      {|.<br>%s%s <b><code class="user-select-all">cache_files -bd ... -all %s</code></b></div>|}
       (tn conf "chk_data cache file not found" 1)
       (t conf ":") conf.bname;
     Buffer.contents buf
@@ -472,42 +408,32 @@ let display_results conf base dicts sel_err_types max_results =
   let use_cache = Util.p_getenv conf.env "nocache" <> Some "1" in
   let total_entries_found = ref 0 in
   let missing_caches = ref [] in
-  let sections_buffer = Buffer.create 4096 in
   let entries_with_dicts =
-    List.fold_right
-      (fun dict acc ->
-        if
-          match max_results with
-          | Some max -> !total_entries_found < max
-          | None -> true
-        then (
-          let remaining =
-            match max_results with
-            | Some max -> Some (max - !total_entries_found)
-            | None -> None
-          in
-          let entries =
-            CheckData.collect_all_errors_with_cache ~max_results:remaining
-              ~sel_err_types conf base dict
-          in
-          if use_cache && not (CheckData.cache_file_exists conf dict) then
-            missing_caches := dict :: !missing_caches;
-          if entries <> [] then (
-            total_entries_found := !total_entries_found + List.length entries;
-            (dict, entries) :: acc)
-          else acc)
-        else acc)
-      dicts []
+    List.fold_left
+      (fun acc dict ->
+        let remaining =
+          Option.map (fun m -> m - !total_entries_found) max_results
+        in
+        match remaining with
+        | Some r when r <= 0 -> acc
+        | _ ->
+            let entries =
+              CheckData.collect_all_errors_with_cache ?max_results:remaining
+                ~sel_err_types conf base dict
+            in
+            if use_cache && not (CheckData.cache_file_exists conf dict) then
+              missing_caches := dict :: !missing_caches;
+            if entries = [] then acc
+            else (
+              total_entries_found := !total_entries_found + List.length entries;
+              (dict, entries) :: acc))
+      [] dicts
+    |> List.rev
   in
   List.iter
     (fun (dict, entries) ->
-      if List.length entries > 250 then
-        render_dict_section_streaming conf base dict entries sel_err_types
-      else
-        Buffer.add_string sections_buffer
-          (render_dict_section conf base dict entries sel_err_types))
+      render_dict_section conf base dict entries sel_err_types)
     entries_with_dicts;
-  Output.print_sstring conf (Buffer.contents sections_buffer);
   if !missing_caches <> [] then
     Output.print_sstring conf
       (render_missing_cache_warning conf !missing_caches);
@@ -532,18 +458,10 @@ let print conf base =
       selected_dicts = get_sel_dicts conf;
       sel_err_types = get_sel_err_types conf;
       max_results = get_max_results conf;
-      form_max =
-        (match Util.p_getenv conf.env "max" with
-        | Some s -> ( try Some (int_of_string s) with _ -> None)
-        | None -> None);
-      config_max =
-        (match List.assoc_opt "chk_data_max_results" conf.base_env with
-        | Some "" -> None
-        | Some s -> ( try Some (int_of_string s) with _ -> Some 150)
-        | None -> Some 150);
+      form_max = get_form_max conf;
+      config_max = get_config_max conf;
       nocache_checked = Util.p_getenv conf.env "nocache" = Some "1";
-      is_roglo =
-        (try List.assoc "roglo" conf.base_env = "yes" with Not_found -> false);
+      is_roglo = List.assoc_opt "roglo" conf.base_env = Some "yes";
     }
   in
   Hutil.header conf title;
@@ -614,6 +532,15 @@ let print conf base =
           </div>|}
       (if params.nocache_checked then " checked" else "")
       (tn conf "chk_data use database/cache" 0);
+  let limit_msg =
+    match params.config_max with
+    | Some c ->
+        Utf8.capitalize_fst
+          (Printf.sprintf
+             (Util.ftransl conf "chk_data limited to %d results")
+             c)
+    | None -> ""
+  in
   Output.printf conf
     {|
           <div class="mb-0">
@@ -624,15 +551,12 @@ let print conf base =
     (t conf ":")
     (match params.form_max with Some n -> string_of_int n | None -> "")
     (match params.config_max with
-    | Some n -> Printf.sprintf {| max="%d"|} n
+    | Some n -> Printf.sprintf {| max="%d" data-limit-msg="%s"|} n limit_msg
     | None -> "")
     (match params.config_max with
-    | Some c ->
+    | Some _ ->
         Printf.sprintf {|<small class="ms-1 text-body-secondary">%s</small>|}
-          (Utf8.capitalize_fst
-             (Printf.sprintf
-                (Util.ftransl conf "chk_data limited to %d results")
-                c))
+          limit_msg
     | None -> "");
   Output.printf conf
     {|
@@ -653,10 +577,13 @@ let print conf base =
   <div class="alert alert-info mt-3">
     <i class="fa fa-database me-2"></i>%s
   </div>
-  <div id="cd" data-ok-title="%s">
+  <div id="cd" data-ok-title="%s" data-msg-invalid="%s" data-msg-timeout="%s" data-msg-popup="%s">
 |}
       (tn conf "chk_data use database/cache" cache_index)
-      (tn conf "validate/delete" 0);
+      (tn conf "validate/delete" 0)
+      (t conf "chk_data invalid response")
+      (t conf "chk_data validation timeout")
+      (t conf "chk_data popup blocked");
     display_results conf base params.selected_dicts params.sel_err_types
       params.max_results;
     Output.print_sstring conf {|
@@ -664,17 +591,18 @@ let print conf base =
 |});
   Hutil.trailer conf
 
-type chk_result =
-  | Success of {
-      before : string;
-      after : string;
-      cache_updated : bool;
-      nb_modified : int option;
-      elapsed : float option;
-    }
-  | Error of string
+type chk_success = {
+  before : string;
+  after : string;
+  cache_updated : bool;
+  nb_modified : int option;
+  elapsed : float option;
+}
+
+type chk_result = Success of chk_success | Error of string
 
 let perform_check_modification conf base =
+  let esc v = (Util.escape_html v :> string) in
   try
     let k =
       Geneweb_db.Driver.Istr.of_string (List.assoc "k" conf.env :> string)
@@ -699,7 +627,7 @@ let perform_check_modification conf base =
       Error
         (Printf.sprintf "%s (%s → %s, %s: %s)"
            (t conf "modification failed")
-           s s2 (t conf "current value") current_val)
+           (esc s) (esc s2) (t conf "current value") (esc current_val))
     else if s = s2 then Error (t conf "no modification")
     else
       let start_time = Unix.gettimeofday () in
@@ -718,7 +646,7 @@ let perform_check_modification conf base =
           let error_msg =
             match dict_param with
             | Some param ->
-                Printf.sprintf "%s: %s" (t conf "incorrect request") param
+                Printf.sprintf "%s: %s" (t conf "incorrect request") (esc param)
             | None -> t conf "cannot determine dictionary type"
           in
           Error error_msg
@@ -752,8 +680,10 @@ let perform_check_modification conf base =
                 nb_pers
             in
             Util.commit_patches conf base;
+            let new_istr = Geneweb_db.Driver.insert_string base s2 in
             let cache_updated =
-              CheckData.update_cache_entry conf dict_info.dict_type k s2
+              CheckData.update_cache_entry conf dict_info.dict_type ~old_istr:k
+                ~new_istr s2
             in
             let elapsed = Unix.gettimeofday () -. start_time in
             Success
@@ -770,31 +700,28 @@ let perform_check_modification conf base =
       Error
         (Printf.sprintf "%s: %s"
            (t conf "modification failed")
-           (Printexc.to_string exn))
+           (esc (Printexc.to_string exn)))
 
 let build_success_message conf r =
-  match r with
-  | Success r_data -> (
-      let base_msg = t conf "modification successful" in
-      let cache_msg =
-        if r_data.cache_updated then "✓ " ^ t conf "cache updated" ^ "" else ""
+  let base_msg = t conf "modification successful" in
+  let cache_msg =
+    if r.cache_updated then "✓ " ^ t conf "cache updated" else ""
+  in
+  match (r.nb_modified, r.elapsed) with
+  | Some n, Some time when n > 0 ->
+      let modif_word =
+        Util.transl_nth conf "modification/modifications"
+          (if n = 1 then 0 else 1)
       in
-      match (r_data.nb_modified, r_data.elapsed) with
-      | Some n, Some time when n > 0 ->
-          let modif_word =
-            Util.transl_nth conf "modification/modifications"
-              (if n = 1 then 0 else 1)
-          in
-          Printf.sprintf "%s<br>%s<br><br>%d %s – %.1f s" base_msg cache_msg n
-            modif_word time
-      | _ -> base_msg ^ cache_msg)
-  | Error _ -> t conf "modification failed"
+      Printf.sprintf "%s<br>%s<br><br>%d %s – %.1f s" base_msg cache_msg n
+        modif_word time
+  | _ -> base_msg ^ cache_msg
 
 let print_result_as_json conf result =
   let json =
     match result with
     | Success r ->
-        let msg = build_success_message conf (Success r) in
+        let msg = build_success_message conf r in
         `Assoc
           [
             ("success", `Bool true);
@@ -828,6 +755,10 @@ let print_status_message conf ~success ~content =
   Output.printf conf {|<div class="alert %s">%s</div>|} alert_class content
 
 let send_validation_result_to_opener conf result =
+  let json_for_script j =
+    String.concat "\\u003c"
+      (String.split_on_char '<' (Yojson.Basic.to_string j))
+  in
   let k = (List.assoc "k" conf.env :> string) in
   let s = Option.value ~default:"" (Util.p_getenv conf.env "s") in
   let s2 = Option.value ~default:"" (Util.p_getenv conf.env "s2") in
@@ -835,7 +766,7 @@ let send_validation_result_to_opener conf result =
   let json_data =
     match result with
     | Success r ->
-        let msg = build_success_message conf (Success r) in
+        let msg = build_success_message conf r in
         `Assoc
           [
             ("success", `Bool true);
@@ -860,8 +791,8 @@ let send_validation_result_to_opener conf result =
   }
 })();
 </script>|}
-    (Yojson.Basic.to_string (`String validation_key))
-    (Yojson.Basic.to_string json_data)
+    (json_for_script (`String validation_key))
+    (json_for_script json_data)
 
 let print_result_as_html conf result =
   match result with

@@ -840,7 +840,7 @@ let basic_authorization from_addr request base_env passwd access_type utm
     if auth = "" then ""
     else
       let s = "Basic " in
-      if Mutil.start_with s 0 auth then
+      if String.starts_with ~prefix:s auth then
         let i = String.length s in
         Base64.decode (String.sub auth i (String.length auth - i))
       else ""
@@ -1049,7 +1049,7 @@ let digest_authorization request base_env passwd utm base_file command =
     }
   else if passwd = "w" || passwd = "f" then
     let auth = Mutil.extract_param "authorization: " '\r' request in
-    if Mutil.start_with "Digest " 0 auth then
+    if String.starts_with ~prefix:"Digest " auth then
       let meth =
         match Mutil.extract_param "GET " ' ' request with
         | "" -> "POST"
@@ -1706,7 +1706,7 @@ let image_request conf script_name env =
       true
   | _ ->
       let s = script_name in
-      if Mutil.start_with "images/" 0 s then
+      if String.starts_with ~prefix:"images/" s then
         let i = String.length "images/" in
         let fname = String.sub s i (String.length s - i) in
         (* Je ne sais pas pourquoi on fait un basename, mais ça empeche *)
@@ -1770,7 +1770,7 @@ let find_misc_file_of_plugins name =
   List.exists
     (fun pname ->
       let assets_dir = assets_of_plugin pname in
-      Mutil.start_with assets_dir 0 name)
+      String.starts_with ~prefix:assets_dir name)
     (Registration.all_registered ())
 
 let find_misc_file conf name =
@@ -2052,6 +2052,7 @@ let display_infos () =
   let path_info =
     [
       ("gwd", Sys.argv.(0));
+      ("bases_dir", Secure.base_dir ());
       ("working_dir", Sys.getcwd ());
       ("gw_prefix", Option.get !gw_prefix);
       ("etc_prefix", Option.get !etc_prefix);
@@ -2262,7 +2263,6 @@ let parse_cmd () =
       arg_file;
   match Cmd.parse () with
   | `Ok o ->
-      selected_addr := o.interface;
       selected_port := o.port;
       Secure.set_base_dir o.base_dir;
       gw_prefix := Some o.gw_prefix;
@@ -2411,7 +2411,7 @@ let () =
   make_socket_dir opts.socket_dir;
   setup_log ~predictable_mode:opts.predictable_mode opts.log;
   try
-    main ~plugins:opts.plugins ?interface:opts.interface ~port:opts.port
+    main ~plugins:opts.plugins ~interface:opts.interface ~port:opts.port
       ~daemon:opts.daemon ~predictable_mode:opts.predictable_mode ()
   with
   | Unix.Unix_error (Unix.EADDRINUSE, "bind", _) ->

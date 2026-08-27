@@ -37,7 +37,7 @@ type t = {
   ban_threshold : (int * int) option;
   min_disp_req : int;
   (* HTTP server *)
-  interface : string option;
+  interface : string;
   redirect_interface : string option;
   port : int;
   connection_timeout : int;
@@ -96,6 +96,10 @@ let var_script_name =
   let doc = "Internal variable used by the CGI mode." in
   C.Cmd.Env.info ~doc "SCRIPT_NAME"
 
+let var_bases_dir =
+  let doc = "Directory of bases" in
+  C.Cmd.Env.info ~doc "GW_BASES_DIR"
+
 (* Helper functions to reject some options on non-UNIX platforms. *)
 
 let unix_only_opt ~error ~default t =
@@ -137,14 +141,7 @@ let log_conv = C.Arg.Conv.make ~docv:"LOG" ~parser:log_parser ~pp:log_pp ()
 (* Directories commands *)
 let dirs_section = "DIRECTORIES"
 let default_base_dir = Secure.default_base_dir
-
-let default_gw_prefix =
-  match Sites.Sites.hd with
-  | s :: _ -> s
-  | _ ->
-      (* This case occurs if gwd hasn't been installed with dune. *)
-      Filename.current_dir_name // "gw"
-
+let default_gw_prefix = List.hd Sites.Sites.hd
 let default_images_prefix = default_gw_prefix // "images"
 let default_etc_prefix = default_gw_prefix // "etc"
 let default_images_dir = ""
@@ -155,7 +152,8 @@ let base_dir =
   C.Arg.(
     value
     & opt dirpath (Dirs.path default_base_dir)
-    & info [ "bd"; "base-dir" ] ~absent ~docs:dirs_section ~doc)
+    & info [ "bd"; "bases-dir" ] ~absent ~env:var_bases_dir ~docs:dirs_section
+        ~doc)
 
 let socket_dir =
   let doc =
@@ -371,16 +369,20 @@ let min_disp_req =
 (* HTTP server commands *)
 
 let http_section = "HTTP SERVER"
+let default_interface = "::"
 let default_port = 2317
 let default_connection_timeout = 120
 let default_max_pending_requests = 150
 let default_n_workers = 20
 
 let interface =
-  let doc = "Bind the HTTP server to the network interface $(docv)." in
+  let doc =
+    "Bind the HTTP server to the network interface $(docv). Use :: for every \
+     interface (IPv4+IPv6) or 0.0.0.0 for IPv4 only."
+  in
   C.Arg.(
     value
-    & opt (some string) None
+    & opt string default_interface
     & info [ "i"; "interface" ] ~docs:http_section ~docv:"INTERFACE" ~doc)
 
 let redirect_interface =
