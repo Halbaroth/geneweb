@@ -96,6 +96,7 @@ geneweb_win32_file_descr_of_fd (value fd)
       break;
     default:
       assert (FALSE);
+      abort ();
     }
 
   CAMLreturn (result);
