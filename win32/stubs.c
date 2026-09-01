@@ -193,7 +193,7 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
   fprintf (stderr, "HERE 3\n");
   fflush (NULL);
-  dump (stderr, (unsigned char *)protocol_info, sizeof (*protocol_info));
+  // dump (stderr, (unsigned char *)protocol_info, sizeof (*protocol_info));
   fprintf (stderr, "\n-------------\n");
   fflush (NULL);
 
