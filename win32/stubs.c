@@ -214,7 +214,7 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   fflush (NULL);
 
   // caml_release_runtime_system ();
-  SOCKET s = WSASocket (FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, poo, 0, flags);
+  SOCKET s = WSASocket (FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &poo, 0, flags);
   // caml_acquire_runtime_system ();
 
   if (s == INVALID_SOCKET) {
