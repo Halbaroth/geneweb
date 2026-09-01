@@ -202,7 +202,7 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   fflush (NULL);
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
   LPWSAPROTOCOL_INFO copy = malloc (sizeof (WSAPROTOCOL_INFO));
-  fprintf (stderr, "PLOP: %ld\n", sizeof (WSAPROTOCOL_INFO));
+  fprintf (stderr, "PLOP: %lld\n", sizeof (WSAPROTOCOL_INFO));
   fflush (NULL);
   memcpy(copy, protocol_info, sizeof (WSAPROTOCOL_INFO));
   fprintf (stderr, "HERE 3\n");
