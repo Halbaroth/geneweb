@@ -9,6 +9,7 @@ let timestamp = Logs.Tag.(empty |> add timestamp_tag ())
 
 module Log = (val Logs.src_log src : Logs.LOG)
 module Fd = Geneweb_win32.Fd
+module Win32 = Geneweb_win32
 
 type handler = unit -> Unix.sockaddr * string list -> string -> string -> unit
 
@@ -188,7 +189,7 @@ let check_stopping () =
     exit 0)
 
 let accept_connection_windows socket =
-  let client_socket, addr = Unix.accept socket in
+  let client_socket, addr = Unix.accept ~cloexec:false socket in
   Unix.setsockopt client_socket Unix.SO_KEEPALIVE true;
   connection_closed := false;
   wserver_sock := client_socket;
@@ -205,9 +206,13 @@ let accept_connection_windows socket =
     ~finally:(fun () -> close_out_noerr oc)
     (fun () ->
       set_binary_mode_out oc true;
-      output_value oc (Fd.file_descr_to_fd client_socket);
+      let () =
+        match Win32.Wsa_duplicate.duplicate_socket client_socket pid with
+        | Ok pe -> output_value oc pe
+        | Error _ -> assert false
+      in
+      (* output_value oc (Fd.file_descr_to_fd client_socket); *)
       output_value oc addr);
-  close_in stdin;
   ignore (Unix.waitpid [] pid)
 
 let accept_connections_windows socket =
@@ -376,12 +381,14 @@ let start ?addr ~port ?(timeout = 0) ~max_pending_requests ~n_workers callback =
               accept_connections ~timeout ~n_workers callback socket))
   | _ ->
       set_binary_mode_in stdin true;
-      let client_socket = Fd.file_descr_of_fd @@ input_value stdin in
+      let pe : Win32.Wsa_duplicate.protocol_info = input_value stdin in
+      let client_socket = Win32.Wsa_duplicate.protocol_info_to_socket pe in
+      (*let client_socket = Fd.file_descr_of_fd @@ input_value stdin in *)
       let addr = input_value stdin in
       let oc = Unix.out_channel_of_descr client_socket in
       wserver_oc := oc;
-      ignore (treat_connection callback addr client_socket);
-      close_connection ();
+      Fun.protect ~finally:close_connection (fun () ->
+        ignore (treat_connection callback addr client_socket));
       exit 0
 
 module Pool = Pool
