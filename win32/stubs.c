@@ -183,10 +183,16 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   CAMLparam2 (cloexec, pi);
   DWORD flags = 0;
 
+  fprintf (stderr, "HERE\n");
+  fflush (NULL);
   if (caml_unix_cloexec_p (cloexec))
     flags |= WSA_FLAG_NO_HANDLE_INHERIT;
 
+  fprintf (stderr, "HERE 2\n");
+  fflush (NULL);
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
+  fprintf (stderr, "HERE 3\n");
+  fflush (NULL);
   dump (stderr, (unsigned char *)protocol_info, sizeof (*protocol_info));
   fprintf (stderr, "\n-------------\n");
   fflush (NULL);
