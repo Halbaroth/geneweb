@@ -145,7 +145,7 @@ geneweb_win32_init (value unit) {
 CAMLprim value
 geneweb_win32_duplicate_socket (value fd, value p) {
 #if defined(_WIN32)
-  CAMLparam2 (fd, pid);
+  CAMLparam2 (fd, p);
   CAMLlocal1 (pi);
   SOCKET socket;
 
