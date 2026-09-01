@@ -207,6 +207,7 @@ let accept_connection_windows socket =
     (fun () ->
       set_binary_mode_out oc true;
       let () =
+        Unix.sleep 1;
         match Win32.Wsa_duplicate.duplicate_socket client_socket pid with
         | Ok pe -> output_value oc pe
         | Error _ -> assert false

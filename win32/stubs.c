@@ -161,7 +161,7 @@ geneweb_win32_duplicate_socket (value fd, value pid) {
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
 
   // caml_release_runtime_system ();
-  int e = WSADuplicateSocket (socket, GetCurrentProcessId (), protocol_info);
+  int e = WSADuplicateSocket (socket, Int_val (pid), protocol_info);
   // caml_acquire_runtime_system ();
 
   dump (stderr, (unsigned char *)protocol_info, sizeof (*protocol_info));
