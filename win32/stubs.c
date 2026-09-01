@@ -164,7 +164,7 @@ geneweb_win32_duplicate_socket (value fd, value p) {
   pi = alloc_protocol_info ();
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
 
-  int pid = GetProcessId ((LPHANDLE) Long_val (p));
+  int pid = GetProcessId ((HANDLE) Long_val (p));
   fprintf (stderr, "PID in parent: %d\n", pid);
   fflush (NULL);
 
