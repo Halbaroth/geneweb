@@ -188,7 +188,7 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   CAMLparam2 (cloexec, pi);
   DWORD flags = 0;
 
-  fprintf (stderr, "PID in child: %d\n", GetCurrentProcessId ());
+  fprintf (stderr, "PID in child: %ld\n", GetCurrentProcessId ());
 
   fprintf (stderr, "HERE\n");
   fflush (NULL);
