@@ -29,6 +29,7 @@ static void dump (FILE *file, const unsigned char *data, size_t size) {
 static value
 Val_of_error (int e) {
   fprintf (stderr, "error %d\n", e);
+  fflush (NULL);
   switch (e) {
     case WSANOTINITIALISED:
       return Val_int (0);
