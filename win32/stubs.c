@@ -169,7 +169,7 @@ geneweb_win32_duplicate_socket (value fd, value pid) {
   fflush (NULL);
 
   if (e != 0)
-    CAMLreturn (caml_alloc_error (WSAGetLastError ()));
+    CAMLreturn (caml_alloc_error (Val_of_error (WSAGetLastError ())));
   else
     CAMLreturn (caml_alloc_ok (pi));
 #else
