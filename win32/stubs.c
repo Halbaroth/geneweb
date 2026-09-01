@@ -3,7 +3,9 @@
 #include <caml/fail.h>
 
 #if defined(_WIN32)
-#define UNICODE
+#ifndef UNICODE
+#define UNICODE 1
+#endif
 #include <assert.h>
 #include <winsock2.h>
 #include <windows.h>
