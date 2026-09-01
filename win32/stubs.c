@@ -109,7 +109,6 @@ CAMLexport const struct custom_operations protocol_info_ops = {
   protocol_info_serialize,
   protocol_info_deserialize,
   custom_compare_ext_default,
-  custom_fixed_length_default
   &protocol_info_fixed_length
 };
 
