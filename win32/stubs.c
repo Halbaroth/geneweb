@@ -184,6 +184,8 @@ geneweb_win32_duplicate_socket (value fd, value p) {
 #endif
 }
 
+static WSAPROTOCOL_INFO poo = { 0 };
+
 CAMLprim value
 geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
 #if defined(_WIN32)
@@ -201,10 +203,10 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   fprintf (stderr, "HERE 2\n");
   fflush (NULL);
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
-  LPWSAPROTOCOL_INFO copy = malloc (sizeof (WSAPROTOCOL_INFO));
-  fprintf (stderr, "PLOP: %lld\n", sizeof (WSAPROTOCOL_INFO));
+  // LPWSAPROTOCOL_INFO copy = malloc (sizeof (WSAPROTOCOL_INFO));
+  // fprintf (stderr, "PLOP: %lld\n", sizeof (WSAPROTOCOL_INFO));
   fflush (NULL);
-  memcpy(copy, protocol_info, sizeof (WSAPROTOCOL_INFO));
+  memcpy(&poo, protocol_info, sizeof (WSAPROTOCOL_INFO));
   fprintf (stderr, "HERE 3\n");
   fflush (NULL);
   // dump (stderr, (unsigned char *)protocol_info, sizeof (*protocol_info));
@@ -212,7 +214,7 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   fflush (NULL);
 
   // caml_release_runtime_system ();
-  SOCKET s = WSASocket (FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, copy, 0, flags);
+  SOCKET s = WSASocket (FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, poo, 0, flags);
   // caml_acquire_runtime_system ();
 
   if (s == INVALID_SOCKET) {
