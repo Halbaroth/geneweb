@@ -162,6 +162,8 @@ geneweb_win32_duplicate_socket (value fd, value p) {
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
 
   int pid = GetProcessId ((LPHANDLE) Long_val (p));
+  fprintf (stderr, "PID in parent: %d\n", pid);
+  fflush (NULL);
 
   // caml_release_runtime_system ();
   int e = WSADuplicateSocket (socket, pid, protocol_info);
@@ -185,6 +187,8 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   fprintf (stderr, "SIZE = %lld\n", sizeof (WSAPROTOCOL_INFO));
   CAMLparam2 (cloexec, pi);
   DWORD flags = 0;
+
+  fprintf (stderr, "PID in child: %d\n", GetCurrentProcessId ());
 
   fprintf (stderr, "HERE\n");
   fflush (NULL);
