@@ -1,4 +1,6 @@
 #include <caml/mlvalues.h>
+#include <caml/memory.h>
+#include <caml/fail.h>
 
 #if defined(_WIN32)
 #include <assert.h>
@@ -7,9 +9,7 @@
 
 #include <caml/alloc.h>
 #include <caml/custom.h>
-#include <caml/memory.h>
 #include <caml/callback.h>
-#include <caml/fail.h>
 #include <caml/misc.h>
 #include <caml/threads.h>
 #include <caml/unixsupport.h>
@@ -19,7 +19,7 @@
 
 static void dump (FILE *file, const unsigned char *data, size_t size) {
   for (size_t i = 0; i < size; i++) {
-    if (i % 15 == 14) 
+    if (i % 15 == 14)
       fprintf (file, "%02x\n", data[i]);
     else
       fprintf (file, "%02x ", data[i]);
@@ -48,6 +48,7 @@ Val_of_error (int e) {
       return Val_int (7);
     default:
       assert (FALSE);
+      abort ();
   }
 }
 
@@ -94,7 +95,7 @@ uintnat protocol_info_deserialize (void *dst) {
 #ifdef ARCH_SIXTYFOUR
   caml_deserialize_block_1 (dst, protocol_info_fixed_length.bsize_64);
   return protocol_info_fixed_length.bsize_64;
-#else 
+#else
   caml_deserialize_block_1 (dst, protocol_info_fixed_length.bsize_32);
   return protocol_info_fixed_length.bsize_32;
 #endif
@@ -109,7 +110,7 @@ CAMLexport const struct custom_operations protocol_info_ops = {
   protocol_info_deserialize,
   custom_compare_ext_default,
   custom_fixed_length_default
-  // &protocol_info_fixed_length
+  &protocol_info_fixed_length
 };
 
 static value alloc_protocol_info () {
@@ -120,22 +121,26 @@ static value alloc_protocol_info () {
 // static LPWSAPROTOCOL_INFO alloc_protocol_info (void) {
 //   return HeapAlloc (GetProcessHeap (), HEAP_ZERO_MEMORY, sizeof (WSAPROTOCOL_INFO));
 // }
-// 
+//
 // static void free_protocol_info (LPWSAPROTOCOL_INFO pi) {
 //   HeapFree (GetProcessHeap (), 0, pi);
-// } 
+// }
 
-#endif
+#endif // _WIN32
 
 CAMLprim value
 geneweb_win32_init (value unit) {
+#if defined(_WIN32)
   CAMLparam1 (unit);
   caml_register_custom_operations (&protocol_info_ops);
   CAMLreturn (Val_unit);
+#else
+  caml_invalid_argument ("init: not supported");
+#endif
 }
 
 CAMLprim value
-geneweb_win32_wsa_duplicate_socket (value fd, value pid) {
+geneweb_win32_duplicate_socket (value fd, value pid) {
 #if defined(_WIN32)
   CAMLparam2 (fd, pid);
   CAMLlocal1 (pi);
@@ -149,7 +154,7 @@ geneweb_win32_wsa_duplicate_socket (value fd, value pid) {
   default:
     caml_invalid_argument ("wsa_duplicate_socket: invalid file descriptor");
   }
-  
+
   pi = alloc_protocol_info ();
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
 
@@ -174,6 +179,7 @@ geneweb_win32_wsa_duplicate_socket (value fd, value pid) {
 
 CAMLprim value
 geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
+#if defined(_WIN32)
   fprintf (stderr, "SIZE = %lld\n", sizeof (WSAPROTOCOL_INFO));
   CAMLparam2 (cloexec, pi);
   DWORD flags = 0;
@@ -196,6 +202,9 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
   }
 
   CAMLreturn (caml_win32_alloc_socket (s));
+#else
+  caml_invalid_argument ("protocol_info_to_socket: not supported");
+#endif
 }
 
 // CAMLprim value
@@ -203,30 +212,30 @@ geneweb_win32_protocol_info_to_socket (value cloexec, value pi) {
 // #if defined(_WIN32)
 //   CAMLparam2 (oc, pi);
 //   struct channel *ch = Channel (oc);
-//   
+//
 //   CAMLreturn (Val_unit);
 // #else
 //   caml_invalid_argument ("output: not supported");
 // #endif
 // }
-// 
+//
 // CAMLprim value
 // geneweb_win32_protocol_info_input (value ic) {
 // #if defined(_WIN32)
 //   CAMLparam1 (ic);
 //   struct channel *ch = Channel (ic);
-// 
+//
 //   LPWSAPROTOCOL_INFO pi = alloc_protocol_info ();
-// 
+//
 //   caml_channel_lock (ch);
-// 
+//
 //   int sz = sizeof (*pi);
 //   int read = 0;
 //   while (read < sz)
 //     read += caml_getblock (ch, (char *) (pi + read), sz - read);
-// 
+//
 //   caml_channel_unlock (ch);
-// 
+//
 //   CAMLreturn (Val_of_protocol_info (pi));
 // #else
 //   caml_invalid_argument ("input: not supported");

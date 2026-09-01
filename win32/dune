@@ -1,8 +1,8 @@
 (library
  (package geneweb-win32)
  (name geneweb_win32)
- (modules fd)
+ (modules fd wsa_duplicate)
  (libraries unix)
  (foreign_stubs
   (language c)
-  (names fd)))
+  (names fd stubs)))
