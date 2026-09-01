@@ -94,6 +94,9 @@ void protocol_info_serialize (value v, uintnat *bsize_32, uintnat *bsize_64) {
 uintnat protocol_info_deserialize (void *dst) {
 #ifdef ARCH_SIXTYFOUR
   caml_deserialize_block_1 (dst, protocol_info_fixed_length.bsize_64);
+  fprintf (stderr, "\n-------------\n");
+  dump (stderr, (unsigned char *)dst, sizeof (WSAPROTOCOL_INFO));
+  fprintf (stderr, "\n-------------\n");
   return protocol_info_fixed_length.bsize_64;
 #else
   caml_deserialize_block_1 (dst, protocol_info_fixed_length.bsize_32);
@@ -157,14 +160,11 @@ geneweb_win32_duplicate_socket (value fd, value pid) {
   pi = alloc_protocol_info ();
   LPWSAPROTOCOL_INFO protocol_info = Protocol_info_val (pi);
 
-  caml_release_runtime_system ();
-  int e = WSADuplicateSocket (socket, Int_val (pid), protocol_info);
-  caml_acquire_runtime_system ();
+  // caml_release_runtime_system ();
+  int e = WSADuplicateSocket (socket, GetCurrentProcessId (), protocol_info);
+  // caml_acquire_runtime_system ();
 
   dump (stderr, (unsigned char *)protocol_info, sizeof (*protocol_info));
-  fprintf (stderr, "\n-------------\n");
-  dump (stderr, (unsigned char *)pi, sizeof (*protocol_info));
-  fprintf (stderr, "\n-------------\n");
   fflush (NULL);
 
   if (e != 0)
