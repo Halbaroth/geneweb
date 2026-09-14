@@ -6,7 +6,6 @@
 
 *.bat text eol=crlf
 *.iss text eol=crlf
-test/gwd/windows.t eol=crlf
 
 *.config text eol=lf
 *.cgi text eol=lf
