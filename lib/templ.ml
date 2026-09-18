@@ -50,9 +50,7 @@ let resolve_include conf _loc fl =
 
 let parse conf fl =
   let fl = Util.etc_file_name conf fl in
-  let cached = not conf.predictable_mode in
-  Parser.parse ~cached ~on_exn ~resolve_include:(resolve_include conf)
-    (`File fl)
+  Parser.parse ~on_exn ~resolve_include:(resolve_include conf) (`File fl)
 
 let sort_apply_parameters loc f_expr xl vl =
   let named_vl, unnamed_vl =
@@ -203,7 +201,7 @@ let rec eval_variable (conf : Config.config) = function
         aux 0 assoc_list
       in
       let l =
-        if List.assoc "sort_bvar_entries" conf.base_env = "no" then
+        if List.assoc_opt "sort_bvar_entries" conf.base_env = Some "no" then
           conf.base_env
         else List.sort (fun (k1, _v1) (k2, _v2) -> compare k1 k2) conf.base_env
       in
@@ -220,6 +218,7 @@ let rec eval_variable (conf : Config.config) = function
                else "####"))
         "" l
   | [ "gwd"; "arglist" ] -> !GWPARAM.gwd_cmd
+  | [ "evt_symbol"; name ] -> Util.event_symbol conf name
   | [ "bvar"; v ] | [ "b"; v ] -> (
       try List.assoc v conf.base_env with Not_found -> "")
   | [ "connections"; "wizards" ] -> (
@@ -684,6 +683,7 @@ let templ_eval_var (conf : Config.config) = function
   | [ "cgi" ] -> VVbool conf.cgi
   | [ "debug" ] -> VVbool conf.debug
   | [ "false" ] -> VVbool false
+  | [ "reorg" ] -> VVbool !GWPARAM.reorg
   | [ "has_referer" ] ->
       (* deprecated since version 5.00 *)
       VVbool (Mutil.extract_param "referer: " '\n' conf.request <> "")
@@ -691,6 +691,7 @@ let templ_eval_var (conf : Config.config) = function
   | [ "just_friend_wizard" ] -> VVbool conf.just_friend_wizard
   | [ "friend" ] -> VVbool conf.friend
   | [ "manitou" ] -> VVbool conf.manitou
+  | [ "oidc" ] -> VVbool conf.oidc
   | [ "plugin"; plugin ] ->
       let plugins =
         try
@@ -1056,7 +1057,6 @@ and eval_integer i = function
 let eval_var conf ifun env ep loc sl =
   try
     match sl with
-    | [ "reorg" ] -> VVbool !GWPARAM.reorg
     | [ "env"; "key" ] -> (
         match ifun.get_vother (Env.find "binding" env) with
         | Some (Vbind (k, _)) -> VVstring k
@@ -1281,6 +1281,7 @@ let rec eval conf ifun env =
         (* Excluded by [Geneweb_templ.Parser.parse]. *)
         assert false
     | Ast.{ desc = Apack l; _ } :: al ->
+        m_env := env;
         print_ast_list env ep l;
         print_ast_list !m_env ep al
     | [ a ] -> print_ast env ep a
@@ -1351,9 +1352,8 @@ and print_var print_ast_list conf ifun env ep loc sl =
           try
             let fl = Util.etc_file_name conf templ in
             let astl =
-              let cached = not conf.predictable_mode in
-              Parser.parse ~cached ~on_exn
-                ~resolve_include:(resolve_include conf) (`File fl)
+              Parser.parse ~on_exn ~resolve_include:(resolve_include conf)
+                (`File fl)
             in
             print_ast_list env ep astl
           with _ ->
@@ -1384,6 +1384,7 @@ and print_simple_variable conf = function
       Output.print_sstring conf
         (String.concat ", " (Util.get_bases_list ~format_fun:format_link ()))
   | "hidden" -> Util.hidden_env conf
+  | "hidden_no_senv" -> Util.hidden_env ~senv:false conf
   | "message_to_wizard" -> Util.message_to_wizard conf
   | "query_time" ->
       (* FIXME: This variable have been introduced in order to display the

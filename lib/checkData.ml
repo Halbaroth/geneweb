@@ -47,17 +47,18 @@ module ErrorSet = Set.Make (struct
   let compare = compare
 end)
 
-let data_to_dict_type data =
-  match data with
+let data_to_dict_type = function
   | "fn" -> Fnames
   | "sn" -> Snames
+  | "fna" -> Fnames_alias
+  | "sna" -> Snames_alias
   | "place" -> Places
-  | "pub_name" -> PubNames
-  | "qualif" -> Qualifiers
+  | "pubn" -> PubNames
+  | "qual" -> Qualifiers
   | "alias" -> Aliases
-  | "occup" -> Occupation
+  | "occu" -> Occupation
   | "title" -> Titles
-  | "estate" -> Estates
+  | "domain" -> Estates
   | "src" -> Sources
   | _ -> Fnames
 
@@ -142,23 +143,18 @@ let nbsp_re =
           ]))
 
 let has_any_particle base s =
-  let particle = Mutil.get_particle (Driver.base_particles base) s in
-  if particle <> "" then true
-  else
-    let rec check_from pos =
-      if pos >= String.length s then false
+  let rec check_from pos =
+    if pos >= String.length s then false
+    else
+      let remaining = String.sub s pos (String.length s - pos) in
+      if Mutil.get_particle (Driver.base_particles base) remaining <> "" then
+        true
       else
-        let remaining = String.sub s pos (String.length s - pos) in
-        let particle =
-          Mutil.get_particle (Driver.base_particles base) remaining
-        in
-        if particle <> "" then true
-        else
-          match String.index_from_opt s pos ' ' with
-          | None -> false
-          | Some space_pos -> check_from (space_pos + 1)
-    in
-    check_from 0
+        match String.index_from_opt s pos ' ' with
+        | None -> false
+        | Some space_pos -> check_from (space_pos + 1)
+  in
+  check_from 0
 
 let is_roman_numeral s =
   try
@@ -168,11 +164,14 @@ let is_roman_numeral s =
 (* Multiple Spaces functions *)
 (* Check if the character following nbsp is part of a roman numeral *)
 let has_roman_after_nbsp s i =
-  if i + 2 >= String.length s then false
+  let w = if s.[i] = '\xC2' then 2 else 3 in
+  if i + w >= String.length s then false
   else
-    let rest = String.sub s (i + 2) (String.length s - (i + 2)) in
+    let rest = String.sub s (i + w) (String.length s - (i + w)) in
     let next_word =
-      try String.sub rest 0 (String.index rest ' ') with Not_found -> rest
+      match String.index_opt rest ' ' with
+      | Some j -> String.sub rest 0 j
+      | None -> rest
     in
     is_roman_numeral next_word
 
@@ -191,19 +190,14 @@ let is_any_space s pos =
 
 let has_multiple_spaces s =
   let len = String.length s in
-  let rec find_spaces byte_pos =
-    if byte_pos >= len then false
-    else if s.[byte_pos] = ' ' then
-      if byte_pos + 1 < len && s.[byte_pos + 1] = ' ' then true
-      else find_spaces (byte_pos + 1)
-    else if Char.code s.[byte_pos] < 0x80 then find_spaces (byte_pos + 1)
-    else if is_any_space s byte_pos then
-      let next_pos = Utf8.next s byte_pos in
-      if next_pos < len && is_any_space s next_pos then true
-      else find_spaces next_pos
-    else find_spaces (Utf8.next s byte_pos)
+  let rec loop i =
+    if i >= len then false
+    else if is_any_space s i then
+      let j = Utf8.next s i in
+      (j < len && is_any_space s j) || loop j
+    else loop (Utf8.next s i)
   in
-  find_spaces 0
+  loop 0
 
 let find_multiple_spaces_positions s =
   let positions = ref [] in
@@ -302,7 +296,7 @@ let is_irish_prefix s =
 let is_allowed_word s = is_roman_numeral s || is_irish_prefix s
 
 let lowercase_allowed_words =
-  [ "dit"; "dite"; "ou"; "et"; "genannt"; "gennant"; "vel"; "y"; "e" ]
+  [ "dit"; "dite"; "ou"; "et"; "genannt"; "vel"; "y"; "e" ]
 
 let is_lowercase_allowed word =
   List.mem (String.lowercase_ascii word) lowercase_allowed_words
@@ -436,8 +430,6 @@ let is_zero_width hex =
       true
   | _ -> false
 
-let _hex_to_int hex = int_of_string ("0x" ^ hex)
-
 let invisible_chars_tbl =
   let codes =
     Util.get_problem_chars_codes `Control
@@ -450,24 +442,19 @@ let invisible_chars_tbl =
 
 let is_invisible_char code = Hashtbl.mem invisible_chars_tbl code
 
+let is_invisible_code code =
+  (code < 0x20 && code <> 0x09 && code <> 0x0A)
+  || code = 0x7F
+  || (code >= 0x80 && code <= 0x9F)
+  || is_invisible_char code
+
 let has_invisible_chars s =
   let len = String.length s in
   let rec aux i =
     if i >= len then false
     else
-      let c = Char.code s.[i] in
-      if c < 0x20 then if c = 0x09 || c = 0x0A then aux (i + 1) else true
-      else if c = 0x7F then true
-      else if c < 0x80 then aux (i + 1)
-      else if c = 0xC2 then
-        if i + 1 < len then
-          let c2 = Char.code s.[i + 1] in
-          if (c2 >= 0x80 && c2 <= 0x9F) || c2 = 0xAD then true else aux (i + 2)
-        else false
-      else if c >= 0xC3 && c < 0xCC then aux (i + 2)
-      else
-        let code, size = Util.get_unicode_point s i in
-        if is_invisible_char code then true else aux (i + size)
+      let code, size = Util.get_unicode_point s i in
+      if is_invisible_code code then true else aux (i + size)
   in
   aux 0
 
@@ -477,7 +464,7 @@ let find_invisible_positions s =
     if i >= len then List.rev acc
     else
       let code, size = Util.get_unicode_point s i in
-      if is_invisible_char code then aux (i :: acc) (i + size)
+      if is_invisible_code code then aux (i :: acc) (i + size)
       else aux acc (i + size)
   in
   aux [] 0
@@ -504,69 +491,45 @@ let simple_replacements =
     (Re.str "ʻ", "’");
   ]
 
-(* Replacements spécifiques par dictionnaire *)
-let dict_specific_replacements =
-  [
-    (Re.str " -", "-", [ Occupation; Sources ]);
-    (Re.str "- ", "-", [ Occupation; Sources ]);
-  ]
-
 let char_before_parenthesis_pattern =
   Re.seq [ Re.group (Re.set "A-Za-z0-9"); Re.char '(' ]
 
 let breton_trigram_pattern =
   Re.seq [ Re.group (Re.set "cC"); Re.set "’'"; Re.group (Re.set "hH") ]
 
-let compiled_complex =
-  lazy
-    [
-      Re.compile char_before_parenthesis_pattern;
-      Re.compile breton_trigram_pattern;
-    ]
+let dash_replacements = [ (Re.str " -", "-"); (Re.str "- ", "-") ]
 
-let get_applicable_replacements dict_type =
-  let base = simple_replacements in
-  let specific =
-    List.filter_map
-      (fun (pat, repl, excluded) ->
-        if List.mem dict_type excluded then None else Some (pat, repl))
-      dict_specific_replacements
+let compile_replacements l =
+  List.map (fun (pat, repl) -> (Re.compile pat, repl)) l
+
+let replacements_of_dict =
+  let occ_src = lazy (compile_replacements simple_replacements) in
+  let std =
+    lazy
+      (compile_replacements
+         (List.rev_append (List.rev simple_replacements) dash_replacements))
   in
-  base @ specific
+  function Occupation | Sources -> Lazy.force occ_src | _ -> Lazy.force std
 
-let compiled_misc_errors_by_dict =
-  lazy
-    (let build_for_dict dict_type =
-       let replacements = get_applicable_replacements dict_type in
-       let patterns =
-         List.map fst replacements
-         @ [ char_before_parenthesis_pattern; breton_trigram_pattern ]
-       in
-       Re.compile (Re.alt patterns)
-     in
-     [
-       (Fnames, build_for_dict Fnames);
-       (Snames, build_for_dict Snames);
-       (Fnames_alias, build_for_dict Fnames_alias);
-       (Snames_alias, build_for_dict Snames_alias);
-       (Places, build_for_dict Places);
-       (PubNames, build_for_dict PubNames);
-       (Qualifiers, build_for_dict Qualifiers);
-       (Aliases, build_for_dict Aliases);
-       (Occupation, build_for_dict Occupation);
-       (Estates, build_for_dict Estates);
-       (Titles, build_for_dict Titles);
-       (Sources, build_for_dict Sources);
-     ])
+let char_before_paren_re = lazy (Re.compile char_before_parenthesis_pattern)
+let breton_trigram_re = lazy (Re.compile breton_trigram_pattern)
+
+let misc_alt_of_dict =
+  let build extra =
+    Re.compile
+      (Re.alt
+         (List.rev_append
+            (List.rev_map fst simple_replacements)
+            (List.rev_append (List.rev_map fst extra)
+               [ char_before_parenthesis_pattern; breton_trigram_pattern ])))
+  in
+  let std = lazy (build dash_replacements) in
+  let occ_src = lazy (build []) in
+  function Occupation | Sources -> Lazy.force occ_src | _ -> Lazy.force std
 
 let has_misc_typographic_errors dict_type s =
-  let re = List.assoc dict_type (Lazy.force compiled_misc_errors_by_dict) in
-  let check str =
-    try
-      ignore (Re.exec re str);
-      true
-    with Not_found -> false
-  in
+  let re = misc_alt_of_dict dict_type in
+  let check str = Re.execp re str in
   match dict_type with
   | Places -> (
       match place_suburb_sep_range s with
@@ -578,25 +541,35 @@ let has_misc_typographic_errors dict_type s =
   | _ -> check s
 
 let find_misc_typographic_positions dict_type s conf =
-  let replacements = get_applicable_replacements dict_type in
+  let replacements = replacements_of_dict dict_type in
   let errors = ref [] in
   let pos = ref 0 in
   let len = String.length s in
-  let try_pattern pattern message_or_key add_positions found_match =
+  let try_pattern re message_or_key add_positions found_match =
     if !found_match = None then
-      try
-        let result = Re.exec ~pos:!pos pattern s in
-        let start_pos = Re.Group.start result 0 in
-        let end_pos = Re.Group.stop result 0 in
-        if start_pos = !pos then (
-          add_positions start_pos end_pos message_or_key;
-          found_match := Some end_pos)
-      with Not_found -> ()
+      match Re.exec_opt ~pos:!pos re s with
+      | Some result ->
+          let start_pos = Re.Group.start result 0 in
+          let end_pos = Re.Group.stop result 0 in
+          if start_pos = !pos then (
+            add_positions start_pos end_pos message_or_key;
+            found_match := Some end_pos)
+      | None -> ()
+  in
+  let add_single_pos start_pos _end_pos msg_key =
+    let message = Util.transl conf msg_key in
+    errors := { pos = start_pos; message } :: !errors
+  in
+  let add_range_pos start_pos end_pos msg_key =
+    let message = Util.transl conf msg_key in
+    for i = start_pos to end_pos - 1 do
+      errors := { pos = i; message } :: !errors
+    done
   in
   while !pos < len do
     let found_match = ref None in
     List.iter
-      (fun (pat, repl) ->
+      (fun (re, repl) ->
         let add_pos start_pos end_pos _ =
           let matched = String.sub s start_pos (end_pos - start_pos) in
           let msg = Util.transl conf "chk_data ponctuation error" in
@@ -608,24 +581,13 @@ let find_misc_typographic_positions dict_type s conf =
             errors := { pos = i; message } :: !errors
           done
         in
-        try_pattern (Re.compile pat) "" add_pos found_match)
+        try_pattern re "" add_pos found_match)
       replacements;
-    let complex_patterns = Lazy.force compiled_complex in
-    let add_single_pos start_pos _end_pos msg_key =
-      let message = Util.transl conf msg_key in
-      errors := { pos = start_pos; message } :: !errors
-    in
-    let add_range_pos start_pos end_pos msg_key =
-      let message = Util.transl conf msg_key in
-      for i = start_pos to end_pos - 1 do
-        errors := { pos = i; message } :: !errors
-      done
-    in
     try_pattern
-      (List.nth complex_patterns 0)
+      (Lazy.force char_before_paren_re)
       "chk_data ponctuation error missing space" add_single_pos found_match;
     try_pattern
-      (List.nth complex_patterns 1)
+      (Lazy.force breton_trigram_re)
       "chk_data ponctuation error breton trigram help" add_range_pos found_match;
     pos := match !found_match with Some p -> p | None -> !pos + 1
   done;
@@ -639,20 +601,17 @@ let find_misc_typographic_positions dict_type s conf =
   | _ -> errors
 
 let apply_misc_fixes dict_type s =
-  let replacements = get_applicable_replacements dict_type in
   let s =
     List.fold_left
-      (fun acc (pat, repl) -> Re.replace_string (Re.compile pat) ~by:repl acc)
-      s replacements
+      (fun acc (re, repl) -> Re.replace_string re ~by:repl acc)
+      s
+      (replacements_of_dict dict_type)
   in
-  let patterns = Lazy.force compiled_complex in
   s
-  |> Re.replace (List.nth patterns 0) ~f:(fun groups ->
+  |> Re.replace (Lazy.force char_before_paren_re) ~f:(fun groups ->
       Re.Group.get groups 1 ^ " (")
-  |> Re.replace (List.nth patterns 1) ~f:(fun groups ->
-      let c = Re.Group.get groups 1 in
-      let h = Re.Group.get groups 2 in
-      c ^ "ʼ" ^ h)
+  |> Re.replace (Lazy.force breton_trigram_re) ~f:(fun groups ->
+      Re.Group.get groups 1 ^ "ʼ" ^ Re.Group.get groups 2)
 
 let fix_misc_typographic_errors dict_type s =
   match dict_type with
@@ -867,19 +826,18 @@ let make_highlight_html s highlight_info error_type conf =
         Some map
     | _ -> None
   in
-  let positions =
-    match highlight_info with
-    | SimplePositions pos_list -> pos_list
-    | WithMessages infos -> List.map (fun info -> info.pos) infos
-  in
-  let rec process_char i in_span =
-    if i >= String.length s then (
-      if in_span then Buffer.add_string buf "</span>";
-      Buffer.contents buf)
-    else
-      let is_highlight = List.mem i positions in
-      if is_highlight then (
-        let char_size = Utf8.nbc s.[i] in
+  let pos_tbl = Hashtbl.create 16 in
+  (match highlight_info with
+  | SimplePositions pos_list ->
+      List.iter (fun p -> Hashtbl.replace pos_tbl p ()) pos_list
+  | WithMessages infos ->
+      List.iter (fun info -> Hashtbl.replace pos_tbl info.pos ()) infos);
+  let rec process_char i =
+    if i >= String.length s then Buffer.contents buf
+    else begin
+      let char_size = Utf8.nbc s.[i] in
+      let escaped = (Util.escape_html (String.sub s i char_size) :> string) in
+      if Hashtbl.mem pos_tbl i then
         let code = Utf8.C.cp s i in
         let hex = Printf.sprintf "%04X" (Uchar.to_int code) in
         let name =
@@ -894,29 +852,20 @@ let make_highlight_html s highlight_info error_type conf =
         in
         let title_attr =
           match style.make_title ~code:hex ~name ?misc_msg conf with
-          | Some t -> Printf.sprintf " title=\"%s\"" t
+          | Some t ->
+              Printf.sprintf " title=\"%s\"" (Util.escape_html t :> string)
           | None -> ""
         in
-        let original = String.sub s i char_size in
-        let escaped_original = (Util.escape_html original :> string) in
         Printf.bprintf buf "<span class=\"%s\"%s>%s</span>"
-          (style.make_class hex) title_attr escaped_original;
-        process_char (i + char_size) false)
-      else
-        let char_size = Utf8.nbc s.[i] in
-        let original = String.sub s i char_size in
-        let escaped_char = (Util.escape_html original :> string) in
-        Buffer.add_string buf escaped_char;
-        process_char (i + char_size) false
+          (style.make_class hex) title_attr escaped
+      else Buffer.add_string buf escaped;
+      process_char (i + char_size)
+    end
   in
-  process_char 0 false
+  process_char 0
 
 let first_word s =
-  try
-    let i = String.index s ' ' in
-    if i = String.length s then if i > 8 then String.sub s 0 8 else s
-    else String.sub s 0 i
-  with Not_found -> if String.length s > 8 then String.sub s 0 8 else s
+  match String.index_opt s ' ' with Some i -> String.sub s 0 i | None -> s
 
 let simple_prefix s =
   let len = String.length s in
@@ -982,7 +931,7 @@ let collect_attributes base p
     (Driver.get_family p);
   !attrs
   |> List.filter (fun i -> not (Driver.Istr.is_empty i))
-  |> List.sort_uniq compare
+  |> List.sort_uniq Driver.Istr.compare
 
 let collect_places base p =
   collect_attributes base p
@@ -1016,7 +965,7 @@ let collect_sources base p =
       let fam = Driver.foi base ifam in
       List.iter (fun x -> sources := x :: !sources) (get_fsources_x fam))
     (Driver.get_family p);
-  List.sort_uniq compare !sources
+  List.sort_uniq Driver.Istr.compare !sources
 
 let collect_dict_strings base = function
   | Fnames -> fun p -> [ Driver.get_first_name p ]
@@ -1081,46 +1030,45 @@ let cache_file_exists conf dict_type =
 
 let read_cache conf dict_type =
   let cache_file = cache_file_path conf dict_type in
-  try
-    let ic = Secure.open_in_bin cache_file in
-    try
-      let data = (Marshal.from_channel ic : checkdata_entry list) in
-      close_in ic;
-      data
-    with e ->
-      close_in ic;
-      raise e
-  with Sys_error _ -> []
+  match Secure.open_in_bin cache_file with
+  | exception Sys_error _ -> []
+  | ic ->
+      Fun.protect
+        ~finally:(fun () -> close_in_noerr ic)
+        (fun () ->
+          try (Marshal.from_channel ic : checkdata_entry list)
+          with End_of_file | Failure _ -> [])
 
-let update_cache_entry conf dict_type istr new_value =
+let update_cache_entry conf dict_type ~old_istr ~new_istr new_value =
   let cache_file = cache_file_path conf dict_type in
-  if Sys.file_exists cache_file then
-    try
-      let entries = read_cache conf dict_type in
-      let updated_entries =
-        List.map
-          (fun (i, s) -> if i = istr then (i, new_value) else (i, s))
+  if not (Sys.file_exists cache_file) then false
+  else
+    let entries = read_cache conf dict_type in
+    if not (List.exists (fun (i, _) -> Driver.Istr.equal i old_istr) entries)
+    then false
+    else
+      let updated =
+        List.filter_map
+          (fun (i, v) ->
+            if Driver.Istr.equal i old_istr then Some (new_istr, new_value)
+            else if Driver.Istr.equal i new_istr then None
+            else Some (i, v))
           entries
       in
-      let oc = Secure.open_out_bin cache_file in
+      let tmp = cache_file ^ ".tmp" in
       try
-        Marshal.to_channel oc updated_entries [ Marshal.No_sharing ];
-        close_out oc;
+        Secure.with_open_out_bin tmp (fun oc ->
+            Marshal.to_channel oc updated [ Marshal.No_sharing ]);
+        (try Sys.remove cache_file with Sys_error _ -> ());
+        Sys.rename tmp cache_file;
         true
-      with e ->
-        close_out oc;
-        raise e
-    with
-    | Sys_error _ -> false
-    | End_of_file -> false
-    | Failure _ -> false
-  else false
+      with Sys_error _ -> false
 
 let find_dict_type_for_istr conf istr =
   let check_in_cache dict_type =
     if cache_file_exists conf dict_type then
       let entries = read_cache conf dict_type in
-      List.exists (fun (i, _) -> i = istr) entries
+      List.exists (fun (i, _) -> Driver.Istr.equal i istr) entries
     else false
   in
   List.find_opt check_in_cache
@@ -1151,31 +1099,16 @@ let collect_all_errors_from_cache conf dict_type base max_results
     | _, Some max when count >= max -> acc
     | (istr, s) :: rest, _ ->
         let errors = analyze_string_errors dict_type base s check_errors_set in
-        let filtered_errors =
-          if ErrorSet.is_empty check_errors_set then errors else errors
-        in
-        if filtered_errors = [] then process_entries rest acc count
-        else process_entries rest ((istr, s, filtered_errors) :: acc) (count + 1)
+        if errors = [] then process_entries rest acc count
+        else process_entries rest ((istr, s, errors) :: acc) (count + 1)
   in
   List.rev (process_entries entries [] 0)
 
-let collect_all_errors ?(max_results = None) ?(sel_err_types = []) base dict =
+let collect_all_errors ?max_results ?(sel_err_types = []) base dict =
   let istr_errors = Hashtbl.create 1024 in
   let unique_istrs = ref 0 in
   let collect_strings = collect_dict_strings base dict in
-  let check_error_types_set =
-    ErrorSet.of_list
-      (if sel_err_types = [] then
-         [
-           InvisibleCharacters;
-           BadCapitalization;
-           MultipleSpaces;
-           NonBreakingSpace;
-           MiscTypographicErrors;
-           MixedScripts;
-         ]
-       else sel_err_types)
-  in
+  let check_error_types_set = make_error_set sel_err_types in
   let add_error istr s err =
     match Hashtbl.find_opt istr_errors istr with
     | Some (stored_s, errs) ->
@@ -1229,11 +1162,11 @@ let collect_all_errors ?(max_results = None) ?(sel_err_types = []) base dict =
   Hashtbl.iter
     (fun istr (s, errs) -> result := (istr, s, errs) :: !result)
     istr_errors;
-  !result
+  List.sort (fun (_, s1, _) (_, s2, _) -> String.compare s1 s2) !result
 
 (* Main function *)
-let collect_all_errors_with_cache ?(max_results = None) ?(sel_err_types = [])
-    conf base dict =
+let collect_all_errors_with_cache ?max_results ?(sel_err_types = []) conf base
+    dict =
   let use_cache =
     match Util.p_getenv conf.env "nocache" with Some "1" -> false | _ -> true
   in
@@ -1242,8 +1175,6 @@ let collect_all_errors_with_cache ?(max_results = None) ?(sel_err_types = [])
       collect_all_errors_from_cache conf dict base max_results ~sel_err_types ()
     else []
   else
-    let is_roglo =
-      try List.assoc "roglo" conf.base_env = "yes" with Not_found -> false
-    in
+    let is_roglo = List.assoc_opt "roglo" conf.base_env = Some "yes" in
     if is_roglo then []
-    else collect_all_errors ~max_results ~sel_err_types base dict
+    else collect_all_errors ?max_results ~sel_err_types base dict

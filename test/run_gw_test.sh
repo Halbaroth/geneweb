@@ -423,9 +423,8 @@ crl "m=OE&k=30"
 crl "m=P&tri=A"
 crl "m=P&tri=F"
 crl "m=PERSO&i=$ID"
-crl "m=PS"
-crl "m=PPS&bi=on&ba=on&ma=on&de=on&bu=on"
-crl "m=PPS&k=$PLACE&bi=on&ba=on&ma=on&de=on&bu=on&all=on&any=on&max_rlm_nbr="
+crl "m=PS&bi=on&ba=on&ma=on&de=on&bu=on"
+crl "m=PS&k=$PLACE&bi=on&ba=on&ma=on&de=on&bu=on&all=on&any=on&max_rlm_nbr="
 crl "m=R&i=$ID"
 #crl "m=RL&i=$ID&i1" # m=RL&i=5316&l1=3&i1=1711&l2=2&i2=6223&dag=on
 crl "m=RLM&i1=$ID&p2=$FN2&n2=$SN2&oc2=$OC2"
@@ -511,7 +510,7 @@ if test "$GWD2START" && test -z "$cgitest"; then
 
     test -n "$debug" && set -x
     sh -c "cd $BASES_DIR;
-    OCAMLRUNPARAM=b $SUDOPRFX ../gw/gwsetup -gd ../gw -lang en >gwsetup.log 2>&1 &"
+    OCAMLRUNPARAM=b $SUDOPRFX ../gw/gwsetup -bd ./ -gd ../gw -lang en >gwsetup.log 2>&1 &"
     set +x
     check_server_start 'gwsetup'
     grep -E "$FAILING_CONDITIONS" $BASES_DIR/gwsetup.log && \

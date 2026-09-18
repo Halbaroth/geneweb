@@ -9,7 +9,6 @@ self: super: {
           hash = "sha256-iBTGFM1D1S/R68ivWjHZElwhTEmPpgVmDk7Rlf+ENOk=";
         };
       });
-      not-ocamlfind = final.callPackage ./not-ocamlfind.nix { };
       unidecode = final.callPackage ./unidecode.nix { };
       ocamlformat-lib = final.callPackage ./ocamlformat/ocamlformat-lib.nix { };
       ocamlformat = final.callPackage ./ocamlformat/ocamlformat.nix { };
@@ -17,10 +16,10 @@ self: super: {
       oui = prev.oui.overrideAttrs {
         version = "dev";
         src = super.fetchFromGitHub {
-          owner = "OCamlPro";
+          owner = "Halbaroth";
           repo = "ocaml-universal-installer";
-          rev = "44e8ec458dcc929300d39ad5b0332f24a8c4546d";
-          hash = "sha256-XLI9n/04InhEmXMMv7at/ScUgDhJ8WWVcEeBJy7j1bE=";
+          rev = "infer-extension-output";
+          hash = "sha256-lerlZRSDLW8pkp0UB8X2jMiJS3m60gZwdUAI0WMZPM4=";
         };
       };
     }

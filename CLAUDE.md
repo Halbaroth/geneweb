@@ -32,6 +32,9 @@ Avoid bloating catch-all modules. `perso.ml` (~4000 LOC) and
 `templ.ml` is the template engine runtime; changes there affect every
 page.
 
+`plugins/` is legacy and is being phased out. Do not add new plugins,
+and do not propose a plugin as the solution to a feature request.
+
 ## OCaml Conventions
 
 1. Never disable compiler warnings.
@@ -42,17 +45,44 @@ page.
    legacy debt — do not add more.
 5. Do not use `List.nth`, `List.concat`, or `@` (quadratic). Use
    `Array` access or accumulator patterns.
-6. When using standard library functions not available in OCaml 4.10,
+6. When using standard library functions not available in OCaml 4.14,
    check `Geneweb_compat` for a backport before reimplementing.
 7. `aux.ml` is a reserved Windows device name — do not use it as a
    filename (breaks CI on Windows/Cygwin).
 8. No commented-out code in committed files.
+9. Avoid `function` as the body of a named function: bind the
+   argument and `match` on it. The arity then shows at the
+   definition, the scrutinee has a name usable in annotations and in
+   error messages, and adding a parameter does not require
+   restructuring. `function` stays fine as an inline lambda, where
+   the type comes from the context:
+   `String.map (function '\\' -> '/' | c -> c) s`.
+10. Ordinary variants by default. Use polymorphic variants
+    (`` `Tag ``) only when a tag set is genuinely shared or extended
+    across several types. A typo in an ordinary constructor is an
+    immediate `Unbound constructor` on the exact line; a typo in a
+    tag silently widens an inferred row type and surfaces later,
+    elsewhere, as a `[< ]` / `[> ]` mismatch. Consuming polymorphic
+    variants from libraries (`Yojson.Safe.t`) is fine — that is
+    their API, not ours.
+11. No `| _ -> ...` over a closed variant type: enumerate the
+    constructors so that adding one raises a warning at every site
+    that must be updated. `_` is fine for `int`, `char`, `string`.
 
 ## Template Engine
 
 Templates are `.txt` files in `hd/etc/`. The engine is in
 `lib/templ/` (parser/lexer) and `lib/templ.ml` (runtime). Custom
 template engine.
+
+### Variable Resolution on Person Pages
+
+Variables are resolved through the `eval_*` chain of `perso.ml`
+before reaching the generic one in `templ.ml`. A name defined in
+`perso.ml` therefore shadows the generic one silently, with no
+warning: the variable still returns a value, just not the expected
+one. `%source;` on a person page is the person's genealogical source
+field, not `Version.src`.
 
 ### Syntax
 
@@ -79,6 +109,19 @@ Operators in conditions: `=`, `!=`, `<`, `<=`, `>`, `>=`, `and`,
 `or`, `not`, `|` (integer division), `%` (modulo), `in` (substring
 test: `%if;(x in y)` checks if `x` is contained in `y`).
 
+### Macro Parameter Substitution Is Raw Text Replace
+
+`%apply;func(args)` expands a `%define;`d macro by textually replacing
+each parameter *name* with its argument *value*, one parameter at a
+time in declaration order — it is not a scoped binding. A parameter
+name that happens to occur as a substring of an already-substituted
+value is rewritten too: a two-letter name like `tt` gets clobbered
+inside a place value such as "Nottingham". Rule: give any macro
+parameter that carries free text or place data an underscore-prefixed
+name (`p_evt`, `p_sym`, `p_flg`, `p_sel`, `p_lbl`, …) — underscores
+never occur in place strings, so cross-substitution cannot happen.
+(See the `nbmds` / `evt` / `tags` macros in `hd/etc/list.txt`.)
+
 ### Escaping in Inline Script Blocks
 
 The template parser interprets `%` and `[` **everywhere**, including
@@ -101,10 +144,10 @@ For template `templx` on base `mybase`:
 
 ### Frontend Stack
 
-Bootstrap 5.3.8, jQuery, Chart.js 4.5.1 (UMD, not ESM), Font Awesome,
-Leaflet 2.0 alpha. CSS/JS assets in `hd/etc/css/` and `hd/etc/js/`
-use template wrappers (`css.txt`, `js.txt`) for conditional includes.
-Regenerate `.min.js` (Terser) after editing any `.js` file.
+Bootstrap 5.3.8 (no jQuery), Chart.js 4.5.1 (UMD, not ESM), Font Awesome.
+CSS/JS assets in `hd/etc/css/` and `hd/etc/js/` use template wrappers
+(`css.txt`, `js.txt`) for conditional includes. Regenerate `.min.js`
+with Terser after editing any `.js` file.
 
 ### Best Practices
 

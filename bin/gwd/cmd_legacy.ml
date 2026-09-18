@@ -46,7 +46,6 @@ let no_host_address = ref false
 let only_addresses : string list ref = ref []
 let redirected_addr : string option ref = ref None
 let robot_xcl : (int * int) option ref = ref None
-let selected_addr : string option ref = ref None
 let selected_port = ref Cmd.default_port
 let trace_failed_passwd = ref false
 let debug = ref false
@@ -60,5 +59,4 @@ let wizard_passwd : string option ref = ref None
 let log_file : Cmd.log ref = ref Cmd.Stderr
 let verbosity_level = ref Cmd.default_verbosity
 let set_verbosity_level lvl = verbosity_level := lvl
-let force_cgi = ref false
 let cgi_secret_salt : string option ref = ref None

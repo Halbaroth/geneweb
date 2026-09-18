@@ -1,7 +1,27 @@
 # Unreleased
 
 ## Gwd
+- Add OpenID Connect (SSO) login support, configured per base via the
+  `oidc_*` variables in the `.gwf` file (#2893)
 - Use `getaddrinfo` to retrieve addresses from the operating system (#2757)
+- The HTTP server binds `::` (all interfaces, IPv4+IPv6) explicitly by
+  default, restoring the pre-#2757 behavior on every platform. Hosts
+  without IPv6 support must pass `-i 0.0.0.0`.
+- The startup log lists every reachable URL when bound to a wildcard
+  address.
+- `--log '<stdout>'` is now rejected in CGI mode, including when the mode
+  is inferred from `QUERY_STRING` (#2948).
+
+## Gwsetup
+- Bind `127.0.0.1` instead of resolving `localhost`, which selects the
+  IPv6 loopback only on Windows.
+
+## Deprecated features
+- Inferring the CGI mode of `gwd` from the `QUERY_STRING` environment
+  variable is deprecated (#2936). Use the `--cgi` option. Note that a CGI
+  binary invoked directly by the web server receives no command line
+  arguments, so `--cgi` requires a wrapper script; this has to be settled
+  before the inference is actually removed.
 
 ## Breaking changes
 - Deprecate the multi-parents feature (#2726)
@@ -12,6 +32,11 @@
 - The `-unsafe` and `-force` options of the plugin subsystem are noop.
   Use `--plugins u:...`, `--plugins f:...`, `--plugins uf:...` for the same
   effect (#2594).
+
+## Build system
+The camlp5 dependency has been removed. The GEDCOM date grammar and the stream
+parsers of `ged2gwb`, its last remaining users, have been rewritten in plain
+OCaml (#2927).
 
 # GeneWeb version 7.1.0~beta2
 After 20 months of development, this release represents a major evolution of

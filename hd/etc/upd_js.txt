@@ -80,17 +80,23 @@ function sortSelectOptions() {
 /** Gère l'affichage du champ d'événement personnalisé */
 function showEventLabel(type, defaultName, cnt) {
   const selector = document.getElementById(type + '_select' + cnt);
-  const label = document.getElementById(type + '_label_selector' + cnt);
+  const wrapper = document.getElementById(type + '_label_selector' + cnt);
   const input = document.getElementById('e_name' + cnt);
+  if (!selector || !wrapper || !input) return;
   const selectedOption = selector.options[selector.selectedIndex];
+  const isCustom = !!selectedOption && selectedOption.id === 'custom' + cnt;
+  const isDelete = !!selectedOption && selectedOption.id === 'delete' + cnt;
   
-  input.value = (selector.value === '') 
-    ? (defaultName && defaultName.charAt(0) !== '#' ? defaultName : '')
-    : selector.value;
-  
-  const isCustom = selectedOption.id === 'custom' + cnt;
-  label.style.display = isCustom ? 'inline' : 'none';
-  input.style.display = isCustom ? 'inline' : 'none';
+  if (isDelete) {
+    input.value = '';
+  } else if (isCustom) {
+    input.value = (defaultName && defaultName.charAt(0) !== '#') ? defaultName : '';
+  } else {
+    input.value = selector.value;
+  }
+
+  wrapper.classList.toggle('d-none', !isCustom);
+  if (isCustom && document.activeElement === selector) input.focus();
 }
 
 function show_pevent_label(xxname, xcnt) {
@@ -105,9 +111,7 @@ function show_fevent_label(xxname, xcnt) {
 function initCustomEvents() {
   document.querySelectorAll('.other_evts').forEach(evt => {
     const input = evt.querySelector('input');
-    if (input?.value && input.value.charAt(0) !== '#') {
-      evt.style.display = '';
-    }
+    evt.classList.toggle('d-none', !(input?.value && input.value.charAt(0) !== '#'));
   });
 }
 
@@ -149,12 +153,12 @@ function initSelectToggle() {
 }
 
 /** Gestion du scroll pour le banner */
-document.addEventListener('scroll', () => {
+function updateBannerState() {
   const banner = document.getElementById('banner');
-  if (banner) {
-    banner.classList.toggle('scrolled', window.scrollY > 35);
-  }
-});
+  if (banner) banner.classList.toggle('scrolled', window.scrollY > 35);
+}
+document.addEventListener('scroll', updateBannerState, { passive: true });
+document.addEventListener('DOMContentLoaded', updateBannerState);
 
 /** Configuration des mois par type de calendrier */
 const CALENDAR_MONTHS = {

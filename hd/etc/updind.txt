@@ -268,7 +268,7 @@
   <select class="form-select fw-bold sortable-select" id="pevent_selectxcnt" onchange="show_pevent_label(document.getElementById('e_namexcnt')?.defaultValue || '', 'xcnt')">
     <option value="" id="deletexcnt">[*select/delete an event]1</option>
     <option disabled>──────────────────</option>
-    <option value="">[*custom event]</option>
+    <option value=""%if;(not ("#" in event.e_name) and event.e_name!="") selected%end; id="customxcnt">[*custom event]</option>
     <option disabled>──────────────────</option>
     <option data-insert="1" value=""%if;(event.e_name="") selected%end; disabled> [*select/delete an event]0 </option>
     <option value="#acco" data-sort="1"%if;(event.e_name="#acco") selected%end;>[*accomplishment]</option>
@@ -471,9 +471,9 @@
         %apply;selector_pevent(xcnt)
       </div>
       <div class="col">
-        <label id="pevent_label_selectorxcnt" style="display:none" class="other_evts w-100">
-          <input type="text" class="form-control fw-bold" name="e_namexcnt" value="%event.e_name;" id="e_namexcnt" placeholder="[*event/events]0">
-        </label>
+        <div id="pevent_label_selectorxcnt" class="other_evts w-100 d-none">
+          <input type="text" class="form-control fw-bold" name="e_namexcnt" value="%event.e_name;" id="e_namexcnt" placeholder="[*event/events]0" aria-label="[*custom event]">
+        </div>
       </div>
     </div>
     <div class="row">
@@ -771,9 +771,9 @@
     </h2>
     <div class="card-body">
       <h5 class="card-title"><b>[*other action][:] </b>
-        <a href="%prefix;m=CHG_EVT_IND_ORD&i=%index;" title="[*changed order of person's events]">[*invert::event/events]1</a>%nn;
-        %if;(first_name!="?" and surname!="?") |
-          <a href="%prefix;m=SND_IMAGE&i=%index;">[*modify::]/[delete::]/[add picture]</a>%nn;
+        %if;has_pevents;<a href="%prefix;m=CHG_EVT_IND_ORD&i=%index;" title="[*changed order of person's events]">[*invert::event/events]1</a>  | %end;
+        %if;(first_name!="?" and surname!="?")
+          <a href="%prefix;m=SND_IMAGE&i=%index;">%if;has_image;[*modify::]/[delete::]/[add picture]%else;[*add picture]%end;</a>%nn;
         %end; | <a href="%prefix;m=MRG&i=%index;">[*merge::]</a> | <a href="%prefix;m=DEL_IND&i=%index;">[*delete::]</a>
       </h5>
       <div class="mb-3 mt-4">

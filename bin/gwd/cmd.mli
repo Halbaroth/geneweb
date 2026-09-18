@@ -5,7 +5,6 @@ type plugins = All | List of plugin list
 type t = {
   (* Directories *)
   base_dir : string;
-  socket_dir : string option;
   gw_prefix : string;
   etc_prefix : string;
   images_prefix : string;
@@ -30,7 +29,7 @@ type t = {
   ban_threshold : (int * int) option;
   min_disp_req : int;
   (* HTTP server *)
-  interface : string option;
+  interface : string;
   redirect_interface : string option;
   port : int;
   connection_timeout : int;

@@ -1086,19 +1086,21 @@ let build_list_eclair conf base v p =
   (* Parcours les ascendants de p et les ajoute dans la Hashtbl. *)
   let rec loop lev p =
     let surn = Driver.get_surname p in
-    if lev > v then
+    if lev >= v then
       (* TODO verify equation and see if hide_person should be used *)
       if is_hide_names conf p && not (authorized_age conf base p) then ()
       else add_person p surn
-    else add_person p surn;
-    match Driver.get_parents p with
-    | None -> ()
-    | Some ifam ->
-        let cpl = Driver.foi base ifam in
-        let fath = pget conf base (Driver.get_father cpl) in
-        let moth = pget conf base (Driver.get_mother cpl) in
-        if not (is_hidden fath) then loop (lev + 1) fath;
-        if not (is_hidden moth) then loop (lev + 1) moth
+    else begin
+      add_person p surn;
+      match Driver.get_parents p with
+      | None -> ()
+      | Some ifam ->
+          let cpl = Driver.foi base ifam in
+          let fath = pget conf base (Driver.get_father cpl) in
+          let moth = pget conf base (Driver.get_mother cpl) in
+          if not (is_hidden fath) then loop (lev + 1) fath;
+          if not (is_hidden moth) then loop (lev + 1) moth
+    end
   in
   (* Construction de la Hashtbl. *)
   loop 1 p;
@@ -1479,6 +1481,13 @@ let number_of_descendants_aux conf base env all_levels sl eval_int =
 
 let undo_parentheses s =
   Str.global_replace (Str.regexp " ?(\\([^)]*\\))") ", \\1" s
+
+let place_norm conf base p p_auth get =
+  if p_auth then
+    Driver.sou base (get p)
+    |> Place.normalize_place (Place.places_inverted conf)
+    |> str_val
+  else null_val
 
 let rec eval_var conf base env ep loc sl =
   try eval_simple_var conf base env ep sl
@@ -3886,6 +3895,7 @@ and eval_str_person_field conf base env ((p, p_auth) as ep) = function
           (Util.escape_html (Driver.sou base (Driver.get_birth_place p))
             :> Adef.safe_string)
       else null_val
+  | "birth_place_norm" -> place_norm conf base p p_auth Driver.get_birth_place
   | "birth_note" ->
       Driver.get_birth_note p
       |> get_note_or_source conf base ~p p_auth conf.no_note
@@ -3902,6 +3912,8 @@ and eval_str_person_field conf base env ((p, p_auth) as ep) = function
           (Util.escape_html (Driver.sou base (Driver.get_baptism_place p))
             :> Adef.safe_string)
       else null_val
+  | "baptism_place_norm" ->
+      place_norm conf base p p_auth Driver.get_baptism_place
   | "baptism_note" ->
       Driver.get_baptism_note p
       |> get_note_or_source conf base ~p p_auth conf.no_note
@@ -3918,6 +3930,7 @@ and eval_str_person_field conf base env ((p, p_auth) as ep) = function
           (Util.escape_html (Driver.sou base (Driver.get_burial_place p))
             :> Adef.safe_string)
       else null_val
+  | "burial_place_norm" -> place_norm conf base p p_auth Driver.get_burial_place
   | "burial_note" ->
       Driver.get_burial_note p
       |> get_note_or_source conf base ~p p_auth conf.no_note
@@ -3987,6 +4000,7 @@ and eval_str_person_field conf base env ((p, p_auth) as ep) = function
           (Util.escape_html (Driver.sou base (Driver.get_death_place p))
             :> Adef.safe_string)
       else null_val
+  | "death_place_norm" -> place_norm conf base p p_auth Driver.get_death_place
   | "death_note" ->
       Driver.get_death_note p
       |> get_note_or_source conf base ~p p_auth conf.no_note
@@ -4159,6 +4173,17 @@ and eval_str_person_field conf base env ((p, p_auth) as ep) = function
           ^ (if acc = "" then "" else "|")
           ^ Driver.sou base (Driver.get_marriage_place (Driver.foi base ifam))
           |> undo_parentheses)
+        ""
+        (Array.to_list (Driver.get_family p))
+      |> str_val
+  | "marriage_places_norm" ->
+      List.fold_left
+        (fun acc ifam ->
+          let pl =
+            Driver.sou base (Driver.get_marriage_place (Driver.foi base ifam))
+            |> Place.normalize_place (Place.places_inverted conf)
+          in
+          acc ^ (if acc = "" then "" else "|") ^ pl)
         ""
         (Array.to_list (Driver.get_family p))
       |> str_val

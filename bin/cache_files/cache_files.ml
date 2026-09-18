@@ -60,6 +60,13 @@ let read_checkdata_cache bname fname =
     with _ -> None
   else None
 
+let entries_strings bname fname collect_fn =
+  match read_checkdata_cache bname fname with
+  | Some data -> data
+  | None ->
+      ProgrBar.with_bar ~disabled:(not !prog) Format.std_formatter collect_fn
+      |> List.map snd
+
 let should_gen_datalist () =
   match (!checkdata, !datalist) with
   | false, false | false, true | true, true -> true
@@ -86,12 +93,16 @@ let iteri_places f base =
       f i (Driver.get_birth_place p);
       f i (Driver.get_baptism_place p);
       f i (Driver.get_death_place p);
-      f i (Driver.get_burial_place p))
+      f i (Driver.get_burial_place p);
+      List.iter (fun e -> f i e.Def.epers_place) (Driver.get_pevents p))
     ipers;
   Collection.iteri
     (fun i ifam ->
       let fam = Driver.foi base ifam in
-      f (n_pers + i) (Driver.get_marriage_place fam))
+      f (n_pers + i) (Driver.get_marriage_place fam);
+      List.iter
+        (fun e -> f (n_pers + i) e.Def.efam_place)
+        (Driver.get_fevents fam))
     ifams
 
 let iteri_pers f base =
@@ -111,13 +122,18 @@ let iter_field base p f = function
   | `Estates -> List.iter (fun t -> f t.Def.t_place) (Driver.get_titles p)
   | `Titles -> List.iter (fun t -> f t.Def.t_ident) (Driver.get_titles p)
   | `Sources ->
+      f (Driver.get_birth_src p);
+      f (Driver.get_baptism_src p);
+      f (Driver.get_death_src p);
+      f (Driver.get_burial_src p);
       f (Driver.get_psources p);
       List.iter (fun t -> f t.Def.epers_src) (Driver.get_pevents p);
       Array.iter
         (fun ifam ->
-          List.iter
-            (fun evt -> f evt.Def.efam_src)
-            (Driver.get_fevents (Driver.foi base ifam)))
+          let fam = Driver.foi base ifam in
+          f (Driver.get_marriage_src fam);
+          f (Driver.get_fsources fam);
+          List.iter (fun evt -> f evt.Def.efam_src) (Driver.get_fevents fam))
         (Driver.get_family p)
 
 let field_name = function
@@ -186,20 +202,11 @@ let gen_datalist_from_entries bname fname entries =
     (List.length data) fname duration;
   duration
 
-let gen_datalist_merged bname fname main_fname alias_fname =
+let gen_datalist_merged bname fname fetch_main fetch_alias =
   let data, duration =
     with_timer @@ fun () ->
-    let main_data =
-      match read_checkdata_cache bname main_fname with
-      | Some data -> data
-      | None -> []
-    in
-    let alias_data =
-      match read_checkdata_cache bname alias_fname with
-      | Some data -> data
-      | None -> []
-    in
-    List.sort_uniq String.compare (main_data @ alias_data)
+    List.sort_uniq String.compare
+      (List.rev_append (fetch_main ()) (fetch_alias ()))
   in
   write_cache_file bname fname data;
   let path = !cache_dir // (bname ^ "_" ^ fname ^ ".cache.gz") in
@@ -343,7 +350,14 @@ let () =
         (* Combine fnames + fnames_alias pour datalist *)
         if !prog then Format.printf "Generating fnames cache (merged)...@.";
         total :=
-          !total +. gen_datalist_merged bname "fnames" "fnames" "fnames_alias")
+          !total
+          +. gen_datalist_merged bname "fnames"
+               (fun () ->
+                 entries_strings bname "fnames"
+                   (collect_checkdata_names base `Fnames))
+               (fun () ->
+                 entries_strings bname "fnames_alias"
+                   (collect_checkdata_names base `Fnames_alias)))
       else
         (* Datalist normal sans alias *)
         total :=
@@ -369,7 +383,14 @@ let () =
         (* Combine snames + snames_alias pour datalist *)
         if !prog then Format.printf "Generating snames cache (merged)...@.";
         total :=
-          !total +. gen_datalist_merged bname "snames" "snames" "snames_alias")
+          !total
+          +. gen_datalist_merged bname "snames"
+               (fun () ->
+                 entries_strings bname "snames"
+                   (collect_checkdata_names base `Snames))
+               (fun () ->
+                 entries_strings bname "snames_alias"
+                   (collect_checkdata_names base `Snames_alias)))
       else
         (* Datalist normal sans alias *)
         total :=

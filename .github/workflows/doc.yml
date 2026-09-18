@@ -1,10 +1,9 @@
-name: Geneweb Doc
+name: GeneWeb Documentation
 on:
   workflow_dispatch:
   push:
     tags:
       - v**
-
 env:
   OPAMYES: true
 
@@ -12,7 +11,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-
 
 jobs:
   build-and-deploy:
@@ -25,15 +23,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 1
-
-      - name: Cache OPAM dependencies
-        id: cache-opam
-        uses: actions/cache@v6
-        with:
-          path: ~/.opam
-          key: ${{ runner.os }}-doc-${{ hashFiles('*.opam') }}
-          restore-keys: |
-            ${{ runner.os }}-doc
 
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v3

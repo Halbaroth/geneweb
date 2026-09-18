@@ -43,6 +43,7 @@
             {
               inherit (scope)
                 geneweb-compat
+                geneweb-win32
                 geneweb-http
                 geneweb
                 geneweb-rpc
@@ -56,28 +57,11 @@
             meta.description = "Run gwd server.";
           };
 
-          devShells.default =
-            let
-              ocamlPackages = pkgs.ocamlPackages;
-              # Due to Nix's package isolation principle, the findlib package cannot
-              # install the topfind script into the OCaml directory. This wrapper
-              # provides a workaround by adding the absolute path to this script to
-              # directories searched by the OCaml compiler.
-              ocamlWrapped = pkgs.symlinkJoin {
-                name = "ocaml";
-                paths = [ ocamlPackages.ocaml ];
-                buildInputs = [ pkgs.makeWrapper ];
-                postBuild = ''
-                  wrapProgram $out/bin/ocaml \
-                    --add-flags "-I ${ocamlPackages.findlib}/lib/ocaml/${ocamlPackages.ocaml.version}/site-lib"
-                '';
-              };
-            in
-            pkgs.mkShell {
-              packages = [
-                ocamlWrapped
-              ]
-              ++ (with ocamlPackages; [
+          devShells.default = pkgs.mkShell {
+              packages = (with pkgs; [
+                makeself
+              ])
+              ++ (with pkgs.ocamlPackages; [
                 qcheck
                 qcheck-alcotest
                 alcotest

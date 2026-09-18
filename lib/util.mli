@@ -88,10 +88,13 @@ val hidden_env_aux : config -> (string * Adef.encoded_string) list -> unit
 (** [hidden_env_aux env] Creates a hidden HTML input for every key and value in
     [env]. *)
 
-val hidden_env : config -> unit
-(** Creates a hidden HTML input for every key and value in [conf.henv] and
-    [conf.senv]. Used to include immutable environement bindings in the HTML
-    form. *)
+val hidden_env : ?senv:bool -> config -> unit
+(** [hidden_env conf] emits [conf.henv] then [conf.senv] as hidden form inputs.
+    With [~senv:false], only [conf.henv] is emitted: use it on forms that start
+    a new navigation rather than continue the current one. [conf.senv] carries
+    the state of the computation in progress ([em], [ei], [et], [long],
+    [spouse]); a search form that reconducts it resolves its result as a
+    relationship target instead of displaying the person. *)
 
 val hidden_textarea : config -> string -> Adef.encoded_string -> unit
 
@@ -333,7 +336,13 @@ val reference :
   Adef.safe_string
 (** [reference conf base p desc] returns HTML link to the person where [desc] is
     content of the link (generaly his first name and surname description). If
-    person is hidden returns [desc] (do not create link). *)
+    person is hidden returns [desc] (do not create link).
+
+    Relationship-selection parameters ([em], [ei], [et]) are propagated so that
+    listing pages can be used to pick a target, and stripped where the
+    relationship is being displayed and person links must lead to the person
+    page: the [R], [RL] and [RLM] routes, and requests with no [m] at all, which
+    is how [person_selected] reaches the relationship display from [senv]. *)
 
 val reference_noid :
   config ->
@@ -341,7 +350,8 @@ val reference_noid :
   Geneweb_db.Driver.person ->
   Adef.safe_string ->
   Adef.safe_string
-(** Same as [reference] but link doesn't has "id" field *)
+(** Same as {!reference} without the [id] attribute; the same [em], [ei], [et]
+    rule applies. *)
 
 val no_reference :
   config ->
@@ -722,6 +732,14 @@ val escape_html : string -> Adef.escaped_string
 (** [escape_html str] replaces '&', '"', '\'', '<' and '>' with their
     corresponding character entities (using entity number) *)
 
+val event_symbol : Config.config -> string -> string
+(** [event_symbol conf name] is the compact event marker for [name] (one of
+    ["birth"], ["baptism"], ["marriage"], ["death"], ["burial"]) used by the m=L
+    "list by place" view. Read from the base [.gwf] key [evt_symbol_<name>],
+    falling back to the built-in defaults [o ~ & + x]. Independent from the
+    date-display keys [birth_symbol]/[death_symbol]. The result is HTML-escaped.
+    Exposed to templates as [%evt_symbol.<name>;]. *)
+
 val safe_html : string -> Adef.safe_string
 (** [safe_html s] sanitizes [s] element in order to fix ill-formed HTML input
     and to prevent XSS injection
@@ -834,4 +852,7 @@ val evar_buttons : config -> string -> evar_button list -> string -> unit
     toggle evar *)
 
 val url_set_aux : config -> string -> string list -> string list -> string
+(** *)
+
+val parse_file_cached : string -> Geneweb_templ.Ast.t list
 (** *)

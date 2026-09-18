@@ -1,4 +1,4 @@
-name: Geneweb CI
+name: GeneWeb CI
 on:
   workflow_dispatch:
     inputs:
@@ -25,7 +25,6 @@ on:
       - '.ocamlformat'
       - '.ocamlformat-ignore'
       - 'geneweb.iss'
-      - 'geneweb.opam.template'
   push:
     branches:
       - master
@@ -45,10 +44,8 @@ on:
       - '.ocamlformat'
       - '.ocamlformat-ignore'
       - 'geneweb.iss'
-      - 'geneweb.opam.template'
 
 env:
-  DUNE_PROFILE: "dev"
   OPAMYES: true
 
 jobs:
@@ -78,49 +75,17 @@ jobs:
         with:
           command: start-timer
 
-      - name: Cache Opam dependencies
-        id: cache-opam
-        uses: actions/cache@v6
-        with:
-          path: ${{ runner.os == 'Windows' && 'C:\\.opam' || '~/.opam' }}
-          key: ${{ runner.os }}-opam-${{ matrix.ocaml-compiler }}-${{ hashFiles('**/*.opam') }}
-          restore-keys: ${{ runner.os }}-opam-${{ matrix.ocaml-compiler }}-
-
       - name: Setup Ocaml with v3
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          dune-cache: true
-
-      - name: Install Perl dependencies (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          curl -fsSL https://cpanmin.us | perl - --notest IPC::System::Simple String::ShellQuote
-          for pkg in conf-perl-ipc-system-simple conf-perl-string-shellquote; do
-            d=".pins/$pkg"; mkdir -p "$d"
-            printf 'opam-version: "2.0"\nsynopsis: "Pin bypass"\nmaintainer: "ci"\nbuild: ["true"]\ninstall: ["true"]\n' > "$d/opam"
-            opam pin add "$pkg" "$d" --yes --no-action
-          done
-
-      - name: Remove locked mingw gcc shim if present
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          rm -f _opam/bin/x86_64-w64-mingw32-gcc.exe || true
-          rm -f _opam/bin/i686-w64-mingw32-gcc.exe || true
 
       - name: Update apt cache
         if: runner.os == 'Linux'
         run: sudo apt-get update -qq
 
-      # The uucp library seems to push old OCaml compiler to their limits,
-      # see https://github.com/ocaml/ocaml/issues/14166. This is a workaround
-      # to avoid this error by increasing the stack limit of the current shell.
-      # The stack overflow occurred only with OCaml 4.10.2 on macOS.
       - name: Install Geneweb dependencies
         run: |
-          ulimit -Ss $(ulimit -Hs)
           opam install . --deps-only --with-test
 
       - name: Install ancient dependency
@@ -156,7 +121,6 @@ jobs:
           command: collect-metrics
           os: ${{ matrix.os }}
           ocaml-version: ${{ matrix.ocaml-compiler }}
-          cache-hit: ${{ steps.cache-opam.outputs.cache-hit }}
           tests-total: ${{ steps.tests.outputs.tests_total }}
           tests-passed: ${{ steps.tests.outputs.tests_passed }}
           tests-failed: ${{ steps.tests.outputs.tests_failed }}

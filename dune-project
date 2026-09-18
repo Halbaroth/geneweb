@@ -1,5 +1,6 @@
-(lang dune 3.11)
+(lang dune 3.14)
 (using dune_site 0.1)
+(using directory-targets 0.1)
 (generate_opam_files true)
 
 (name geneweb)
@@ -24,7 +25,6 @@
     (alcotest :with-test)
     benchmark
     (calendars (>= "2.0.0"))
-    (camlp5 (>= "8.03.00"))
     camlp-streams
     decompress
     fmt
@@ -44,6 +44,7 @@
     uutf
     yojson
     digestif
+    base64
     pp_loc
     dune-site
     conf-brotli
@@ -58,6 +59,12 @@
 )
 
 (package
+  (name geneweb-win32)
+  (synopsis "Geneweb library for Windows support")
+  (tags (geneweb windows))
+  (depends ocaml))
+
+(package
   (name geneweb-compat)
   (synopsis "Geneweb library for legacy support")
   (tags (geneweb legacy))
@@ -70,6 +77,7 @@
     ocaml
     camlp-streams
     geneweb-compat
+    geneweb-win32
     logs
     fmt))
 
